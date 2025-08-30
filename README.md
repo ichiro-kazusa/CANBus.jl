@@ -17,13 +17,15 @@ This package depends on `CANalyze.jl`, `StaticArrays.jl`. Install them from Juli
 
 * Vector - requires [XL Driver Library](https://www.vector.com/int/en/download/xl-driver-library/) is installed
 * Kvaser - requires [Kvaser CANlib SDK](https://kvaser.com/single-download/?download_id=47112) is installed
+* SocketCAN
 
 ### Features List
 
-|Interface|CAN|Ext.ID|Filter|CANFD|
-|----|----|----|----|----|
-|Vector|✓|✓|NO|NO|
-|Kvaser|✓|✓|NO|NO|
+|Interface|CAN|Ext.ID|Filter|CANFD|Platform|
+|----|----|----|----|----|----|
+|Vector|✓|✓|NO|NO|Win64|
+|Kvaser|✓|✓|NO|NO|Win64|
+|SocketCAN|✓|✓|NO|NO|Linux|
 
 ## Example usage
 
@@ -79,6 +81,37 @@ function main()
 
     shutdown(kvaser1)
     shutdown(kvaser2)
+end
+
+main()
+```
+
+### SocketCAN
+
+```jl
+using CAN
+using CANalyze
+
+
+function main()
+    sockcan1 = SocketcanInterface("vcan0")
+    sockcan2 = SocketcanInterface("vcan1")
+
+    println(sockcan1)
+    println(sockcan2)
+
+    frame = CANalyze.CANFrame(14, [1, 1, 2, 2, 3, 3, 4]; is_extended=true)
+
+    send(sockcan1, frame)
+
+    frame = recv(sockcan2) # non-blocking receive
+    println(frame)
+
+    frame = recv(sockcan2) # returns nothing
+    println(frame)
+
+    shutdown(sockcan1)
+    shutdown(sockcan2)
 end
 
 main()

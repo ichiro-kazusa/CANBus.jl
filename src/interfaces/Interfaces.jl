@@ -29,4 +29,9 @@ include("kvaser/Kvaser.jl")
 import .KvaserInterfaces: KvaserInterface
 export KvaserInterface
 
+include("socketcan/Socketcan.jl")
+import .SocketcanInterfaces: SocketcanInterface
+export SocketcanInterface
+
+
 end # Interfaces

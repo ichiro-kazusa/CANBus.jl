@@ -4,7 +4,8 @@ module CAN
 include("interfaces/Interfaces.jl")
 using .Interfaces
 export VectorInterface,
-    KvaserInterface
+    KvaserInterface,
+    SocketcanInterface
 export send, recv, shutdown
 
 
