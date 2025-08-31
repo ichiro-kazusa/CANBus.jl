@@ -32,7 +32,7 @@ Abstract function for receive message.
 Common behavior of concrete implements:
 * non-blocking
 * When receive successed, returns CANalyze.CANFrame.
-* When receive failed, returns nothing.
+* When receive queue is empty, returns nothing.
 """
 function recv(interface::AbstractCANInterface)
     error("abstract 'recv' is not implemented.")
@@ -43,6 +43,7 @@ end
     shutdown(interface::T<:AbstractCANInterface)
 
 Abstract function for shutdown interface.
+Always returns nothing.
 """
 function shutdown(interface::AbstractCANInterface)
     error("abstract 'shutdown' is not implemented.")

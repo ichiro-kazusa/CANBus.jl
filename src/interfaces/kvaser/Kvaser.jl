@@ -82,6 +82,7 @@ end
 function Interfaces.shutdown(interface::KvaserInterface)
     status = Canlib.canBusOff(interface.handle)
     status = Canlib.canClose(interface.handle)
+    return nothing
 end
 
 end # KvaserInterfaces

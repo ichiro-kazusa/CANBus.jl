@@ -130,10 +130,9 @@ end
 
 function Interfaces.shutdown(interface::VectorInterface)
     status = Vxlapi.xlDeactivateChannel(interface.portHandle, interface.channelMask)
-
     status = Vxlapi.xlClosePort(interface.portHandle)
-
     status = Vxlapi.xlCloseDriver()
+    return nothing
 end
 
 

@@ -90,6 +90,7 @@ end
 
 function Interfaces.shutdown(interface::SocketcanInterface)
     SocketCAN.close(interface.socket)
+    return nothing
 end
 
 
