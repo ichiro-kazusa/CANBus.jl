@@ -13,7 +13,11 @@ At this time, this is an alpha version software.
 
 
 ## Installation
-Install from GitHub.
+Install from GitHub. on julia package mode, 
+
+```
+pkg> add https://github.com/ichiro-kazusa/CAN.jl
+```
 
 This package depends on `CANalyze.jl`, `StaticArrays.jl`. Install them from Julia package manager.
 
