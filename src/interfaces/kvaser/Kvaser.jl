@@ -16,7 +16,10 @@ Setup Kvaser interface with channel number and bitrate(bps).
 struct KvaserInterface <: Interfaces.AbstractCANInterface
     handle::Cint
 
-    function KvaserInterface(channel::Int, bitrate::Int)
+    function KvaserInterface(channel::Int, bitrate::Int;
+        fd::Bool=false,
+        stdfilter::Union{Nothing,Interfaces.AcceptanceFilter}=nothing,
+        extfilter::Union{Nothing,Interfaces.AcceptanceFilter}=nothing)
 
         # initialize library
         Canlib.canInitializeLibrary()
@@ -32,6 +35,16 @@ struct KvaserInterface <: Interfaces.AbstractCANInterface
 
         # set drivertype
         status = Canlib.canSetBusOutputControl(hnd, Canlib.canDRIVER_NORMAL)
+
+        # set acceptance filter
+        if stdfilter !== nothing
+            Canlib.canSetAcceptanceFilter(hnd,
+                stdfilter.code_id, stdfilter.mask, Cint(0))
+        end
+        if extfilter !== nothing
+            Canlib.canSetAcceptanceFilter(hnd,
+                extfilter.code_id, extfilter.mask, Cint(1))
+        end
 
         # bus on 
         status = Canlib.canBusOn(hnd)

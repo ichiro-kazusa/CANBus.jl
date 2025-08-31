@@ -64,4 +64,12 @@ function canRead(handle::Cint, pid::Base.RefValue{Clong},
         handle, pid, pmsg, pdlc, pflag, ptime)
 end
 
+function canSetAcceptanceFilter(handle::Cint, code::Cuint,
+    mask::Cuint, is_extended::Cint)::canStatus
+
+    ccall((:canSetAcceptanceFilter, canlib), canStatus,
+        (Cint, Cuint, Cuint, Cint),
+        handle, code, mask, is_extended)
+end
+
 end # Canlib

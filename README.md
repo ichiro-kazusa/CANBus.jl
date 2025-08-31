@@ -37,9 +37,9 @@ pkg> add https://github.com/ichiro-kazusa/CAN.jl
 
 |Interface|CAN|Ext.ID|Filter|CANFD|Platform|
 |----|----|----|----|----|----|
-|Kvaser|✓|✓|NO|NO|Win64|
+|Kvaser|✓|✓|✓|NO|Win64|
 |SocketCAN|✓|✓|NO|NO|Linux|
-|Vector|✓|✓|NO|NO|Win64|
+|Vector|✓|✓|✓|NO|Win64|
 
 ## Example usage
 
