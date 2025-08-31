@@ -14,7 +14,7 @@ struct VectorInterface <: Interfaces.AbstractCANInterface
 
     function VectorInterface(channel::Union{Int,AbstractVector{Int}},
         bitrate::Int,
-        appname::String="CANalyzer", rxqueuesize::Cuint=Cuint(16384))
+        appname::String="CANalyzer", rxqueuesize::Cuint=Cuint(16384); fd::Bool=false)
 
         # check dll exists
         try
@@ -101,7 +101,7 @@ function Interfaces.send(interface::VectorInterface, frame::CANalyze.CANFrame)
     pMessageCount = Ref(messageCount)
     pEventList_t = Ref(EventList_t, 1)
     status = Vxlapi.xlCanTransmit!(interface.portHandle, interface.channelMask, pMessageCount, pEventList_t)
-    
+
     if status != Vxlapi.XL_SUCCESS || pMessageCount[] != messageCount
         error("Vector: Failed to transmit.")
     end

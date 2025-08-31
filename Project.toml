@@ -1,14 +1,13 @@
 name = "CAN"
-uuid = "eccff88b-9261-45ba-9dae-6dca6e9f1b2b"
-authors = ["soichiro fukamachi"]
-version = "0.0.1"
+uuid = "bffc1db9-6142-4b2c-b5cf-b017e7edc3de"
+authors = ["Soichiro Fukamachi <ichiro.kazusa@gmail.com>"]
+version = "1.0.0-DEV"
 
 [deps]
 CANalyze = "2dc4fe6c-d2be-46ad-ace5-0bbcd4825534"
-Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
 [compat]
 CANalyze = "1.6.0"
-Revise = "3.9.0"
-StaticArrays = "1.9.14"
+StaticArrays = "1.9.15"
+julia = "1.11"

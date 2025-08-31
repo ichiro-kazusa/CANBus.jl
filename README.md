@@ -1,5 +1,12 @@
 # CAN.jl
 
+[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://ichiro-kazusa.github.io/CAN.jl/stable/)
+[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://ichiro-kazusa.github.io/CAN.jl/dev/)
+[![Build Status](https://github.com/ichiro-kazusa/CAN.jl/actions/workflows/CI.yml/badge.svg?branch=master)](https://github.com/ichiro-kazusa/CAN.jl/actions/workflows/CI.yml?query=branch%3Amaster)
+[![Coverage](https://codecov.io/gh/ichiro-kazusa/CAN.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/ichiro-kazusa/CAN.jl)
+
+
+
 `CAN.jl` is a Control Area Network (CAN Bus) communication package for Julia language, inspired by [`python-can`](https://github.com/hardbyte/python-can) package.
 
 `CAN.jl` only does communication itself.
