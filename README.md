@@ -1,5 +1,12 @@
 # CAN.jl
 
+[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://ichiro-kazusa.github.io/CAN.jl/stable/)
+[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://ichiro-kazusa.github.io/CAN.jl/dev/)
+[![Build Status](https://github.com/ichiro-kazusa/CAN.jl/actions/workflows/CI.yml/badge.svg?branch=master)](https://github.com/ichiro-kazusa/CAN.jl/actions/workflows/CI.yml?query=branch%3Amaster)
+[![Coverage](https://codecov.io/gh/ichiro-kazusa/CAN.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/ichiro-kazusa/CAN.jl)
+
+
+
 `CAN.jl` is a Control Area Network (CAN Bus) communication package for Julia language, inspired by [`python-can`](https://github.com/hardbyte/python-can) package.
 
 `CAN.jl` only does communication itself.
@@ -11,21 +18,20 @@ At this time, this is an alpha version software.
 * Writing documents.
 * Writing tests.
 
+For more details, read full documentation (constructing).
 
 ## Installation
 Install from GitHub. on julia package mode, 
 
-```
+```julia-repl
 pkg> add https://github.com/ichiro-kazusa/CAN.jl
 ```
 
-This package depends on `CANalyze.jl`, `StaticArrays.jl`. Install them from Julia package manager.
-
 ## Supported hardwares at this time
 
-* Vector - requires [XL Driver Library](https://www.vector.com/int/en/download/xl-driver-library/) is installed
-* Kvaser - requires [Kvaser CANlib SDK](https://kvaser.com/single-download/?download_id=47112) is installed
+* Kvaser
 * SocketCAN
+* Vector - requires [XL Driver Library](https://www.vector.com/int/en/download/xl-driver-library/) is installed
 
 ### Features List
 

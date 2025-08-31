@@ -1,13 +1,9 @@
-"""
-    module Canlib
-
-low-level api for Kvaser canlib sdk
-"""
+"Low level API for Kvaser CANlib SDK"
 module Canlib
 
 include("canlibdef.jl")
 
-const canlib = "canlib32"
+const canlib = joinpath(@__DIR__(), "..", "..", "..", "deps", "lib", "kvaser", "canlib32")
 
 #########################################################
 # function wrappers
@@ -50,11 +46,11 @@ function canBusOff(handle::Cint)::canStatus
 end
 
 function canWrite(handle::Cint, id::Clong,
-    pmsg::Base.RefArray{Cchar,Vector{Cchar},Nothing},
+    pmsg::Base.RefArray{Cuchar,Vector{Cuchar},Nothing},
     dlc::Cuint, flag::Cuint)::canStatus
 
     ccall((:canWrite, canlib), canStatus,
-        (Cint, Clong, Ptr{Cchar}, Cuint, Cuint),
+        (Cint, Clong, Ptr{Cuchar}, Cuint, Cuint),
         handle, id, pmsg, dlc, flag)
 end
 
