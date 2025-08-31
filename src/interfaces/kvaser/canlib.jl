@@ -50,11 +50,11 @@ function canBusOff(handle::Cint)::canStatus
 end
 
 function canWrite(handle::Cint, id::Clong,
-    pmsg::Base.RefArray{Cchar,Vector{Cchar},Nothing},
+    pmsg::Base.RefArray{Cuchar,Vector{Cuchar},Nothing},
     dlc::Cuint, flag::Cuint)::canStatus
 
     ccall((:canWrite, canlib), canStatus,
-        (Cint, Clong, Ptr{Cchar}, Cuint, Cuint),
+        (Cint, Clong, Ptr{Cuchar}, Cuint, Cuint),
         handle, id, pmsg, dlc, flag)
 end
 

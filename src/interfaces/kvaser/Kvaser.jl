@@ -44,8 +44,7 @@ this function is non-blocking.
 """
 function Interfaces.send(interface::KvaserInterface,
     frame::CANalyze.CANFrame)::Nothing
-    msg_t = Vector{Cchar}(frame.data)
-    pmsg_t = Ref(msg_t, 1)
+    pmsg_t = Ref(frame.data, 1)
     dlc = Cuint(size(frame.data, 1))
     id = Clong(frame.frame_id)
     flag = frame.is_extended ? Canlib.canMSG_EXT : Canlib.canMSG_STD
