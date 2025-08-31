@@ -1,12 +1,16 @@
 # CAN.jl
 
-`CAN.jl` is a Control Area Network communication package for Julia language.
+`CAN.jl` is a Control Area Network (CAN Bus) communication package for Julia language, inspired by [`python-can`](https://github.com/hardbyte/python-can) package.
 
 `CAN.jl` only does communication itself.
 To encode/decode messages, use tsavelmann's [`CANalyze.jl`](https://github.com/tsabelmann/CANalyze.jl/tree/main)
 
 At this time, this is an alpha version software. 
-Only CAN protocol is supported (CANFD is not supported).
+* Only CAN protocol is supported (CANFD is not supported yet).
+* Several interfaces are tested only on virtual bus.
+* Writing documents.
+* Writing tests.
+
 
 ## Installation
 Install from GitHub.
