@@ -9,7 +9,7 @@ makedocs(;
     sitename="CAN.jl",
     format=Documenter.HTML(;
         canonical="https://ichiro-kazusa.github.io/CAN.jl",
-        edit_link="master",
+        edit_link="main",
         assets=String[],
     ),
     pages=[
@@ -25,5 +25,5 @@ makedocs(;
 
 deploydocs(;
     repo="github.com/ichiro-kazusa/CAN.jl",
-    devbranch="master",
+    devbranch="main",
 )
