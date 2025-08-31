@@ -81,4 +81,13 @@ function xlCanTransmit!(portHandle::XLportHandle, accessMask::XLaccess,
         portHandle, accessMask, pmessageCount, pMessages)
 end
 
+function xlCanSetChannelAcceptance(portHandle::XLportHandle,
+    accessMask::XLaccess, code::Culong, mask::Culong,
+    idRange::Cuint)::XLstatus
+
+    ccall((:xlCanSetChannelAcceptance, vxlapi), XLstatus,
+        (XLportHandle, XLaccess, Culong, Culong, Cuint),
+        portHandle, accessMask, code, mask, idRange)
+end
+
 end # Vxlapi

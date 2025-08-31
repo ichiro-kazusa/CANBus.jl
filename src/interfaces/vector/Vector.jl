@@ -19,8 +19,10 @@ struct VectorInterface <: Interfaces.AbstractCANInterface
 
 
     function VectorInterface(channel::Union{Int,AbstractVector{Int}},
-        bitrate::Int,
-        appname::String, rxqueuesize::Cuint=Cuint(16384); fd::Bool=false)
+        bitrate::Int, appname::String, rxqueuesize::Cuint=Cuint(16384);
+        fd::Bool=false,
+        stdfilter::Union{Nothing,Interfaces.AcceptanceFilter}=nothing,
+        extfilter::Union{Nothing,Interfaces.AcceptanceFilter}=nothing)
 
         # open driver
         status = Vxlapi.xlOpenDriver()
@@ -59,6 +61,16 @@ struct VectorInterface <: Interfaces.AbstractCANInterface
         if status != Vxlapi.XL_SUCCESS
             Vxlapi.xlCloseDriver()
             throw(ErrorException("Vector: Failed to open port."))
+        end
+
+        # set filter
+        if stdfilter !== nothing
+            Vxlapi.xlCanSetChannelAcceptance(pportHandle[], channelMask,
+                stdfilter.code_id, stdfilter.mask, Vxlapi.XL_CAN_STD)
+        end
+        if extfilter !== nothing
+            Vxlapi.xlCanSetChannelAcceptance(pportHandle[], channelMask,
+                extfilter.code_id, extfilter.mask, Vxlapi.XL_CAN_EXT)
         end
 
         # set bitrate

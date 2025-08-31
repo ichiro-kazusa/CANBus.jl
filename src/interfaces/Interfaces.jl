@@ -3,7 +3,7 @@ module Interfaces
 using CANalyze
 
 export
-    send, recv, shutdown
+    send, recv, shutdown, AcceptanceFilter
 
 
 """
@@ -47,6 +47,15 @@ Always returns nothing.
 """
 function shutdown(interface::AbstractCANInterface)
     error("abstract 'shutdown' is not implemented.")
+end
+
+
+"""
+struct for accept filter.
+"""
+struct AcceptanceFilter
+    code_id::UInt32
+    mask::UInt32
 end
 
 

@@ -225,3 +225,10 @@ const XL_APPLICATION_NOTIFICATION::Cushort = 0x000F
 
 
 const XL_CAN_EXT_MSG_ID::Culong = 0x80000000 # CAN EXT ID FLAG
+
+
+#//------------------------------------------------------------------------------
+#// acceptance filter
+#
+const XL_CAN_STD::Cuint = 01  #//!< flag for standard ID's
+const XL_CAN_EXT::Cuint = 02  #//!< flag for extended ID's
