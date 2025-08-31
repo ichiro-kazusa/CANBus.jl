@@ -18,7 +18,7 @@ At this time, this is an alpha version software.
 * Writing documents.
 * Writing tests.
 
-For more details, read full documentation (constructing).
+For more details, read full [documentation](https://ichiro-kazusa.github.io/CAN.jl/dev/).
 
 ## Installation
 Install from GitHub. on julia package mode, 
