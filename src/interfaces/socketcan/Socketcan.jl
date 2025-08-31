@@ -7,6 +7,12 @@ include("socketcanapi.jl")
 import .SocketCAN
 
 
+
+"""
+    SocketcanInterface(channel::String)
+
+Setup SocketCAN interface with channel name.
+"""
 struct SocketcanInterface <: Interfaces.AbstractCANInterface
     socket::Cint
 
@@ -44,13 +50,6 @@ struct SocketcanInterface <: Interfaces.AbstractCANInterface
 end
 
 
-"""
-    send(interface::SocketcanInterface, frame::CANalyze.CANFrame)
-
-throws error when transmit is failed.
-returns nothing when successed.
-this function is non-blocking.
-"""
 function Interfaces.send(interface::SocketcanInterface,
     frame::CANalyze.CANFrame)::Nothing
 
@@ -69,13 +68,6 @@ function Interfaces.send(interface::SocketcanInterface,
 end
 
 
-"""
-    recv(interface::SocketcanInterface)
-
-returns CANalyze.CANFrame when RX frame exists.
-returns nothing when anything received.
-this function is non-blocking.
-"""
 function Interfaces.recv(interface::SocketcanInterface)::Union{Nothing,CANalyze.CANFrame}
     frame_r = SocketCAN.can_frame(0, 0, 0, 0, 0, zeros(Cchar, 8)) # empty frame
     pframe_r = Ref(frame_r)
@@ -96,11 +88,6 @@ function Interfaces.recv(interface::SocketcanInterface)::Union{Nothing,CANalyze.
 end
 
 
-"""
-    shutdown(interface::SocketcanInterface)
-
-shutdown Kvaser Interface
-"""
 function Interfaces.shutdown(interface::SocketcanInterface)
     SocketCAN.close(interface.socket)
 end

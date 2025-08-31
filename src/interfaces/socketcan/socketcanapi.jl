@@ -1,3 +1,4 @@
+"Low level API for SocketCAN"
 module SocketCAN
 
 using StaticArrays

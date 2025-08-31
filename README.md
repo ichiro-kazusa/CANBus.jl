@@ -18,21 +18,20 @@ At this time, this is an alpha version software.
 * Writing documents.
 * Writing tests.
 
+For more details, read full documentation (constructing).
 
 ## Installation
 Install from GitHub. on julia package mode, 
 
-```
+```julia-repl
 pkg> add https://github.com/ichiro-kazusa/CAN.jl
 ```
 
-This package depends on `CANalyze.jl`, `StaticArrays.jl`. Install them from Julia package manager.
-
 ## Supported hardwares at this time
 
-* Vector - requires [XL Driver Library](https://www.vector.com/int/en/download/xl-driver-library/) is installed
-* Kvaser - requires [Kvaser CANlib SDK](https://kvaser.com/single-download/?download_id=47112) is installed
+* Kvaser
 * SocketCAN
+* Vector - requires [XL Driver Library](https://www.vector.com/int/en/download/xl-driver-library/) is installed
 
 ### Features List
 

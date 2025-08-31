@@ -1,6 +1,9 @@
 using CAN
 using Test
+using Aqua
+
+
 
 @testset "CAN.jl" begin
-    # Write your tests here.
+    Aqua.test_all(CAN)
 end

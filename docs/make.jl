@@ -14,6 +14,12 @@ makedocs(;
     ),
     pages=[
         "Home" => "index.md",
+        "Example Usage" => "examples.md",
+        "Supported Hardwares" => "hardwares.md",
+        "References" => [
+            "Interfaces" => "interfaces.md",
+            "Internals" => "internals.md"
+        ]
     ],
 )
 

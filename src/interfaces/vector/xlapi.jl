@@ -1,8 +1,4 @@
-"""
-    module Vxlapi
-
-low-level api for Vector XL Library
-"""
+"Low level API for Vector XL Driver Library"
 module Vxlapi
 
 include("xltypes.jl")

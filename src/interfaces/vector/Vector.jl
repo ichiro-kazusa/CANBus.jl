@@ -7,6 +7,12 @@ include("xlapi.jl")
 import .Vxlapi
 
 
+
+"""
+    VectorInterface(channel::Int, bitrate::Int, appname::String)
+
+Setup Vector interface with channel number, bitrate(bps), application name.
+"""
 struct VectorInterface <: Interfaces.AbstractCANInterface
     portHandle::Vxlapi.XLportHandle
     channelMask::Vxlapi.XLaccess
@@ -14,15 +20,7 @@ struct VectorInterface <: Interfaces.AbstractCANInterface
 
     function VectorInterface(channel::Union{Int,AbstractVector{Int}},
         bitrate::Int,
-        appname::String="CANalyzer", rxqueuesize::Cuint=Cuint(16384); fd::Bool=false)
-
-        # check dll exists
-        try
-            dl = Libc.Libdl.dlopen(Vxlapi.vxlapi)
-            Libc.Libdl.dlclose(dl)
-        catch e
-            throw(ErrorException("Vector XL Driver Library is not found."))
-        end
+        appname::String, rxqueuesize::Cuint=Cuint(16384); fd::Bool=false)
 
         # open driver
         status = Vxlapi.xlOpenDriver()
@@ -76,13 +74,6 @@ struct VectorInterface <: Interfaces.AbstractCANInterface
 end
 
 
-"""
-    send(interface::VectorInterface, frame::CANalyze.CANFrame)
-
-throws error when transmit is failed.
-returns nothing when successed.
-this function is non-blocking.
-"""
 function Interfaces.send(interface::VectorInterface, frame::CANalyze.CANFrame)
     # construct XLEvent
     messageCount = Cuint(1)
@@ -110,13 +101,6 @@ function Interfaces.send(interface::VectorInterface, frame::CANalyze.CANFrame)
 end
 
 
-"""
-    recv(interface::VectorInterface)
-
-returns CANalyze.CANFrame when RX frame exists.
-returns nothing when anything received.
-this function is non-blocking.
-"""
 function Interfaces.recv(interface::VectorInterface)::Union{Nothing,CANalyze.CANFrame}
     pEventCount = Ref(Cuint(1))
     EventList_r = Vector{Vxlapi.XLevent}([Vxlapi.XLevent() for i in 1:pEventCount[]])
@@ -144,11 +128,6 @@ function Interfaces.recv(interface::VectorInterface)::Union{Nothing,CANalyze.CAN
 end
 
 
-"""
-    shutdown(interface::VectorInterface)
-
-shutdown Vector Interface
-"""
 function Interfaces.shutdown(interface::VectorInterface)
     status = Vxlapi.xlDeactivateChannel(interface.portHandle, interface.channelMask)
 

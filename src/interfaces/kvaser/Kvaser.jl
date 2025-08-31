@@ -7,6 +7,12 @@ include("canlib.jl")
 import .Canlib
 
 
+
+"""
+    KvaserInterface(channel::Int, bitrate::Int)
+
+Setup Kvaser interface with channel number and bitrate(bps).
+"""
 struct KvaserInterface <: Interfaces.AbstractCANInterface
     handle::Cint
 
@@ -35,13 +41,6 @@ struct KvaserInterface <: Interfaces.AbstractCANInterface
 end
 
 
-"""
-    send(interface::KvaserInterface, frame::CANalyze.CANFrame)
-
-throws error when transmit is failed.
-returns nothing when successed.
-this function is non-blocking.
-"""
 function Interfaces.send(interface::KvaserInterface,
     frame::CANalyze.CANFrame)::Nothing
     pmsg_t = Ref(frame.data, 1)
@@ -58,13 +57,6 @@ function Interfaces.send(interface::KvaserInterface,
 end
 
 
-"""
-    recv(interface::KvaserInterface)
-
-returns CANalyze.CANFrame when RX frame exists.
-returns nothing when anything received.
-this function is non-blocking.
-"""
 function Interfaces.recv(interface::KvaserInterface)::Union{Nothing,CANalyze.CANFrame}
     msg_r = Vector{Cchar}(undef, 8)
     pid = Ref{Clong}(0)
@@ -87,11 +79,6 @@ function Interfaces.recv(interface::KvaserInterface)::Union{Nothing,CANalyze.CAN
 end
 
 
-"""
-    shutdown(interface::KvaserInterface)
-
-shutdown Kvaser Interface
-"""
 function Interfaces.shutdown(interface::KvaserInterface)
     status = Canlib.canBusOff(interface.handle)
     status = Canlib.canClose(interface.handle)
