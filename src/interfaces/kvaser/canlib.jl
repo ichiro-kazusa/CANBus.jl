@@ -55,12 +55,12 @@ function canWrite(handle::Cint, id::Clong,
 end
 
 function canRead(handle::Cint, pid::Base.RefValue{Clong},
-    pmsg::Base.RefArray{Cchar,Vector{Cchar},Nothing},
+    pmsg::Base.RefArray{Cuchar,Vector{Cuchar},Nothing},
     pdlc::Base.RefValue{Cuint}, pflag::Base.RefValue{Cuint},
     ptime::Base.RefValue{Culong})::canStatus
 
     ccall((:canRead, canlib), canStatus,
-        (Cint, Ptr{Clong}, Ptr{Cchar}, Ptr{Cuint}, Ptr{Cuint}, Ptr{Culong}),
+        (Cint, Ptr{Clong}, Ptr{Cvoid}, Ptr{Cuint}, Ptr{Cuint}, Ptr{Culong}),
         handle, pid, pmsg, pdlc, pflag, ptime)
 end
 

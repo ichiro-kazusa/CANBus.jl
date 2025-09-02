@@ -71,7 +71,7 @@ end
 
 
 function Interfaces.recv(interface::KvaserInterface)::Union{Nothing,CANalyze.CANFrame}
-    msg_r = Vector{Cchar}(undef, 8)
+    msg_r = Vector{Cuchar}(undef, 8)
     pid = Ref{Clong}(0)
     pmsg_r = Ref(msg_r, 1)
     pdlc = Ref{Cuint}(0)

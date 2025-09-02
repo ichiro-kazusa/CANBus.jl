@@ -7,18 +7,24 @@ import CAN.Interfaces.KvaserInterfaces: Canlib as Canlib
 example program to check internal low-level api "CAN.Interfaces.KvaserInterfaces.Canlib"
 """
 function main()
+    useFD::Bool = true
+
     # initialize library
     Canlib.canInitializeLibrary()
 
+    # fd flag
+    openflag = useFD ? Canlib.canOPEN_ACCEPT_VIRTUAL | Canlib.canOPEN_CAN_FD :
+               Canlib.canOPEN_ACCEPT_VIRTUAL
+
     # open channel 0
-    hnd0 = Canlib.canOpenChannel(Cint(0), Canlib.canOPEN_ACCEPT_VIRTUAL)
+    hnd0 = Canlib.canOpenChannel(Cint(0), openflag)
     if hnd0 < 0
         error("Kvaser: can open failed.")
     end
     println("Handle0: ", hnd0)
 
     # open channel 1
-    hnd1 = Canlib.canOpenChannel(Cint(1), Canlib.canOPEN_ACCEPT_VIRTUAL)
+    hnd1 = Canlib.canOpenChannel(Cint(1), openflag)
     if hnd1 < 0
         error("Kvaser: can open failed.")
     end
@@ -40,16 +46,15 @@ function main()
     println((status0, status1))
 
     # send message
-    msg_t = Cchar[1, 1, 2, 2, 3, 3, 4, 4]
+    msg_t = Cuchar[1, 1, 2, 2, 3, 3, 4, 4]
     dlc::Cuint = 8
     id::Clong = 8
     pmsg_t = Ref(msg_t, 1)
-    status = Canlib.canWrite(hnd0, id, pmsg_t, dlc, Canlib.canMSG_STD)
+    status = Canlib.canWrite(hnd0, id, pmsg_t, dlc, Canlib.canMSG_EXT)
     println(status)
-    sleep(0.5)
 
     # recv message
-    msg_r = Vector{Cchar}(undef, 8)
+    msg_r = Vector{Cuchar}(undef, 8)
     pid = Ref{Clong}(0)
     pmsg_r = Ref(msg_r, 1)
     pdlc = Ref{Cuint}(0)
