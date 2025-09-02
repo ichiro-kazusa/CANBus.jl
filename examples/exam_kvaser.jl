@@ -2,7 +2,8 @@ using CAN
 using CANalyze
 
 function main()
-    kvaser1 = KvaserInterface(0, 500000)
+    # use CAN
+    kvaser1 = KvaserInterface(0, 500000; silent=true)
     kvaser2 = KvaserInterface(1, 500000;
         extfilter=AcceptanceFilter(0x01, 0x01))
 
@@ -10,19 +11,35 @@ function main()
     println(kvaser2)
 
     frame = CANalyze.CANFrame(1, [1, 1, 2, 2, 3, 3, 4]; is_extended=true)
-    send(kvaser1, frame)
+    msg = CAN.CANMessage(frame)
+    send(kvaser1, msg)
 
-    frame = CANalyze.CANFrame(2, [1, 1, 2, 2, 3, 3, 4]; is_extended=true)
-    send(kvaser1, frame)
+    msg = CAN.CANMessage(2, 7, [1, 1, 2, 2, 3, 3, 4, 0], true)
+    send(kvaser1, msg)
 
-    frame = recv(kvaser2) # accept by filter
-    println(frame)
+    msg = recv(kvaser2) # accept by filter
+    println(msg)
 
-    frame = recv(kvaser2) # decline by filter
-    println(frame)
+    msg = recv(kvaser2) # decline by filter
+    println(msg)
 
     shutdown(kvaser1)
     shutdown(kvaser2)
+
+    # use CAN FD
+    kvaserfd1 = KvaserFDInterface(0, 500000, 2000000)
+    kvaserfd2 = KvaserFDInterface(1, 500000, 2000000)
+    println(kvaserfd1)
+    println(kvaserfd2)
+
+    msg = CAN.CANFDMessage(1, 16, collect(1:16), false, false, false)
+    send(kvaserfd1, msg)
+
+    msg = recv(kvaserfd2)
+    println(convert(CANalyze.CANFdFrame, msg))
+
+    shutdown(kvaserfd1)
+    shutdown(kvaserfd2)
 end
 
 main()

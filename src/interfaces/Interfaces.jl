@@ -2,9 +2,6 @@ module Interfaces
 
 using CANalyze
 
-export
-    send, recv, shutdown, AcceptanceFilter
-
 
 """
 Abstract type for Interfaces.
@@ -60,16 +57,8 @@ end
 
 
 include("vector/Vector.jl")
-import .VectorInterfaces: VectorInterface
-export VectorInterface
-
 include("kvaser/Kvaser.jl")
-import .KvaserInterfaces: KvaserInterface
-export KvaserInterface
-
 include("socketcan/Socketcan.jl")
-import .SocketcanInterfaces: SocketcanInterface
-export SocketcanInterface
 
 
 end # Interfaces
