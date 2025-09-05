@@ -1,5 +1,6 @@
 using CAN
 using CANalyze
+using Test
 
 function main()
     # use CAN
@@ -40,6 +41,8 @@ function main()
 
     shutdown(kvaserfd1)
     shutdown(kvaserfd2)
+
+    true
 end
 
-main()
+@test main()

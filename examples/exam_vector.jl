@@ -1,5 +1,6 @@
 using CAN
 using CANalyze
+using Test
 
 function main()
 
@@ -24,6 +25,8 @@ function main()
 
     shutdown(vector1)
     shutdown(vector2)
+
+    true
 end
 
-main()
+@test main()

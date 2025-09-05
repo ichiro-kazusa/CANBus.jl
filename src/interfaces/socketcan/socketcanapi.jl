@@ -13,6 +13,16 @@ const SOCK_NONBLOCK = Cint(0o4000)
 const CAN_RAW = Cint(1)
 const SIOCGIFINDEX = Cint(0x8933)
 const CAN_EFF_FLAG = UInt32(0x80000000)
+const SOL_CAN_BASE = Cint(100)
+const SOL_CAN_RAW = SOL_CAN_BASE + CAN_RAW
+const CAN_RAW_FILTER = Cint(1)
+const CAN_RAW_FD_FRAMES = Cint(5)
+#/*
+# * defined bits for canfd_frame.flags
+# */
+const CANFD_BRS::UInt8 = 0x01 #/* bit rate switch (second bitrate for payload data) */
+const CANFD_ESI::UInt8 = 0x02 #/* error state indicator of the transmitting node */
+const CANFD_FDF::UInt8 = 0x04 #/* mark CAN FD for dual use of struct canfd_frame */
 
 ########################################
 # structs
@@ -37,6 +47,20 @@ struct can_frame # 16 bytes
     data::SVector{8,UInt8}
 end
 
+struct canfd_frame # 72 bytes
+    can_id::UInt32
+    len::UInt8
+    flags::UInt8
+    __res0::UInt8
+    __res1::UInt8
+    data::SVector{64,UInt8}
+end
+
+struct can_filter # 8 bytes
+    can_id::UInt32
+    can_mask::UInt32
+end
+
 
 ########################################
 # function wrappers
@@ -53,13 +77,16 @@ function bind(socket::Cint, address::Ref{sockaddr_can}, address_len::Cuint)::Cin
     ccall(:bind, Cint, (Cint, Ptr{sockaddr_can}, Cuint), socket, address, address_len)
 end
 
-function write(socket::Cint, pframe::Ref{can_frame}, len::Cuint)::Clong
-    ccall(:write, Clong, (Cint, Ptr{can_frame}, Cuint),
+function write(socket::Cint, pframe::Ref{T},
+    len::Cuint)::Clong where T<:Union{can_frame,canfd_frame}
+    ccall(:write, Clong, (Cint, Ptr{T}, Cuint),
         socket, pframe, len)
 end
 
-function read(socket::Cint, pframe::Ref{can_frame}, len::Cuint)::Clong
-    ccall(:read, Clong, (Cint, Ptr{can_frame}, Cuint),
+function read(socket::Cint, pframe::Ref{T},
+    len::Cuint)::Clong where T<:Union{can_frame,canfd_frame}
+    
+    ccall(:read, Clong, (Cint, Ptr{T}, Cuint),
         socket, pframe, len)
 end
 
@@ -67,5 +94,22 @@ function close(socket::Cint)::Cint
     ccall(:close, Cint, (Cint,), socket)
 end
 
+function setsockopt(socket::Cint, level::Cint, optionname::Cint,
+    optionvalue::Base.RefArray{can_filter,Vector{can_filter},Nothing},
+    optionlength::Cuint)::Cint
+
+    # setsockopt for add filters
+    ccall(:setsockopt, Cint,
+        (Cint, Cint, Cint, Ptr{Cvoid}, Cuint),
+        socket, level, optionname, optionvalue, optionlength)
+end
+
+function setsockopt(socket::Cint, level::Cint, optionname::Cint,
+    optionvalue::Base.RefValue{Cint}, optionlength::Cuint)::Cint
+
+    ccall(:setsockopt, Cint,
+        (Cint, Cint, Cint, Ptr{Cvoid}, Cuint),
+        socket, level, optionname, optionvalue, optionlength)
+end
 
 end # Socketcanapi

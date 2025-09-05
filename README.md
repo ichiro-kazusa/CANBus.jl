@@ -2,21 +2,19 @@
 
 [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://ichiro-kazusa.github.io/CAN.jl/stable/)
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://ichiro-kazusa.github.io/CAN.jl/dev/)
-[![Build Status](https://github.com/ichiro-kazusa/CAN.jl/actions/workflows/CI.yml/badge.svg?branch=master)](https://github.com/ichiro-kazusa/CAN.jl/actions/workflows/CI.yml?query=branch%3Amaster)
-[![Coverage](https://codecov.io/gh/ichiro-kazusa/CAN.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/ichiro-kazusa/CAN.jl)
+[![Build Status](https://github.com/ichiro-kazusa/CAN.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/ichiro-kazusa/CAN.jl/actions/workflows/CI.yml?query=branch%3Amain)
+[![Coverage](https://codecov.io/gh/ichiro-kazusa/CAN.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/ichiro-kazusa/CAN.jl)
+[![Aqua QA](https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg)](https://github.com/JuliaTesting/Aqua.jl)
 
 
-
-`CAN.jl` is a Control Area Network (CAN Bus) communication package for Julia language, inspired by [`python-can`](https://github.com/hardbyte/python-can) package.
+`CAN.jl` is a Control Area Network (CAN Bus) communication package for Julia language.
 
 `CAN.jl` only does communication itself.
 To encode/decode messages, use tsavelmann's [`CANalyze.jl`](https://github.com/tsabelmann/CANalyze.jl/tree/main).
 
 At this time, this is an alpha version software. 
-* Only CAN protocol is supported (CANFD is not supported yet).
 * Several interfaces are tested only on virtual bus.
-* Writing documents.
-* Writing tests.
+* Package behavior changes frequently.
 
 For more details, read full [documentation](https://ichiro-kazusa.github.io/CAN.jl/dev/).
 
@@ -38,8 +36,8 @@ pkg> add https://github.com/ichiro-kazusa/CAN.jl
 |Interface|CAN|Ext.ID|Filter|CANFD|Platform|
 |----|----|----|----|----|----|
 |Kvaser|✓|✓|✓|✓|Win64|
-|SocketCAN|✓|✓|NO|NO|Linux|
-|Vector|✓|✓|✓|NO|Win64|
+|SocketCAN|✓|✓|✓|✓|Linux|
+|Vector|✓|✓|✓|✓|Win64|
 
 ## Example usage
 
@@ -47,87 +45,43 @@ pkg> add https://github.com/ichiro-kazusa/CAN.jl
 
 ```jl
 using CAN
-using CANalyze
 
 function main()
     kvaser1 = KvaserInterface(0, 500000)
-    kvaser2 = KvaserInterface(1, 500000)
+    kvaser2 = KvaserInterface(1, 500000;
+        extfilter=AcceptanceFilter(0x01, 0x01))
 
     println(kvaser1)
     println(kvaser2)
 
-    frame = CANalyze.CANFrame(15, [1, 1, 2, 2, 3, 3, 4]; is_extended=true)
+    msg = CAN.CANMessage(2, [1, 1, 2, 2, 3, 3, 4], true)
+    send(kvaser1, msg)
 
-    send(kvaser1, frame)
-
-    frame = recv(kvaser2) # non-blocking receive
-    println(frame)
-
-    frame = recv(kvaser2) # returns nothing
-    println(frame)
+    msg = recv(kvaser2) # accept by filter
+    println(msg)
 
     shutdown(kvaser1)
     shutdown(kvaser2)
+
+    # use CAN FD
+    kvaserfd1 = KvaserFDInterface(0, 500000, 2000000)
+    kvaserfd2 = KvaserFDInterface(1, 500000, 2000000)
+    println(kvaserfd1)
+    println(kvaserfd2)
+
+    msg = CAN.CANFDMessage(1, collect(1:16), false, false, false)
+    send(kvaserfd1, msg)
+
+    msg = recv(kvaserfd2)
+    println(msg)
+
+    shutdown(kvaserfd1)
+    shutdown(kvaserfd2)
+
+    true
 end
 
 main()
 ```
 
-### SocketCAN
-
-```jl
-using CAN
-using CANalyze
-
-
-function main()
-    sockcan1 = SocketcanInterface("vcan0")
-    sockcan2 = SocketcanInterface("vcan1")
-
-    println(sockcan1)
-    println(sockcan2)
-
-    frame = CANalyze.CANFrame(14, [1, 1, 2, 2, 3, 3, 4]; is_extended=true)
-
-    send(sockcan1, frame)
-
-    frame = recv(sockcan2) # non-blocking receive
-    println(frame)
-
-    frame = recv(sockcan2) # returns nothing
-    println(frame)
-
-    shutdown(sockcan1)
-    shutdown(sockcan2)
-end
-
-main()
-```
-
-
-### Vector Hardware
-
-```jl
-using CAN
-using CANalyze
-
-function main()
-    vector1 = VectorInterface(0, 500000, "NewApp") # specify application name in Vector Hardware Manager
-    vector2 = VectorInterface(1, 500000, "NewApp")
-
-    println(vector1)
-    println(vector2)
-
-    frame = CANalyze.CANFrame(15, [1, 1, 2, 2, 3, 3, 4]; is_extended=true)
-
-    send(vector1, frame)
-
-    frame = recv(vector2) # non-blocking receive
-    println(frame)
-
-    shutdown(vector1)
-    shutdown(vector2)
-end
-
-main()
-```
+Other interfaces are similar, see `examples` directory.
