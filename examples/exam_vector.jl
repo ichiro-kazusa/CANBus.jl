@@ -10,10 +10,10 @@ function main()
     println(vector1)
     println(vector2)
 
-    frame = CANalyze.CANFrame(1, [1, 1, 2, 2, 3, 3, 4]; is_extended=true)
+    frame = CAN.CANMessage(1, [1, 1, 2, 2, 3, 3, 4], true)
     send(vector1, frame)
 
-    frame = CANalyze.CANFrame(2, [1, 1, 2, 2, 3, 3, 4]; is_extended=true)
+    frame = CAN.CANMessage(2, [1, 1, 2, 2, 3, 3, 4], true)
     send(vector1, frame)
 
     frame = recv(vector2) # accept by filter

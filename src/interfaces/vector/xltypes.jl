@@ -11,6 +11,10 @@ const XLportHandle = XLlong
 const XLeventTag = Cuchar
 
 const MAX_MSG_LEN = 8
+const XL_CAN_MAX_DATA_LEN = 64
+const XL_CANFD_RX_EVENT_HEADER_SIZE = 32
+const XL_CANFD_MAX_EVENT_SIZE = 128
+
 
 @kwdef struct s_xl_can_msg # 32bytes
     id::Culong = 0
@@ -31,6 +35,82 @@ end
     timeStamp::XLuint64 = 0
     tagData::s_xl_can_msg = s_xl_can_msg() # this is union originally, but this package focuses on CAN.
 end
+
+
+struct XLcanFdConf
+    arbitrationBitRate::Cuint
+    sjwAbr::Cuint
+    tseg1Abr::Cuint
+    tseg2Abr::Cuint
+    dataBitRate::Cuint
+    sjwDbr::Cuint
+    tseg1Dbr::Cuint
+    tseg2Dbr::Cuint
+    reserved::Cuchar
+    options::Cuchar
+    reserved1::SVector{2,Cuchar}
+    reserved2::Cuint
+
+    function XLcanFdConf(bitrate::Cuint, datarate::Cuint, non_iso::Bool)
+        flag = non_iso ? CANFD_CONFOPT_NO_ISO : Cuchar(0)
+        new(bitrate, 2, 6, 3, datarate, 2, 6, 3, 0, flag, [0, 0], 0)
+    end
+end
+
+
+struct XL_CAN_TX_MSG
+    canId::Cuint
+    msgFlags::Cuint
+    dlc::Cuchar
+    reserved::SVector{7,Cuchar}
+    data::SVector{XL_CAN_MAX_DATA_LEN,Cuchar}
+end
+
+
+struct XLcanTxEvent
+    tag::Cushort
+    transId::Cushort
+    channelIndex::Cuchar
+    reserved::SVector{3,Cuchar}
+    canMsg::XL_CAN_TX_MSG
+end
+
+
+struct XL_CAN_EV_RX_MSG
+    canId::Cuint
+    msgFlags::Cuint
+    crc::Cuint
+    reserved1::SVector{12,Cuchar}
+    totalBitCnt::Cushort
+    dlc::Cuchar
+    reserved::SVector{5,Cuchar}
+    data::SVector{XL_CAN_MAX_DATA_LEN,Cuchar}
+end
+
+
+struct XLcanRxEvent
+    size::Cuint
+    tag::Cushort
+    channelIndex::Cuchar
+    reserved::Cuchar
+    userHandle::Cuint
+    flagsChip::Cushort
+    reserved0::Cushort
+    reserved1::XLuint64
+    timeStampSync::XLuint64
+    tagData::XL_CAN_EV_RX_MSG
+end
+
+
+const CANFD_LEN2DLC::Dict{Int,Int} = Dict([
+    12 => 9, 16 => 10, 20 => 11, 24 => 12,
+    32 => 13, 4 => 14, 64 => 15
+])
+
+const CANFD_DLC2LEN::Dict{Int,Int} = Dict([
+    9 => 12, 10 => 16, 11 => 20, 12 => 24,
+    13 => 32, 14 => 48, 15 => 64
+])
 
 
 #//////////////////////////////////////////////////////////////////////////////
@@ -232,3 +312,60 @@ const XL_CAN_EXT_MSG_ID::Culong = 0x80000000 # CAN EXT ID FLAG
 #
 const XL_CAN_STD::Cuint = 01  #//!< flag for standard ID's
 const XL_CAN_EXT::Cuint = 02  #//!< flag for extended ID's
+
+
+#//------------------------------------------------------------------------------
+#// defines for SET_OUTPUT_MODE
+const XL_OUTPUT_MODE_SILENT::Cuchar = 0  #//!< switch CAN trx into default silent mode
+const XL_OUTPUT_MODE_NORMAL::Cuchar = 1  #//!< switch CAN trx into normal mode
+
+
+const CANFD_CONFOPT_NO_ISO::Cuchar = 0x08  #// configuration option CANFD-BOSCH
+
+
+# // CAN/CAN-FD event tags
+# // Tx
+const XL_CAN_EV_TAG_TX_MSG::Cushort = 0x0440
+
+
+
+#///////////////////////////////////////////////////////////////////////
+#// CAN / CAN-FD types and definitions
+#///////////////////////////////////////////////////////////////////////
+
+
+
+#// to be used with XLcanTxEvent::XL_CAN_TX_MSG::msgFlags
+const XL_CAN_TXMSG_FLAG_EDL::Cuint = 0x0001  #// extended data length
+const XL_CAN_TXMSG_FLAG_BRS::Cuint = 0x0002  #// baud rate switch
+const XL_CAN_TXMSG_FLAG_RTR::Cuint = 0x0010  #// remote transmission request
+const XL_CAN_TXMSG_FLAG_HIGHPRIO::Cuint = 0x0080  #// high priority message - clears all send buffers - then transmits
+const XL_CAN_TXMSG_FLAG_WAKEUP::Cuint = 0x0200  #// generate a wakeup message
+
+
+#//
+#// CAN/CAN-FD event tags
+#// Rx
+const XL_CAN_EV_TAG_RX_OK::Cushort = 0x0400
+const XL_CAN_EV_TAG_RX_ERROR::Cushort = 0x0401
+const XL_CAN_EV_TAG_TX_ERROR::Cushort = 0x0402
+const XL_CAN_EV_TAG_TX_REQUEST::Cushort = 0x0403
+const XL_CAN_EV_TAG_TX_OK::Cushort = 0x0404
+const XL_CAN_EV_TAG_CHIP_STATE::Cushort = 0x0409
+
+
+# // to be used with
+# // XLcanRxEvent::XL_CAN_EV_RX_MSG::msgFlags
+# // XLcanRxEvent::XL_CAN_EV_TX_REQUEST::msgFlags
+# // XLcanRxEvent::XL_CAN_EV_RX_MSG::msgFlags
+# // XLcanRxEvent::XL_CAN_EV_TX_REMOVED::msgFlags
+# // XLcanRxEvent::XL_CAN_EV_ERROR::msgFlags
+const XL_CAN_RXMSG_FLAG_EDL::Cuint = 0x0001  #// extended data length
+const XL_CAN_RXMSG_FLAG_BRS::Cuint = 0x0002  #// baud rate switch
+const XL_CAN_RXMSG_FLAG_ESI::Cuint = 0x0004  #// error state indicator
+const XL_CAN_RXMSG_FLAG_RTR::Cuint = 0x0010  #// remote transmission request
+const XL_CAN_RXMSG_FLAG_EF::Cuint = 0x0200  #// error frame (only posssible in XL_CAN_EV_TX_REQUEST/XL_CAN_EV_TX_REMOVED)
+const XL_CAN_RXMSG_FLAG_ARB_LOST::Cuint = 0x0400  #// Arbitration Lost set if the receiving node tried to transmit a message but lost arbitration process
+const XL_CAN_RXMSG_FLAG_WAKEUP::Cuint = 0x2000  #// high voltage message on single wire CAN
+const XL_CAN_RXMSG_FLAG_TE::Cuint = 0x4000  #// 1: transceiver error detected
+

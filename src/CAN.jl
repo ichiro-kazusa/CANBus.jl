@@ -7,15 +7,15 @@ export CANMessage, CANFDMessage
 
 
 include("interfaces/Interfaces.jl")
-import .Interfaces.VectorInterfaces: VectorInterface
+import .Interfaces.VectorInterfaces: VectorInterface, VectorFDInterface
 import .Interfaces.KvaserInterfaces: KvaserInterface, KvaserFDInterface
 import .Interfaces.SocketcanInterfaces: SocketcanInterface
 import .Interfaces: AcceptanceFilter, send, recv, shutdown
 
-export VectorInterface,
+export VectorInterface, VectorFDInterface,
     KvaserInterface, KvaserFDInterface,
     SocketcanInterface
-    
+
 export send, recv, shutdown, AcceptanceFilter
 
 

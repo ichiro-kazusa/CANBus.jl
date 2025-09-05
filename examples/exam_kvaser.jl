@@ -14,7 +14,7 @@ function main()
     msg = CAN.CANMessage(frame)
     send(kvaser1, msg)
 
-    msg = CAN.CANMessage(2, 7, [1, 1, 2, 2, 3, 3, 4, 0], true)
+    msg = CAN.CANMessage(2, [1, 1, 2, 2, 3, 3, 4], true)
     send(kvaser1, msg)
 
     msg = recv(kvaser2) # accept by filter
@@ -32,11 +32,11 @@ function main()
     println(kvaserfd1)
     println(kvaserfd2)
 
-    msg = CAN.CANFDMessage(1, 16, collect(1:16), false, false, false)
+    msg = CAN.CANFDMessage(1, collect(1:16), false, false, false)
     send(kvaserfd1, msg)
 
     msg = recv(kvaserfd2)
-    println(convert(CANalyze.CANFdFrame, msg))
+    println(msg)
 
     shutdown(kvaserfd1)
     shutdown(kvaserfd2)

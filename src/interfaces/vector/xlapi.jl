@@ -64,12 +64,28 @@ function xlCanSetChannelBitrate(portHandle::XLportHandle, accessMask::XLaccess, 
         portHandle, accessMask, bitrate)
 end
 
+function xlCanFdSetConfiguration(portHandle::XLportHandle,
+    accessMask::XLaccess, pCanFdConf::Ref{XLcanFdConf})::XLstatus
+
+    ccall((:xlCanFdSetConfiguration, vxlapi), XLstatus,
+        (XLportHandle, XLaccess, Ptr{XLcanFdConf}),
+        portHandle, accessMask, pCanFdConf)
+end
+
 function xlReceive!(portHandle::XLportHandle, pEventCount::Base.RefValue{Cuint},
     pEventList::Base.RefArray{XLevent,Vector{XLevent},Nothing})::XLstatus
 
     ccall((:xlReceive, vxlapi), XLstatus,
         (XLportHandle, Ptr{Cuint}, Ptr{XLevent}),
         portHandle, pEventCount, pEventList)
+end
+
+function xlCanReceive!(portHandle::XLportHandle,
+    pXlCanRxEvt::Ref{XLcanRxEvent})::XLstatus
+
+    ccall((:xlCanReceive, vxlapi), XLstatus,
+        (XLportHandle, Ptr{XLcanRxEvent}),
+        portHandle, pXlCanRxEvt)
 end
 
 function xlCanTransmit!(portHandle::XLportHandle, accessMask::XLaccess,
@@ -81,6 +97,15 @@ function xlCanTransmit!(portHandle::XLportHandle, accessMask::XLaccess,
         portHandle, accessMask, pmessageCount, pMessages)
 end
 
+function xlCanTransmitEx!(portHandle::XLportHandle,
+    accessMask::XLaccess, msgCnt::Cuint, pMsgCntSent::Ref{Cuint},
+    pXlCanTxEvt::Ref{XLcanTxEvent})::XLstatus
+
+    ccall((:xlCanTransmitEx, vxlapi), XLstatus,
+        (XLportHandle, XLaccess, Cuint, Ptr{Cuint}, Ptr{XLcanTxEvent}),
+        portHandle, accessMask, msgCnt, pMsgCntSent, pXlCanTxEvt)
+end
+
 function xlCanSetChannelAcceptance(portHandle::XLportHandle,
     accessMask::XLaccess, code::Culong, mask::Culong,
     idRange::Cuint)::XLstatus
@@ -88,6 +113,14 @@ function xlCanSetChannelAcceptance(portHandle::XLportHandle,
     ccall((:xlCanSetChannelAcceptance, vxlapi), XLstatus,
         (XLportHandle, XLaccess, Culong, Culong, Cuint),
         portHandle, accessMask, code, mask, idRange)
+end
+
+function xlCanSetChannelOutput(portHandle::XLportHandle,
+    accessMask::XLaccess, mode::Cuchar)::XLstatus
+
+    ccall((:xlCanSetChannelOutput, vxlapi), XLstatus,
+        (XLportHandle, XLaccess, Cuchar),
+        portHandle, accessMask, mode)
 end
 
 end # Vxlapi

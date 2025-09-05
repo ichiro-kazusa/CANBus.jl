@@ -18,46 +18,15 @@ struct KvaserInterface <: Interfaces.AbstractCANInterface
     handle::Cint
 end
 
+
 function KvaserInterface(channel::Int, bitrate::Int;
     silent::Bool=false,
     stdfilter::Union{Nothing,Interfaces.AcceptanceFilter}=nothing,
     extfilter::Union{Nothing,Interfaces.AcceptanceFilter}=nothing)
 
-    # initialize library
-    Canlib.canInitializeLibrary()
-
-    # open channel
-    hnd = Canlib.canOpenChannel(Cint(channel), Canlib.canOPEN_ACCEPT_VIRTUAL)
-    if hnd < 0
-        error("Kvaser: channel $channel open failed.")
-    end
-
-    # set bitrate
-    status = Canlib.canSetBusParams(hnd, Clong(bitrate),
-        Cuint(0), Cuint(0), Cuint(0), Cuint(0), Cuint(0))
-    if status < 0
-        error("Kvaser: bitrate set failed.")
-    end
-
-    # set drivertype
-    flag = silent ? Canlib.canDRIVER_SILENT : Canlib.canDRIVER_NORMAL
-    status = Canlib.canSetBusOutputControl(hnd, flag)
-
-    # set acceptance filter
-    if stdfilter !== nothing
-        Canlib.canSetAcceptanceFilter(hnd,
-            stdfilter.code_id, stdfilter.mask, Cint(0))
-    end
-    if extfilter !== nothing
-        Canlib.canSetAcceptanceFilter(hnd,
-            extfilter.code_id, extfilter.mask, Cint(1))
-    end
-
-    # bus on 
-    status = Canlib.canBusOn(hnd)
-    if status < 0
-        error("Kvaser: Bus on failed")
-    end
+    # initialize Kvaser CAN
+    hnd = _init_kvaser(channel, bitrate, silent, stdfilter, extfilter,
+        false, false, 0)
 
     KvaserInterface(hnd)
 end
@@ -67,28 +36,43 @@ struct KvaserFDInterface <: Interfaces.AbstractCANInterface
     handle::Cint
 end
 
+
 function KvaserFDInterface(channel::Int, bitrate::Int, datarate::Int;
     non_iso::Bool=false, silent::Bool=false,
     stdfilter::Union{Nothing,Interfaces.AcceptanceFilter}=nothing,
     extfilter::Union{Nothing,Interfaces.AcceptanceFilter}=nothing)
 
+    # initialize Kvaser CAN FD
+    hnd = _init_kvaser(channel, bitrate, silent, stdfilter, extfilter,
+        true, non_iso, datarate)
+
+    KvaserFDInterface(hnd)
+end
+
+
+function _init_kvaser(channel::Int, bitrate::Int, silent::Bool,
+    stdfilter::Union{Nothing,Interfaces.AcceptanceFilter},
+    extfilter::Union{Nothing,Interfaces.AcceptanceFilter},
+    fd::Bool, non_iso::Bool, datarate::Int)::Cint
+
     # initialize library
     Canlib.canInitializeLibrary()
 
     # open channel
-    flag = non_iso ? Canlib.canOPEN_CAN_FD_NONISO : Canlib.canOPEN_CAN_FD
+    flag = !fd ? Cint(0) :
+           non_iso ? Canlib.canOPEN_CAN_FD_NONISO : Canlib.canOPEN_CAN_FD
     hnd = Canlib.canOpenChannel(Cint(channel), flag | Canlib.canOPEN_ACCEPT_VIRTUAL)
     if hnd < 0
-        error("Kvaser: channel $channel open failed.")
+        error("Kvaser: channel $channel open failed. $hnd")
     end
 
     # set bitrate
     status1 = Canlib.canSetBusParams(hnd, Clong(bitrate),
         Cuint(0), Cuint(0), Cuint(0), Cuint(0), Cuint(0))
-    status2 = Canlib.canSetBusParamsFd(hnd, Clong(datarate),
-        Cuint(0), Cuint(0), Cuint(0))
+    status2 = !fd ? Canlib.canOK : Canlib.canSetBusParamsFd(hnd,
+        Clong(datarate), Cuint(0), Cuint(0), Cuint(0))
     if status1 < 0 || status2 < 0
-        error("Kvaser: bitrate set failed.")
+        error("Kvaser: bitrate set failed. $status1, $status2")
     end
 
     # set drivertype
@@ -108,26 +92,28 @@ function KvaserFDInterface(channel::Int, bitrate::Int, datarate::Int;
     # bus on 
     status = Canlib.canBusOn(hnd)
     if status < 0
-        error("Kvaser: Bus on failed")
+        error("Kvaser: Bus on failed. $status")
     end
 
-    KvaserFDInterface(hnd)
+    return hnd
 end
+
 
 function Interfaces.send(interface::KvaserInterface,
     msg::Messages.CANMessage)::Nothing
 
     pmsg_t = Ref(msg.data, 1)
-    dlc = Cuint(msg.dlc)
+    len = Cuint(length(msg))
     id = Clong(msg.id)
     flag = msg.is_extended ? Canlib.canMSG_EXT : Canlib.canMSG_STD
-    status = Canlib.canWrite(interface.handle, id, pmsg_t, dlc, flag)
+    status = Canlib.canWrite(interface.handle, id, pmsg_t, len, flag)
 
     if status != Canlib.canOK
         error("Kvaser: Failed to transmit. $status")
     end
     return nothing
 end
+
 
 function Interfaces.send(interface::KvaserFDInterface,
     msg::Messages.CANFDMessage)::Nothing
@@ -137,7 +123,7 @@ function Interfaces.send(interface::KvaserFDInterface,
     flag |= msg.is_extended ? Canlib.canMSG_EXT : Canlib.canMSG_STD # STD or EXT id
     flag |= msg.bitrate_switch ? Canlib.canFDMSG_BRS : Cuint(0) # use BRS
     status = Canlib.canWrite(interface.handle,
-        Clong(msg.id), pmesg, msg.bytes, flag)
+        Clong(msg.id), pmesg, Cuint(length(msg)), flag)
 
     if status != Canlib.canOK
         error("Kvaser: Failed to transmit. $status")
@@ -147,17 +133,17 @@ end
 
 
 function Interfaces.recv(interface::KvaserInterface)::Union{Nothing,Messages.CANMessage}
-    msg_r = zeros(Cuchar,8)
+    msg_r = zeros(Cuchar, 8)
     pid = Ref(Clong(0))
     pmsg_r = Ref(msg_r, 1)
-    pdlc = Ref(Cuint(0))
+    plen = Ref(Cuint(0))
     pflag = Ref(Cuint(0))
     ptime = Ref(Culong(0))
-    status = Canlib.canRead(interface.handle, pid, pmsg_r, pdlc, pflag, ptime)
+    status = Canlib.canRead(interface.handle, pid, pmsg_r, plen, pflag, ptime)
     if status == Canlib.canOK
         isext = (pflag[] & Canlib.canMSG_EXT) != 0
 
-        frame = Messages.CANMessage(pid[], pdlc[], msg_r, isext)
+        frame = Messages.CANMessage(pid[], msg_r[1:plen[]], isext)
         return frame
     end
     return nothing
@@ -168,13 +154,13 @@ function Interfaces.recv(interface::KvaserFDInterface)::Union{Nothing,Messages.C
     pid = Ref(Clong(0))
     msg = zeros(Cuchar, 64)
     pmsg = Ref(msg, 1)
-    pbytes = Ref(Cuint(0))
+    plen = Ref(Cuint(0))
     pflag = Ref(Cuint(0))
     ptime = Ref(Culong(0))
-    status = Canlib.canRead(interface.handle, pid, pmsg, pbytes, pflag, ptime)
+    status = Canlib.canRead(interface.handle, pid, pmsg, plen, pflag, ptime)
 
     if status == Canlib.canOK
-        ret = Messages.CANFDMessage(pid[], pbytes[], msg, (pflag[] & Canlib.canMSG_EXT) != 0,
+        ret = Messages.CANFDMessage(pid[], msg[1:plen[]], (pflag[] & Canlib.canMSG_EXT) != 0,
             (pflag[] & Canlib.canFDMSG_BRS) != 0, (pflag[] & Canlib.canFDMSG_ESI) != 0)
         return ret
     elseif status != Canlib.canERR_NOMSG
