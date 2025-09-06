@@ -16,7 +16,7 @@ At this time, this is an alpha version software.
 * Several interfaces are tested only on virtual bus.
 * Package behavior changes frequently.
 
-For more details, read full [documentation](https://ichiro-kazusa.github.io/CAN.jl/dev/).
+For more details, read full [documentation](https://ichiro-kazusa.github.io/CAN.jl/stable/).
 
 ## Installation
 Install from GitHub. on julia package mode, 
