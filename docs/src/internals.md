@@ -11,7 +11,7 @@ CAN.Interfaces.KvaserInterfaces.Canlib
 ### SocketCAN
 
 ```@docs
-CAN.Interfaces.SocketcanInterfaces.SocketCAN
+CAN.Interfaces.SocketCANInterfaces.SocketCAN
 ```
 
 ### Vector

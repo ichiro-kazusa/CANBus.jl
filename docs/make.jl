@@ -18,6 +18,7 @@ makedocs(;
         "Supported Hardwares" => "hardwares.md",
         "References" => [
             "Interfaces" => "interfaces.md",
+            "Frames" => "frames.md",
             "Internals" => "internals.md"
         ]
     ],

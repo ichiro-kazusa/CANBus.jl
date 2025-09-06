@@ -2,9 +2,6 @@ module Interfaces
 
 using CANalyze
 
-export
-    send, recv, shutdown
-
 
 """
 Abstract type for Interfaces.
@@ -32,7 +29,8 @@ Abstract function for receive message.
 Common behavior of concrete implements:
 * non-blocking
 * When receive successed, returns CANalyze.CANFrame.
-* When receive failed, returns nothing.
+* When receive queue is empty, returns nothing.
+* When fails to receive in other reasons, throws error.
 """
 function recv(interface::AbstractCANInterface)
     error("abstract 'recv' is not implemented.")
@@ -43,23 +41,34 @@ end
     shutdown(interface::T<:AbstractCANInterface)
 
 Abstract function for shutdown interface.
+Always returns nothing.
 """
 function shutdown(interface::AbstractCANInterface)
     error("abstract 'shutdown' is not implemented.")
 end
 
 
+"""
+    AcceptanceFilter(code_id, mask)
+
+Struct for accept filter. 
+    
+If this struct is set to Interface,
+the id is accepted when 
+`<received_id> & mask == code_id & mask`
+or
+`(<received_id> xor code_id) & mask == 0 `.
+Those are equivalent.
+"""
+struct AcceptanceFilter
+    code_id::UInt32
+    mask::UInt32
+end
+
+
 include("vector/Vector.jl")
-import .VectorInterfaces: VectorInterface
-export VectorInterface
-
 include("kvaser/Kvaser.jl")
-import .KvaserInterfaces: KvaserInterface
-export KvaserInterface
-
 include("socketcan/Socketcan.jl")
-import .SocketcanInterfaces: SocketcanInterface
-export SocketcanInterface
 
 
 end # Interfaces

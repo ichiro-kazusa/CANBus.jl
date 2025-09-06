@@ -1,6 +1,8 @@
 "Low level API for Kvaser CANlib SDK"
 module Canlib
 
+using StaticArrays
+
 include("canlibdef.jl")
 
 const canlib = joinpath(@__DIR__(), "..", "..", "..", "deps", "lib", "kvaser", "canlib32")
@@ -31,10 +33,23 @@ function canSetBusParams(handle::Cint, freq::Clong,
         handle, freq, tseg1, tseg2, sjw, noSamp, syncmode)
 end
 
+function canSetBusParamsFd(handle::Cint, freq_brs::Clong,
+    tseg1_brs::Cuint, tseg2_brs::Cuint, sjw_brs::Cuint)::canStatus
+
+    ccall((:canSetBusParamsFd, canlib), canStatus,
+        (Cint, Clong, Cuint, Cuint, Cuint),
+        handle, freq_brs, tseg1_brs, tseg2_brs, sjw_brs)
+end
+
 function canSetBusOutputControl(handle::Cint, drivertype::Cuint)::canStatus
     ccall((:canSetBusOutputControl, canlib), canStatus,
         (Cint, Cuint),
         handle, drivertype)
+end
+
+function canGetBusOutputControl(handle::Cint, pdrivertype::Ref{Cuint})::canStatus
+    ccall((:canGetBusOutputControl, canlib), canStatus,
+        (Cint, Ptr{Cuint}), handle, pdrivertype)
 end
 
 function canBusOn(handle::Cint)::canStatus
@@ -55,13 +70,21 @@ function canWrite(handle::Cint, id::Clong,
 end
 
 function canRead(handle::Cint, pid::Base.RefValue{Clong},
-    pmsg::Base.RefArray{Cchar,Vector{Cchar},Nothing},
+    pmsg::Base.RefArray{Cuchar,Vector{Cuchar},Nothing},
     pdlc::Base.RefValue{Cuint}, pflag::Base.RefValue{Cuint},
     ptime::Base.RefValue{Culong})::canStatus
 
     ccall((:canRead, canlib), canStatus,
-        (Cint, Ptr{Clong}, Ptr{Cchar}, Ptr{Cuint}, Ptr{Cuint}, Ptr{Culong}),
+        (Cint, Ptr{Clong}, Ptr{Cvoid}, Ptr{Cuint}, Ptr{Cuint}, Ptr{Culong}),
         handle, pid, pmsg, pdlc, pflag, ptime)
+end
+
+function canSetAcceptanceFilter(handle::Cint, code::Cuint,
+    mask::Cuint, is_extended::Cint)::canStatus
+
+    ccall((:canSetAcceptanceFilter, canlib), canStatus,
+        (Cint, Cuint, Cuint, Cint),
+        handle, code, mask, is_extended)
 end
 
 end # Canlib
