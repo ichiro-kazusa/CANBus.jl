@@ -2,6 +2,7 @@ using Test
 
 
 @testset "Examples" begin
+    include("../examples/exam_decode.jl")
     if !haskey(ENV, "GITHUB_ACTIONS")
         if Sys.iswindows()
             include("../examples/exam_kvaser.jl")

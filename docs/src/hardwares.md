@@ -14,6 +14,11 @@ using CAN
 kvaser0 = KvaserInterface(0, 500000)  # channel 0, 500kbps
 ```
 
+For CAN FD,
+```jl
+kvaser0 = KvaserFDInterface(0, 500000, 2000000)  # channel 0, 500kbps, 2Mbps
+```
+
 `send`, `recv`, `shutdown` functions can be use.
 
 Kvaser's api library is redistributed with `CAN.jl` after its license, users does not need to install them separately.
@@ -27,8 +32,15 @@ To setup interface,
 ```jl
 using CAN
 
-sockcan0 = SocketcanInterface("can0")  # channel "can0"
+sockcan0 = SocketCANInterface("can0")  # channel "can0"
 ```
+
+For CAN FD,
+```jl
+sockcan0 = SocketCANFDInterface("can0")  # channel "can0"
+```
+
+
 `send`, `recv`, `shutdown` functions can be use.
 
 Bitrate can not be modified from socket api, use `ip link` command from terminal.
@@ -48,5 +60,12 @@ vector1 = VectorInterface(0, 500000, "NewApp") # channel 0, 500kbps, application
 ```
 
 "Application name" means corresponding name in Vector Hardware Manager.
+
+For CAN FD,
+```jl
+vector1 = VectorFDInterface(0, 500000, 2000000, "NewApp")
+# channel 0, 500kbps, 2Mbps, application name
+```
+
 
 `send`, `recv`, `shutdown` functions can be use.

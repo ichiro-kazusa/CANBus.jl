@@ -30,6 +30,7 @@ Common behavior of concrete implements:
 * non-blocking
 * When receive successed, returns CANalyze.CANFrame.
 * When receive queue is empty, returns nothing.
+* When fails to receive in other reasons, throws error.
 """
 function recv(interface::AbstractCANInterface)
     error("abstract 'recv' is not implemented.")
@@ -48,7 +49,16 @@ end
 
 
 """
-struct for accept filter.
+    AcceptanceFilter(code_id, mask)
+
+Struct for accept filter. 
+    
+If this struct is set to Interface,
+the id is accepted when 
+`<received_id> & mask == code_id & mask`
+or
+`(<received_id> xor code_id) & mask == 0 `.
+Those are equivalent.
 """
 struct AcceptanceFilter
     code_id::UInt32

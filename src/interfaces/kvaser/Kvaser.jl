@@ -2,7 +2,7 @@ module KvaserInterfaces
 
 using CANalyze
 import ..Interfaces
-import ...Messages
+import ...Frames
 
 include("canlib.jl")
 import .Canlib
@@ -10,9 +10,15 @@ import .Canlib
 
 
 """
-    KvaserInterface(channel::Int, bitrate::Int)
+    KvaserInterface(channel::Int, bitrate::Int;
+        silent::Bool, stdfilter::AcceptanceFilter, extfilter::AcceptanceFilter)
 
-Setup Kvaser interface with channel number and bitrate(bps).
+Setup Kvaser interface
+* channel: channel number in integer.
+* bitrate: bitrate as bit/s in integer.
+* silent(optional): listen only flag in bool.
+* stdfilter(optional): standard ID filter in AcceptanceFilter struct.
+* extfilter(optional): extended ID filter in AcceptanceFilter struct.
 """
 struct KvaserInterface <: Interfaces.AbstractCANInterface
     handle::Cint
@@ -32,6 +38,19 @@ function KvaserInterface(channel::Int, bitrate::Int;
 end
 
 
+"""
+    KvaserFDInterface(channel::Int, bitrate::Int, datarate::Int;
+        non_iso::Bool, silent::Bool, stdfilter::AcceptanceFilter, extfilter::AcceptanceFilter)
+
+Setup Kvaser interface for CAN FD.
+* channel: channel number in integer.
+* bitrate: bitrate as bit/s in integer.
+* datarate: datarate as bit/s in integer.
+* non_iso(optional): use non-iso version of CAN FD
+* silent(optional): listen only flag in bool.
+* stdfilter(optional): standard ID filter in AcceptanceFilter struct.
+* extfilter(optional): extended ID filter in AcceptanceFilter struct.
+"""
 struct KvaserFDInterface <: Interfaces.AbstractCANInterface
     handle::Cint
 end
@@ -66,11 +85,11 @@ function _init_kvaser(channel::Int, bitrate::Int, silent::Bool,
         error("Kvaser: channel $channel open failed. $hnd")
     end
 
-    # set bitrate
+    # set bitrate / tseg1, tseg2, sjw is used the same numbers as Vector.
     status1 = Canlib.canSetBusParams(hnd, Clong(bitrate),
-        Cuint(0), Cuint(0), Cuint(0), Cuint(0), Cuint(0))
+        Cuint(6), Cuint(3), Cuint(2), Cuint(1), Cuint(0))
     status2 = !fd ? Canlib.canOK : Canlib.canSetBusParamsFd(hnd,
-        Clong(datarate), Cuint(0), Cuint(0), Cuint(0))
+        Clong(datarate), Cuint(6), Cuint(3), Cuint(2))
     if status1 < 0 || status2 < 0
         error("Kvaser: bitrate set failed. $status1, $status2")
     end
@@ -100,7 +119,7 @@ end
 
 
 function Interfaces.send(interface::KvaserInterface,
-    msg::Messages.CANMessage)::Nothing
+    msg::Frames.Frame)::Nothing
 
     pmsg_t = Ref(msg.data, 1)
     len = Cuint(length(msg))
@@ -116,7 +135,7 @@ end
 
 
 function Interfaces.send(interface::KvaserFDInterface,
-    msg::Messages.CANFDMessage)::Nothing
+    msg::Frames.FDFrame)::Nothing
 
     pmesg = Ref(msg.data, 1)
     flag = Canlib.canFDMSG_FDF # CAN FD message
@@ -132,7 +151,7 @@ function Interfaces.send(interface::KvaserFDInterface,
 end
 
 
-function Interfaces.recv(interface::KvaserInterface)::Union{Nothing,Messages.CANMessage}
+function Interfaces.recv(interface::KvaserInterface)::Union{Nothing,Frames.Frame}
     msg_r = zeros(Cuchar, 8)
     pid = Ref(Clong(0))
     pmsg_r = Ref(msg_r, 1)
@@ -143,14 +162,14 @@ function Interfaces.recv(interface::KvaserInterface)::Union{Nothing,Messages.CAN
     if status == Canlib.canOK
         isext = (pflag[] & Canlib.canMSG_EXT) != 0
 
-        frame = Messages.CANMessage(pid[], msg_r[1:plen[]], isext)
+        frame = Frames.Frame(pid[], msg_r[1:plen[]], isext)
         return frame
     end
     return nothing
 end
 
 
-function Interfaces.recv(interface::KvaserFDInterface)::Union{Nothing,Messages.CANFDMessage}
+function Interfaces.recv(interface::KvaserFDInterface)::Union{Nothing,Frames.FDFrame}
     pid = Ref(Clong(0))
     msg = zeros(Cuchar, 64)
     pmsg = Ref(msg, 1)
@@ -160,7 +179,7 @@ function Interfaces.recv(interface::KvaserFDInterface)::Union{Nothing,Messages.C
     status = Canlib.canRead(interface.handle, pid, pmsg, plen, pflag, ptime)
 
     if status == Canlib.canOK
-        ret = Messages.CANFDMessage(pid[], msg[1:plen[]], (pflag[] & Canlib.canMSG_EXT) != 0,
+        ret = Frames.FDFrame(pid[], msg[1:plen[]], (pflag[] & Canlib.canMSG_EXT) != 0,
             (pflag[] & Canlib.canFDMSG_BRS) != 0, (pflag[] & Canlib.canFDMSG_ESI) != 0)
         return ret
     elseif status != Canlib.canERR_NOMSG

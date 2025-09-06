@@ -1,7 +1,7 @@
 module VectorInterfaces
 
 import ..Interfaces
-import ...Messages
+import ...Frames
 
 include("xlapi.jl")
 import .Vxlapi
@@ -11,7 +11,13 @@ import .Vxlapi
 """
     VectorInterface(channel::Int, bitrate::Int, appname::String)
 
-Setup Vector interface with channel number, bitrate(bps), application name.
+Setup Vector interface.
+* channel: channel number in integer.
+* bitrate: bitrate as bit/s in integer.
+* apppname: Application Name string in Vector Hardware Manager.
+* silent(optional): listen only flag in bool.
+* stdfilter(optional): standard ID filter in AcceptanceFilter struct.
+* extfilter(optional): extended ID filter in AcceptanceFilter struct.
 """
 struct VectorInterface <: Interfaces.AbstractCANInterface
     portHandle::Vxlapi.XLportHandle
@@ -38,8 +44,15 @@ end
 """
     VectorFDInterface(channel::Int, bitrate::Int, datarate::Int, appname::String)
 
-Setup Vector interface for CAN FD 
-with channel number, bitrate(bps), datarate(bps), application name.
+Setup Vector interface for CAN FD.
+* channel: channel number in integer.
+* bitrate: bitrate as bit/s in integer.
+* datarate: datarate as bit/s in integer.
+* apppname: Application Name string in Vector Hardware Manager.
+* non_iso(optional): use non-iso version of CAN FD
+* silent(optional): listen only flag in bool.
+* stdfilter(optional): standard ID filter in AcceptanceFilter struct.
+* extfilter(optional): extended ID filter in AcceptanceFilter struct.
 """
 struct VectorFDInterface <: Interfaces.AbstractCANInterface
     portHandle::Vxlapi.XLportHandle
@@ -121,7 +134,7 @@ function _init_vector(channel::Union{Int,AbstractVector{Int}},
 end
 
 
-function Interfaces.send(interface::VectorInterface, msg::Messages.CANMessage)
+function Interfaces.send(interface::VectorInterface, msg::Frames.Frame)
     # construct XLEvent
     messageCount = Cuint(1)
     dlc = size(msg.data, 1)
@@ -148,7 +161,7 @@ function Interfaces.send(interface::VectorInterface, msg::Messages.CANMessage)
 end
 
 
-function Interfaces.send(interface::VectorFDInterface, msg::Messages.CANFDMessage)
+function Interfaces.send(interface::VectorFDInterface, msg::Frames.FDFrame)
     canid = msg.is_extended ? msg.id | Vxlapi.XL_CAN_EXT_MSG_ID : msg.id
     len = length(msg)
     dlc = len <= 8 ? len : Vxlapi.CANFD_LEN2DLC[len]
@@ -172,7 +185,7 @@ function Interfaces.send(interface::VectorFDInterface, msg::Messages.CANFDMessag
 end
 
 
-function Interfaces.recv(interface::VectorInterface)::Union{Nothing,Messages.CANMessage}
+function Interfaces.recv(interface::VectorInterface)::Union{Nothing,Frames.Frame}
     pEventCount = Ref(Cuint(1))
     EventList_r = Vector{Vxlapi.XLevent}([Vxlapi.XLevent() for i in 1:pEventCount[]])
     pEventList_r = Ref(EventList_r, 1)
@@ -187,7 +200,7 @@ function Interfaces.recv(interface::VectorInterface)::Union{Nothing,Messages.CAN
             id = isext ? totalid - Vxlapi.XL_CAN_EXT_MSG_ID : totalid
 
             # frame
-            frame = Messages.CANMessage(
+            frame = Frames.Frame(
                 id,
                 EventList_r[1].tagData.data[1:EventList_r[1].tagData.dlc],
                 isext
@@ -199,7 +212,7 @@ function Interfaces.recv(interface::VectorInterface)::Union{Nothing,Messages.CAN
 end
 
 
-function Interfaces.recv(interface::VectorFDInterface)::Union{Nothing,Messages.CANFDMessage}
+function Interfaces.recv(interface::VectorFDInterface)::Union{Nothing,Frames.FDFrame}
     canrxevt = Vxlapi.XLcanRxEvent(0, 0, 0, 0, 0, 0, 0, 0, 0,
         Vxlapi.XL_CAN_EV_RX_MSG(0, 0, 0, zeros(Cuchar, 12), 0, 0,
             zeros(Cuchar, 5), zeros(Cuchar, Vxlapi.XL_CAN_MAX_DATA_LEN)))
@@ -218,7 +231,7 @@ function Interfaces.recv(interface::VectorFDInterface)::Union{Nothing,Messages.C
             isbrs = (pcanrxevt[].tagData.msgFlags & Vxlapi.XL_CAN_RXMSG_FLAG_BRS) != 0
             isesi = (pcanrxevt[].tagData.msgFlags & Vxlapi.XL_CAN_RXMSG_FLAG_ESI) != 0
 
-            msg = Messages.CANFDMessage(id, pcanrxevt[].tagData.data[1:len],
+            msg = Frames.FDFrame(id, pcanrxevt[].tagData.data[1:len],
                 isext, isbrs, isesi)
 
             return msg

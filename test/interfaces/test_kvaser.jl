@@ -7,10 +7,10 @@ function test_kvaser_normal()
     kvaser2 = KvaserInterface(1, 500000,
         extfilter=AcceptanceFilter(0x01, 0x01))
 
-    msg_t1 = CAN.CANMessage(1, [1, 1, 2, 2, 3, 3, 4], true)
+    msg_t1 = CAN.Frame(1, [1, 1, 2, 2, 3, 3, 4], true)
     send(kvaser1, msg_t1)
 
-    msg_t2 = CAN.CANMessage(2, [1, 1, 2, 2, 3, 3, 4], true)
+    msg_t2 = CAN.Frame(2, [1, 1, 2, 2, 3, 3, 4], true)
     send(kvaser1, msg_t2) # decline by filter
 
 
@@ -46,19 +46,19 @@ function test_kvaser_normal_fd()
     kvaserfd2 = KvaserFDInterface(1, 500000, 2000000;
     extfilter=AcceptanceFilter(0x01,0x01))
 
-    msg_t = CAN.CANFDMessage(1, collect(1:16), false, false, false)
+    msg_t = CAN.FDFrame(1, collect(1:16), false, false, false)
     send(kvaserfd1, msg_t)
 
     msg_r = recv(kvaserfd2)
     @assert msg_t == msg_r
 
-    msg_t = CAN.CANFDMessage(1, collect(1:16), false, true, false)
+    msg_t = CAN.FDFrame(1, collect(1:16), false, true, false)
     send(kvaserfd1, msg_t)
 
     msg_r = recv(kvaserfd2)
     @assert msg_t == msg_r
 
-    msg_t = CAN.CANFDMessage(2, collect(1:16), true, true, false)
+    msg_t = CAN.FDFrame(2, collect(1:16), true, true, false)
     send(kvaserfd1, msg_t)
     msg_r = recv(kvaserfd2) # filtered
     @assert msg_r === nothing

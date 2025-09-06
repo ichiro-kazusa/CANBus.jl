@@ -2,7 +2,7 @@ module SocketCANInterfaces
 
 using CANalyze
 import ..Interfaces
-import ...Messages
+import ...Frames
 
 include("socketcanapi.jl")
 import .SocketCAN
@@ -10,9 +10,11 @@ import .SocketCAN
 
 
 """
-    SocketCANInterface(channel::String)
+    SocketCANInterface(channel::String; filters::Vector{AcceptanceFilter})
 
-Setup SocketCAN interface with channel name.
+Setup SocketCAN interface.
+* channel: channel name string, e.g. "can0"
+* filters(optional): list of filters. experimental.
 """
 struct SocketCANInterface <: Interfaces.AbstractCANInterface
     socket::Cint
@@ -28,9 +30,11 @@ end
 
 
 """
-    SocketCANFDInterface(channel::String)
+    SocketCANFDInterface(channel::String; filters::Vector{AcceptanceFilter})
 
-Setup SocketCAN CAN FD interface with channel name.
+Setup SocketCAN for CAN FD.
+* channel: channel name string, e.g. "can0"
+* filters(optional): list of filters. experimental.
 """
 struct SocketCANFDInterface <: Interfaces.AbstractCANInterface
     socket::Cint
@@ -105,7 +109,7 @@ end
 
 
 function Interfaces.send(interface::SocketCANInterface,
-    msg::Messages.CANMessage)::Nothing
+    msg::Frames.Frame)::Nothing
 
     id = msg.is_extended ? msg.id | SocketCAN.CAN_EFF_FLAG : msg.id
     dlc = size(msg.data, 1)
@@ -123,7 +127,7 @@ end
 
 
 function Interfaces.send(interface::SocketCANFDInterface,
-    msg::Messages.CANFDMessage)::Nothing
+    msg::Frames.FDFrame)::Nothing
 
     id = msg.is_extended ? msg.id | SocketCAN.CAN_EFF_FLAG : msg.id
     len = size(msg.data, 1)
@@ -142,7 +146,7 @@ function Interfaces.send(interface::SocketCANFDInterface,
 end
 
 
-function Interfaces.recv(interface::SocketCANInterface)::Union{Nothing,Messages.CANMessage}
+function Interfaces.recv(interface::SocketCANInterface)::Union{Nothing,Frames.Frame}
     frame_r = SocketCAN.can_frame(0, 0, 0, 0, 0, zeros(Cchar, 8)) # empty frame
     pframe_r = Ref(frame_r)
     nbytes = SocketCAN.read(interface.socket, pframe_r, Cuint(16))
@@ -151,7 +155,7 @@ function Interfaces.recv(interface::SocketCANInterface)::Union{Nothing,Messages.
         isext = (rawid & SocketCAN.CAN_EFF_FLAG) != 0
         id = isext ? rawid - SocketCAN.CAN_EFF_FLAG : rawid
         dlc = pframe_r[].len
-        frame = Messages.CANMessage(
+        frame = Frames.Frame(
             id,
             pframe_r[].data[1:dlc],
             isext
@@ -162,7 +166,7 @@ function Interfaces.recv(interface::SocketCANInterface)::Union{Nothing,Messages.
 end
 
 
-function Interfaces.recv(interface::SocketCANFDInterface)::Union{Nothing,Messages.CANFDMessage}
+function Interfaces.recv(interface::SocketCANFDInterface)::Union{Nothing,Frames.FDFrame}
     frame_r = SocketCAN.canfd_frame(0, 0, 0, 0, 0, zeros(Cchar, 64)) # empty frame
     pframe_r = Ref(frame_r)
     nbytes = SocketCAN.read(interface.socket, pframe_r, Cuint(72))
@@ -173,7 +177,7 @@ function Interfaces.recv(interface::SocketCANFDInterface)::Union{Nothing,Message
         isesi = (pframe_r[].flags & SocketCAN.CANFD_ESI) != 0
         id = isext ? rawid - SocketCAN.CAN_EFF_FLAG : rawid
         len = pframe_r[].len
-        msg = Messages.CANFDMessage(
+        msg = Frames.FDFrame(
             id,
             pframe_r[].data[1:len],
             isext, isbrs, isesi

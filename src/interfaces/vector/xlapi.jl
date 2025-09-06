@@ -90,11 +90,11 @@ end
 
 function xlCanTransmit!(portHandle::XLportHandle, accessMask::XLaccess,
     pmessageCount::Base.RefValue{Cuint},
-    pMessages::Base.RefArray{XLevent,Vector{XLevent},Nothing})::XLstatus
+    pFrames::Base.RefArray{XLevent,Vector{XLevent},Nothing})::XLstatus
 
     ccall((:xlCanTransmit, vxlapi), XLstatus,
         (XLportHandle, XLaccess, Ptr{Cuint}, Ptr{Cvoid}),
-        portHandle, accessMask, pmessageCount, pMessages)
+        portHandle, accessMask, pmessageCount, pFrames)
 end
 
 function xlCanTransmitEx!(portHandle::XLportHandle,

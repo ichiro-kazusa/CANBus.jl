@@ -1,8 +1,8 @@
 module CAN
 
-include("messages/Messages.jl")
-import .Messages: CANMessage, CANFDMessage
-export CANMessage, CANFDMessage
+include("frames/Frames.jl")
+import .Frames: Frame, FDFrame
+export Frame, FDFrame
 
 
 

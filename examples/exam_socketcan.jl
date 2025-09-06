@@ -25,7 +25,7 @@ function main()
     println(sockcan1)
     println(sockcan2)
 
-    frame = CAN.CANMessage(14, [1, 1, 2, 2, 3, 3, 4], true)
+    frame = CAN.Frame(14, [1, 1, 2, 2, 3, 3, 4], true)
 
     send(sockcan1, frame)
 
@@ -46,7 +46,7 @@ function main()
     println(scanfd0)
     println(scanfd1)
 
-    msg = CAN.CANFDMessage(14, collect(1:16), true, false, false)
+    msg = CAN.FDFrame(14, collect(1:16), true, false, false)
 
     send(scanfd0, msg)
 

@@ -11,10 +11,10 @@ function main()
     println(vector1)
     println(vector2)
 
-    frame = CAN.CANMessage(1, [1, 1, 2, 2, 3, 3, 4], true)
+    frame = CAN.Frame(1, [1, 1, 2, 2, 3, 3, 4], true)
     send(vector1, frame)
 
-    frame = CAN.CANMessage(2, [1, 1, 2, 2, 3, 3, 4], true)
+    frame = CAN.Frame(2, [1, 1, 2, 2, 3, 3, 4], true)
     send(vector1, frame)
 
     frame = recv(vector2) # accept by filter
@@ -25,6 +25,21 @@ function main()
 
     shutdown(vector1)
     shutdown(vector2)
+
+    # use CAN FD
+    vectorfd1 = VectorFDInterface(0, 500000, 2000000, "NewApp")
+    vectorfd2 = VectorFDInterface(1, 500000, 2000000, "NewApp")
+    println(vectorfd1)
+    println(vectorfd2)
+
+    msg = CAN.FDFrame(1, collect(1:16), false, false, false)
+    send(vectorfd1, msg)
+
+    msg = recv(vectorfd2)
+    println(msg)
+
+    shutdown(vectorfd1)
+    shutdown(vectorfd2)
 
     true
 end

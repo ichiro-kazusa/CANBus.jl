@@ -12,10 +12,10 @@ function main()
     println(kvaser2)
 
     frame = CANalyze.CANFrame(1, [1, 1, 2, 2, 3, 3, 4]; is_extended=true)
-    msg = CAN.CANMessage(frame)
+    msg = CAN.Frame(frame)
     send(kvaser1, msg)
 
-    msg = CAN.CANMessage(2, [1, 1, 2, 2, 3, 3, 4], true)
+    msg = CAN.Frame(2, [1, 1, 2, 2, 3, 3, 4], true)
     send(kvaser1, msg)
 
     msg = recv(kvaser2) # accept by filter
@@ -33,7 +33,7 @@ function main()
     println(kvaserfd1)
     println(kvaserfd2)
 
-    msg = CAN.CANFDMessage(1, collect(1:16), false, false, false)
+    msg = CAN.FDFrame(1, collect(1:16), false, false, false)
     send(kvaserfd1, msg)
 
     msg = recv(kvaserfd2)

@@ -7,7 +7,7 @@
 [![Aqua QA](https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg)](https://github.com/JuliaTesting/Aqua.jl)
 
 
-`CAN.jl` is a Control Area Network (CAN Bus) communication package for Julia language.
+`CAN.jl` is a Controller Area Network (CAN Bus) communication package for Julia language.
 
 `CAN.jl` only does communication itself.
 To encode/decode messages, use tsavelmann's [`CANalyze.jl`](https://github.com/tsabelmann/CANalyze.jl/tree/main).
@@ -54,7 +54,7 @@ function main()
     println(kvaser1)
     println(kvaser2)
 
-    msg = CAN.CANMessage(2, [1, 1, 2, 2, 3, 3, 4], true)
+    msg = CAN.Frame(2, [1, 1, 2, 2, 3, 3, 4], true)
     send(kvaser1, msg)
 
     msg = recv(kvaser2) # accept by filter
@@ -69,7 +69,7 @@ function main()
     println(kvaserfd1)
     println(kvaserfd2)
 
-    msg = CAN.CANFDMessage(1, collect(1:16), false, false, false)
+    msg = CAN.FDFrame(1, collect(1:16), false, false, false)
     send(kvaserfd1, msg)
 
     msg = recv(kvaserfd2)
