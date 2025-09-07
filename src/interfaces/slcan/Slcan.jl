@@ -10,28 +10,30 @@ import .slcandef
 const DELIMITER = "\r"
 
 
-struct SlcanInterface <: Interfaces.AbstractCANInterface
+mutable struct SlcanInterface <: Interfaces.AbstractCANInterface
     sp::SerialPort
+    buffer::Vector{UInt8}
 
     function SlcanInterface(channel::String, bitrate::Int;
         serialbaud::Int=115200, silent::Bool=false)
 
         sp = _init_slcan(channel, bitrate, serialbaud, silent, false, 0)
 
-        new(sp)
+        new(sp, [])
     end
 end
 
 
-struct SlcanFDInterface <: Interfaces.AbstractCANInterface
+mutable struct SlcanFDInterface <: Interfaces.AbstractCANInterface
     sp::SerialPort
+    buffer::Vector{UInt8}
 
     function SlcanFDInterface(channel::String, bitrate::Int, datarate::Int;
         serialbaud::Int=115200, silent::Bool=false)
 
         sp = _init_slcan(channel, bitrate, serialbaud, silent, true, datarate)
 
-        new(sp)
+        new(sp, [])
     end
 end
 
@@ -47,6 +49,10 @@ function _init_slcan(channel::String, bitrate::Int,
     sp = LibSerialPort.open(channel, serialbaud)
 
     write(sp, "C" * DELIMITER) # temporary close channel
+
+    # silent mode
+    mode = silent ? "M1" : "M0"
+    write(sp, mode * DELIMITER)
 
     # set bitrate
     if !haskey(slcandef.BITRATE_DICT, bitrate)
@@ -64,13 +70,13 @@ function _init_slcan(channel::String, bitrate::Int,
         write(sp, slcandef.BITRATE_DICT_FD[datarate] * DELIMITER)
     end
 
-    # silent mode
-    mode = silent ? "M1" : "M0"
-    write(sp, mode * DELIMITER)
-
     # open channel
     write(sp, "O" * DELIMITER)
     flush(sp)
+
+    # clear receive buffer
+    sleep(0.1) # wait open
+    nonblocking_read(sp)
 
     return sp
 end
@@ -117,6 +123,56 @@ function Interfaces.send(interface::SlcanFDInterface, msg::Frames.FDFrame)
     write(interface.sp, sendstr)
     flush(interface.sp)
 
+end
+
+
+function Interfaces.recv(interface::T) where {T<:Union{SlcanInterface,SlcanFDInterface}}
+    # read rx buffer & push it to program buffer
+    res = nonblocking_read(interface.sp)
+    append!(interface.buffer, res)
+
+    idx = findfirst(x -> x == 0x0d, interface.buffer) # delimiter index
+
+    if idx === nothing
+        return nothing # queue is empty
+    else
+        # split token
+        token = interface.buffer[1:idx]
+        interface.buffer = interface.buffer[idx+1:end]
+
+        if 0x41 <= token[1] <= 0x5a # extended
+
+            id = parse(UInt32, String(token[2:9]), base=16)
+            len = slcandef.DLC2LEN[token[10]]
+            data = hex2bytes(String(token[11:end-1]))
+
+            if token[1] == 0x54 # T
+                return Frames.Frame(id, data[1:len], true)
+            elseif token[1] == 0x44 # D
+                return Frames.FDFrame(id, data[1:len], true, false, false)
+            elseif token[1] == 0x42 # B
+                return Frames.FDFrame(id, data[1:len], true, true, false)
+            else
+                return nothing
+            end
+
+        elseif 0x61 <= token[1] <= 0x7a # standard
+
+            id = parse(UInt32, String(token[2:4]), base=16)
+            len = slcandef.DLC2LEN[token[5]]
+            data = hex2bytes(String(token[6:end-1]))
+
+            if token[1] == 0x74 # t
+                return Frames.Frame(id, data[1:len], false)
+            elseif token[1] == 0x64 # d
+                return Frames.FDFrame(id, data[1:len], false, false, false)
+            elseif token[1] == 0x62 # b
+                return Frames.FDFrame(id, data[1:len], false, true, false)
+            else
+                return nothing
+            end
+        end
+    end
 end
 
 
