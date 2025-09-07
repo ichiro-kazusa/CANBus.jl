@@ -68,6 +68,7 @@ end
 include("vector/Vector.jl")
 include("kvaser/Kvaser.jl")
 include("socketcan/Socketcan.jl")
+include("slcan/Slcan.jl")
 
 
 end # Interfaces
