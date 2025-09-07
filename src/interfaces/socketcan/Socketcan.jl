@@ -1,6 +1,5 @@
 module SocketCANInterfaces
 
-using CANalyze
 import ..Interfaces
 import ...Frames
 

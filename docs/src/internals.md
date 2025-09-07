@@ -5,17 +5,17 @@
 ### Kvaser
 
 ```@docs
-CAN.Interfaces.KvaserInterfaces.Canlib
+CANBus.Interfaces.KvaserInterfaces.Canlib
 ```
 
 ### SocketCAN
 
 ```@docs
-CAN.Interfaces.SocketCANInterfaces.SocketCAN
+CANBus.Interfaces.SocketCANInterfaces.SocketCAN
 ```
 
 ### Vector
 
 ```@docs
-CAN.Interfaces.VectorInterfaces.Vxlapi
+CANBus.Interfaces.VectorInterfaces.Vxlapi
 ```

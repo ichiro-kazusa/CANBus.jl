@@ -1,24 +1,24 @@
 # Frames
 
-In `CAN.jl`, send/receive messages are represented in `CAN.Frames` module.
+In `CANBus.jl`, send/receive messages are represented in `CANBus.Frames` module.
 For CAN frame, `Frame` is used, or for CAN FD frame, `FDFrame` is used.
 
 ## Base type
 
 ```@docs
-CAN.Frames.AbstractFrame
+CANBus.Frames.AbstractFrame
 ```
 
 ## Frame
 
 ```@docs
-CAN.Frames.Frame
+CANBus.Frames.Frame
 ```
 
 ## FDFrame
 
 ```@docs
-CAN.Frames.FDFrame
+CANBus.Frames.FDFrame
 ```
 
 ## Compatibility with `CANalyze` package
@@ -28,7 +28,7 @@ CAN.Frames.FDFrame
 For instance, `Frame` constructor has a converter from `CANalyze.CANFrame` struct, you can use it like below:
 
 ```jl
-using CAN
+using CANBus
 using CANalyze
 
 vector1 = VectorInterface(0, 500000, "NewApp")
@@ -42,7 +42,7 @@ In the opposite direction, `CANalyze.CANFrame` and `CANalyze.CANFdFrame` constru
 so that you can feed `Frame` and `FDFrame` structs to `CANalyze.Decode.decode` function with conversion.
 
 ```jl
-frm = CAN.Frame(0x0e, [1, 2, 3, 4], false)
+frm = CANBus.Frame(0x0e, [1, 2, 3, 4], false)
 
 signal = CANalyze.Signals.NamedSignal("myfloat", nothing, nothing,
     CANalyze.Signals.Float32Signal(start=0; byte_order=:little_endian))

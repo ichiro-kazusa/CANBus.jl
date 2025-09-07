@@ -1,7 +1,6 @@
 module Interfaces
 
-using CANalyze
-
+import ..Frames
 
 """
 Abstract type for Interfaces.
@@ -9,7 +8,7 @@ Abstract type for Interfaces.
 abstract type AbstractCANInterface end
 
 """
-    send(interface::T<:AbstractCANInterface, frame::CANalyze.CANFrame)
+    send(interface::T<:AbstractCANInterface, frame::AbstractFrame)
 
 Abstract function for send message.
 
@@ -17,7 +16,7 @@ Common behavior of concrete implements:
 * When send successed, return nothing.
 * When send failed, throws error.
 """
-function send(interface::AbstractCANInterface, frame::CANalyze.CANFrame)
+function send(interface::AbstractCANInterface, frame::Frames.AbstractFrame)
     error("abstract 'send' is not implemented.")
 end
 
@@ -28,7 +27,7 @@ Abstract function for receive message.
 
 Common behavior of concrete implements:
 * non-blocking
-* When receive successed, returns CANalyze.CANFrame.
+* When receive successed, returns Frame or FDFrame.
 * When receive queue is empty, returns nothing.
 * When fails to receive in other reasons, throws error.
 """

@@ -33,7 +33,7 @@ end
     flags::Cuchar = 0
     reserved::Cuchar = 0
     timeStamp::XLuint64 = 0
-    tagData::s_xl_can_msg = s_xl_can_msg() # this is union originally, but this package focuses on CAN.
+    tagData::s_xl_can_msg = s_xl_can_msg() # this is union originally, but this package focuses on CANBus.
 end
 
 

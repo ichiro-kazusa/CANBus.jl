@@ -1,10 +1,10 @@
 using CANalyze
-using CAN
+using CANBus
 using Test
 
 function main()
 
-    frm = CAN.Frame(0x0e, [1, 2, 3, 4], false)
+    frm = CANBus.Frame(0x0e, [1, 2, 3, 4], false)
 
     signal = CANalyze.Signals.NamedSignal("myfloat", nothing, nothing,
         CANalyze.Signals.Float32Signal(start=0; byte_order=:little_endian))

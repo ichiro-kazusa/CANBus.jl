@@ -3,7 +3,7 @@
 Let us assume that we have 2-channel Vector interface, the simplest example is below:
 
 ```julia
-using CAN
+using CANBus
 using CANalyze
 
 function main()

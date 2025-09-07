@@ -9,7 +9,7 @@ This section describes basic usage for each supported hardwares.
 To setup interface, do something like below,
 
 ```jl
-using CAN
+using CANBus
 
 kvaser0 = KvaserInterface(0, 500000)  # channel 0, 500kbps
 ```
@@ -21,7 +21,7 @@ kvaser0 = KvaserFDInterface(0, 500000, 2000000)  # channel 0, 500kbps, 2Mbps
 
 `send`, `recv`, `shutdown` functions can be use.
 
-Kvaser's api library is redistributed with `CAN.jl` after its license, users does not need to install them separately.
+Kvaser's api library is redistributed with `CANBus.jl` after its license, users does not need to install them separately.
 
 ## SocketCAN
 
@@ -30,7 +30,7 @@ Kvaser's api library is redistributed with `CAN.jl` after its license, users doe
 To setup interface, 
 
 ```jl
-using CAN
+using CANBus
 
 sockcan0 = SocketCANInterface("can0")  # channel "can0"
 ```
@@ -54,7 +54,7 @@ In this time, author does not get permission to distribute DLLs. So to use this 
 please install [Vector XL-Driver-Library](https://www.vector.com/jp/ja/products/products-a-z/libraries-drivers/xl-driver-library/#) separately. Check `vxlapi64.dll` is in your path.
 
 ```jl
-using CAN
+using CANBus
 
 vector1 = VectorInterface(0, 500000, "NewApp") # channel 0, 500kbps, application name
 ```

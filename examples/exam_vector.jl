@@ -1,5 +1,4 @@
-using CAN
-using CANalyze
+using CANBus
 using Test
 
 function main()
@@ -11,10 +10,10 @@ function main()
     println(vector1)
     println(vector2)
 
-    frame = CAN.Frame(1, [1, 1, 2, 2, 3, 3, 4], true)
+    frame = CANBus.Frame(1, [1, 1, 2, 2, 3, 3, 4], true)
     send(vector1, frame)
 
-    frame = CAN.Frame(2, [1, 1, 2, 2, 3, 3, 4], true)
+    frame = CANBus.Frame(2, [1, 1, 2, 2, 3, 3, 4], true)
     send(vector1, frame)
 
     frame = recv(vector2) # accept by filter
@@ -32,7 +31,7 @@ function main()
     println(vectorfd1)
     println(vectorfd2)
 
-    msg = CAN.FDFrame(1, collect(1:16), false, false, false)
+    msg = CANBus.FDFrame(1, collect(1:16), false, false, false)
     send(vectorfd1, msg)
 
     msg = recv(vectorfd2)

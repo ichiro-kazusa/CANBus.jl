@@ -1,6 +1,5 @@
 module KvaserInterfaces
 
-using CANalyze
 import ..Interfaces
 import ...Frames
 

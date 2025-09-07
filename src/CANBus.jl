@@ -1,4 +1,4 @@
-module CAN
+module CANBus
 
 include("frames/Frames.jl")
 import .Frames: Frame, FDFrame
@@ -19,4 +19,4 @@ export VectorInterface, VectorFDInterface,
 export send, recv, shutdown, AcceptanceFilter
 
 
-end # module CAN
+end # module CANBus
