@@ -1,4 +1,4 @@
 [deps]
-CAN = "bffc1db9-6142-4b2c-b5cf-b017e7edc3de"
+CANBus = "bffc1db9-6142-4b2c-b5cf-b017e7edc3de"
 CANalyze = "2dc4fe6c-d2be-46ad-ace5-0bbcd4825534"
 Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"

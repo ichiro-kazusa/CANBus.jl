@@ -1,4 +1,4 @@
-using CAN
+using CANBus
 using Test
 using Aqua
 
@@ -12,5 +12,5 @@ include("test_examples.jl")
 
 
 @testset "Aqua.jl" begin
-    Aqua.test_all(CAN)
+    Aqua.test_all(CANBus)
 end

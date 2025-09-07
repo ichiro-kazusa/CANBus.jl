@@ -1,14 +1,14 @@
-using CAN
+using CANBus
 using Documenter
 
-DocMeta.setdocmeta!(CAN, :DocTestSetup, :(using CAN); recursive=true)
+DocMeta.setdocmeta!(CANBus, :DocTestSetup, :(using CANBus); recursive=true)
 
 makedocs(;
-    modules=[CAN],
+    modules=[CANBus],
     authors="Soichiro Fukamachi <ichiro.kazusa@gmail.com>",
-    sitename="CAN.jl",
+    sitename="CANBus.jl",
     format=Documenter.HTML(;
-        canonical="https://ichiro-kazusa.github.io/CAN.jl",
+        canonical="https://ichiro-kazusa.github.io/CANBus.jl",
         edit_link="main",
         assets=String[],
     ),
@@ -25,6 +25,6 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="github.com/ichiro-kazusa/CAN.jl",
+    repo="github.com/ichiro-kazusa/CANBus.jl",
     devbranch="main",
 )

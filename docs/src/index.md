@@ -1,14 +1,14 @@
 ```@meta
-CurrentModule = CAN
+CurrentModule = CANBus
 ```
 
-# CAN.jl
+# CANBus.jl
 
 *A can-bus communication package for Julia.*
 
 ## Introduction
 
-`CAN.jl` is a package for communicating on Controller Area Network (CAN, CANbus), supports several hardware interfaces.
+`CANBus.jl` is a package for communicating on Controller Area Network (CAN, CANbus), supports several hardware interfaces.
 
 ## Features
 
@@ -19,7 +19,7 @@ CurrentModule = CAN
 Install from GitHub.
 
 ```julia-repl
-pkg> add https://github.com/ichiro-kazusa/CAN.jl
+pkg> add https://github.com/ichiro-kazusa/CANBus.jl
 ```
 
 ## TODO

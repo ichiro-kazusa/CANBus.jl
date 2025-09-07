@@ -71,6 +71,6 @@ jobs:
         shell: julia --project=docs --color=yes {0}
         run: |
           using Documenter: DocMeta, doctest
-          using CAN
-          DocMeta.setdocmeta!(CAN, :DocTestSetup, :(using CAN); recursive=true)
-          doctest(CAN)
+          using CANBus
+          DocMeta.setdocmeta!(CANBus, :DocTestSetup, :(using CANBus); recursive=true)
+          doctest(CANBus)

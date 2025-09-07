@@ -9,7 +9,7 @@ abstract type AbstractFrame end
 
 
 """
-    CAN.Frame(id::Integer, data::AbstractVector, is_extended:Bool)
+    CANBus.Frame(id::Integer, data::AbstractVector, is_extended:Bool)
 
 Frame struct represents classic (8bytes) CAN frame.
 
@@ -18,7 +18,7 @@ Frame struct represents classic (8bytes) CAN frame.
 * `is_extended`: Flag which arbitration id is extended.
 
 ```jl
-frame = CAN.Frame(0x5, [1, 2, 3, 4, 5, 6, 7, 8], true)
+frame = CANBus.Frame(0x5, [1, 2, 3, 4, 5, 6, 7, 8], true)
 ```
 """
 struct Frame <: AbstractFrame
@@ -55,7 +55,7 @@ end
 const capable_dlc_over8 = [12, 16, 20, 24, 32, 48, 64]
 
 """
-    CAN.FDFrame(id::Integer, data::AbstractVector, is_extended::Bool,
+    CANBus.FDFrame(id::Integer, data::AbstractVector, is_extended::Bool,
         bitrate_switch::Bool, error_state::Bool)
 
 FDFrame struct represents CAN FD (64bytes) frame.

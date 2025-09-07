@@ -1,28 +1,28 @@
-# CAN.jl
+# CANBus.jl
 
-[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://ichiro-kazusa.github.io/CAN.jl/stable/)
-[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://ichiro-kazusa.github.io/CAN.jl/dev/)
-[![Build Status](https://github.com/ichiro-kazusa/CAN.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/ichiro-kazusa/CAN.jl/actions/workflows/CI.yml?query=branch%3Amain)
-[![Coverage](https://codecov.io/gh/ichiro-kazusa/CAN.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/ichiro-kazusa/CAN.jl)
+[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://ichiro-kazusa.github.io/CANBus.jl/stable/)
+[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://ichiro-kazusa.github.io/CANBus.jl/dev/)
+[![Build Status](https://github.com/ichiro-kazusa/CANBus.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/ichiro-kazusa/CANBus.jl/actions/workflows/CI.yml?query=branch%3Amain)
+[![Coverage](https://codecov.io/gh/ichiro-kazusa/CANBus.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/ichiro-kazusa/CANBus.jl)
 [![Aqua QA](https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg)](https://github.com/JuliaTesting/Aqua.jl)
 
 
-`CAN.jl` is a Controller Area Network (CAN Bus) communication package for Julia language.
+`CANBus.jl` is a Controller Area Network (CAN Bus) communication package for Julia language.
 
-`CAN.jl` only does communication itself.
+`CANBus.jl` only does communication itself.
 To encode/decode messages, use tsavelmann's [`CANalyze.jl`](https://github.com/tsabelmann/CANalyze.jl/tree/main).
 
 At this time, this is an alpha version software. 
 * Several interfaces are tested only on virtual bus.
 * Package behavior changes frequently.
 
-For more details, read full [documentation](https://ichiro-kazusa.github.io/CAN.jl/stable/).
+For more details, read full [documentation](https://ichiro-kazusa.github.io/CANBus.jl/stable/).
 
 ## Installation
 Install from GitHub. on julia package mode, 
 
 ```julia-repl
-pkg> add https://github.com/ichiro-kazusa/CAN.jl
+pkg> add https://github.com/ichiro-kazusa/CANBus.jl
 ```
 
 ## Supported hardwares at this time
@@ -44,7 +44,7 @@ pkg> add https://github.com/ichiro-kazusa/CAN.jl
 ### Kvaser Hardware
 
 ```jl
-using CAN
+using CANBus
 
 function main()
     kvaser1 = KvaserInterface(0, 500000)
@@ -54,7 +54,7 @@ function main()
     println(kvaser1)
     println(kvaser2)
 
-    msg = CAN.Frame(2, [1, 1, 2, 2, 3, 3, 4], true)
+    msg = CANBus.Frame(2, [1, 1, 2, 2, 3, 3, 4], true)
     send(kvaser1, msg)
 
     msg = recv(kvaser2) # accept by filter
@@ -69,7 +69,7 @@ function main()
     println(kvaserfd1)
     println(kvaserfd2)
 
-    msg = CAN.FDFrame(1, collect(1:16), false, false, false)
+    msg = CANBus.FDFrame(1, collect(1:16), false, false, false)
     send(kvaserfd1, msg)
 
     msg = recv(kvaserfd2)
