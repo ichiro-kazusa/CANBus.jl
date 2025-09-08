@@ -19,15 +19,16 @@ At this time, this is an alpha version software.
 For more details, read full [documentation](https://ichiro-kazusa.github.io/CANBus.jl/stable/).
 
 ## Installation
-Install from GitHub. on julia package mode, 
+Install in julia package mode, 
 
 ```julia-repl
-pkg> add https://github.com/ichiro-kazusa/CANBus.jl
+pkg> add CANBus
 ```
 
 ## Supported hardwares at this time
 
 * Kvaser
+* slcan - tested on CANable 2.0
 * SocketCAN
 * Vector - requires [XL Driver Library](https://www.vector.com/int/en/download/xl-driver-library/)
 
@@ -36,6 +37,7 @@ pkg> add https://github.com/ichiro-kazusa/CANBus.jl
 |Interface|CAN|Ext.ID|Filter|CANFD|Platform|
 |----|----|----|----|----|----|
 |Kvaser|✓|✓|✓|✓|Win64|
+|slcan|✓|✓|NO|✓|Win64, Linux|
 |SocketCAN|✓|✓|✓|✓|Linux|
 |Vector|✓|✓|✓|✓|Win64|
 

@@ -34,6 +34,16 @@ CANBus.Interfaces.KvaserInterfaces.KvaserInterface
 CANBus.Interfaces.KvaserInterfaces.KvaserFDInterface
 ```
 
+## slcan
+
+```@docs
+CANBus.Interfaces.SlcanInterfaces.SlcanInterface
+```
+
+```@docs
+CANBus.Interfaces.SlcanInterfaces.SlcanFDInterface
+```
+
 ## SocketCAN
 
 ```@docs

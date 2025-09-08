@@ -10,7 +10,22 @@ import .slcandef
 
 const DELIMITER = '\r'
 
+"""
+    slcan0 = SlcanInterface(port::String, bitrate::Integer)
 
+slcan is a CAN over serial protocol by CANable.
+This version is tested on CANable 2.0.
+
+!!! note
+
+    `slcan` with FD firmware (b158aa7) is seemd to be always on FD mode,
+    thus there is no **pure CAN** mode. Therefore, this interface receives
+    FDFrame when someone send that.
+
+* port: port name string e.g. on Windows: "COM3", on Linux: "/dev/ttyACM0"
+* bitrate: bit rate in bit/s
+* silent(optional): listen only flag in bool.
+"""
 mutable struct SlcanInterface{T<:Union{SerialPort,Cint}} <: Interfaces.AbstractCANInterface
     sp::T
     buffer::String
@@ -25,6 +40,18 @@ mutable struct SlcanInterface{T<:Union{SerialPort,Cint}} <: Interfaces.AbstractC
 end
 
 
+"""
+    slcan0 = SlcanFDInterface(port::String, bitrate::Integer, datarate::Integer)
+
+slcan is a CAN over serial protocol by CANable.
+This version is tested on CANable 2.0.
+This interface supports send CAN FD frame.
+
+* port: port name string e.g. on Windows: "COM3", on Linux: "/dev/ttyACM0"
+* bitrate: bit rate in bit/s
+* datarate: data rate in bit/s
+* silent(optional): listen only flag in bool.
+"""
 mutable struct SlcanFDInterface{T<:Union{SerialPort,Cint}} <: Interfaces.AbstractCANInterface
     sp::T
     buffer::String

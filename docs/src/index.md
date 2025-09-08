@@ -16,10 +16,10 @@ CurrentModule = CANBus
 * CAN FD support (experimental).
 
 ## Installation
-Install from GitHub.
+Install in package mode.
 
 ```julia-repl
-pkg> add https://github.com/ichiro-kazusa/CANBus.jl
+pkg> add CANBus
 ```
 
 ## TODO

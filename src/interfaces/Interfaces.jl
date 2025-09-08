@@ -34,7 +34,6 @@ Common behavior of concrete implements:
 * When fails to receive in other reasons, throws error.
 * Classic CAN interfaces return only `Frame` object.
 * CAN FD interfaces return either `Frame` or `FDFrame` object.
-    * This is a type unstable behavior, so might be changed in future...
 """
 function recv(interface::AbstractCANInterface)
     error("abstract 'recv' is not implemented.")

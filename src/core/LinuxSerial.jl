@@ -1,3 +1,4 @@
+"""A wrapper for linux serial port api."""
 module LinuxSerial
 
 using TERMIOS

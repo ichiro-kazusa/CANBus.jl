@@ -4,13 +4,12 @@ Let us assume that we have 2-channel Vector interface, the simplest example is b
 
 ```julia
 using CANBus
-using CANalyze
 
 function main()
     vector1 = VectorInterface(0, 500000, "NewApp")
     vector2 = VectorInterface(1, 500000, "NewApp")
 
-    frame = CANalyze.CANFrame(15, [1, 1, 2, 2, 3, 3, 4]; is_extended=true)
+    frame = CANBus.Frame(15, [1, 1, 2, 2, 3, 3, 4], true)
 
     send(vector1, frame)
 

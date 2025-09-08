@@ -34,13 +34,13 @@ function test_slcan_normal_fd()
     scanfd2 = SlcanFDInterface("COM4", 1000000, 2000000)
 
     msg_t = CANBus.FDFrame(1, collect(1:16), false, false, false)
-    send(scanfd1, msg_t)
+    send(scanfd1, msg_t) # normal FD
 
     msg_r = recv(scanfd2)
     @assert msg_t == msg_r
 
     msg_t = CANBus.FDFrame(1, collect(1:16), false, true, false)
-    send(scanfd1, msg_t)
+    send(scanfd1, msg_t) # bitrate switch
 
     msg_r = recv(scanfd2)
     @assert msg_t == msg_r

@@ -1,3 +1,7 @@
+"""
+Abstraction layer for serial port communication.
+This uses `LinuxSerial` module on Linux, `LibSerialPort` on others.
+"""
 module SerialHAL
 
 using LibSerialPort
@@ -31,7 +35,7 @@ function write(fd::T, msg::String) where {T<:Union{Union{SerialPort,Cint}}}
         return r
     else
         r = LibSerialPort.write(fd, msg)
-        LibSerialPort.flush(fd)
+        Base.flush(fd)
         return r
     end
 end
@@ -50,7 +54,7 @@ function clear_buffer(fd::T) where {T<:Union{Union{SerialPort,Cint}}}
     @static if Sys.islinux()
         LinuxSerial.flushio(fd)
     else
-        LibSerialPort.nonblocking_read(fd)
+        LibSerialPort.sp_flush(fd, LibSerialPort.SP_BUF_BOTH)
     end
 end
 
