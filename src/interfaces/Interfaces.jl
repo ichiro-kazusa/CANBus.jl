@@ -15,6 +15,8 @@ Abstract function for send message.
 Common behavior of concrete implements:
 * When send successed, return nothing.
 * When send failed, throws error.
+* Classic CAN interfaces can send ONLY `Frame`
+* CAN FD interfaces can send both `Frame` and `FDFrame`
 """
 function send(interface::AbstractCANInterface, frame::Frames.AbstractFrame)
     error("abstract 'send' is not implemented.")
@@ -30,6 +32,9 @@ Common behavior of concrete implements:
 * When receive successed, returns Frame or FDFrame.
 * When receive queue is empty, returns nothing.
 * When fails to receive in other reasons, throws error.
+* Classic CAN interfaces return only `Frame` object.
+* CAN FD interfaces return either `Frame` or `FDFrame` object.
+    * This is a type unstable behavior, so might be changed in future...
 """
 function recv(interface::AbstractCANInterface)
     error("abstract 'recv' is not implemented.")

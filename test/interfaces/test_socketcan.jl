@@ -50,7 +50,6 @@ function test_scan_normal_fd()
 
     msg_t = CANBus.FDFrame(1, collect(1:16), false, true, false)
     send(scanfd1, msg_t)
-
     msg_r = recv(scanfd2)
     @assert msg_t == msg_r
 
@@ -58,6 +57,11 @@ function test_scan_normal_fd()
     send(scanfd1, msg_t)
     msg_r = recv(scanfd2) # filtered
     @assert msg_r === nothing
+
+    msg_t = CANBus.Frame(1, collect(1:6), false)
+    send(scanfd1, msg_t)
+    msg_r = recv(scanfd2)
+    @assert msg_t == msg_r # classic frame
 
     msg_r = recv(scanfd2) # empty
     @assert msg_r === nothing

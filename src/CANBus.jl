@@ -1,16 +1,18 @@
 module CANBus
 
+ # internal use
 include("core/LinuxSerial.jl")
 include("core/SerialHAL.jl")
-import .LinuxSerial # internal use
+import .LinuxSerial
 import .SerialHAL
 
+
+# public api: data structure
 include("frames/Frames.jl")
 import .Frames: Frame, FDFrame
 export Frame, FDFrame
 
-
-
+# public api: interfaces
 include("interfaces/Interfaces.jl")
 import .Interfaces.VectorInterfaces: VectorInterface, VectorFDInterface
 import .Interfaces.KvaserInterfaces: KvaserInterface, KvaserFDInterface

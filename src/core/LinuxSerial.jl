@@ -92,10 +92,10 @@ end
 
 function nonblocking_read(fd::Cint)::Vector{UInt8}
     totbuf = UInt8[]
-    buf = zeros(Cuchar, 256)
+    buf = zeros(Cuchar, 1)
     pbuf = Ref(buf, 1)
     while true
-        r = ccall(:read, Cint, (Cint, Ptr{Cuchar}, Cuint), fd, pbuf, 256)
+        r = ccall(:read, Cint, (Cint, Ptr{Cuchar}, Cuint), fd, pbuf, 1)
         r > 0 ? append!(totbuf, buf[1:r]) : break
     end
 

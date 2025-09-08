@@ -28,3 +28,4 @@ pkg> add https://github.com/ichiro-kazusa/CANBus.jl
 * supports other interfaces
 * supports multi-threading
 * supports async programming
+* performance optimization

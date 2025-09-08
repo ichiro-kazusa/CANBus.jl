@@ -11,9 +11,8 @@ import .slcandef
 const DELIMITER = '\r'
 
 
-mutable struct SlcanInterface <: Interfaces.AbstractCANInterface
-    sp::SerialPort
-    # buffer::Vector{UInt8}
+mutable struct SlcanInterface{T<:Union{SerialPort,Cint}} <: Interfaces.AbstractCANInterface
+    sp::T
     buffer::String
 
     function SlcanInterface(channel::String, bitrate::Int;
@@ -21,14 +20,13 @@ mutable struct SlcanInterface <: Interfaces.AbstractCANInterface
 
         sp = _init_slcan(channel, bitrate, serialbaud, silent, false, 0)
 
-        new(sp, "")
+        new{typeof(sp)}(sp, "")
     end
 end
 
 
 mutable struct SlcanFDInterface{T<:Union{SerialPort,Cint}} <: Interfaces.AbstractCANInterface
     sp::T
-    # buffer::Vector{UInt8}
     buffer::String
 
     function SlcanFDInterface(channel::String, bitrate::Int, datarate::Int;
@@ -43,7 +41,7 @@ end
 
 function _init_slcan(channel::String, bitrate::Int,
     serialbaud::Int, silent::Bool,
-    fd::Bool, datarate::Int)
+    fd::Bool, datarate::Int)::Union{SerialPort,Cint}
 
     if !(channel in get_port_list())
         error("Slcan: $channel is not found.")
@@ -51,10 +49,7 @@ function _init_slcan(channel::String, bitrate::Int,
 
     sp = SerialHAL.open(channel, serialbaud)
 
-    sleep(1)
-
     SerialHAL.write(sp, "C" * DELIMITER) # temporary close channel
-    sleep(0.1)
 
     # silent mode
     mode = silent ? "M1" : "M0"
@@ -66,7 +61,6 @@ function _init_slcan(channel::String, bitrate::Int,
         error("Slcan: unsupported bitrate. choose from $k")
     end
     SerialHAL.write(sp, slcandef.BITRATE_DICT[bitrate] * DELIMITER)
-    sleep(0.1)
 
     # set bitrate fd
     if fd
@@ -75,7 +69,6 @@ function _init_slcan(channel::String, bitrate::Int,
             error("Slcan: unsupported datarate. choose from $k")
         end
         SerialHAL.write(sp, slcandef.BITRATE_DICT_FD[datarate] * DELIMITER)
-        sleep(0.1)
     end
 
     # open channel
@@ -89,7 +82,7 @@ function _init_slcan(channel::String, bitrate::Int,
 end
 
 
-function Interfaces.send(interface::SlcanInterface, msg::Frames.Frame)
+function Interfaces.send(interface::T, msg::Frames.Frame) where {T<:Union{SlcanInterface,SlcanFDInterface}}
 
     sendstr::String = ""
     if msg.is_extended
@@ -131,7 +124,7 @@ function Interfaces.send(interface::SlcanFDInterface, msg::Frames.FDFrame)
 end
 
 
-function Interfaces.recv(interface::T) where {T<:Union{SlcanInterface,SlcanFDInterface}}
+function Interfaces.recv(interface::T)::Union{Nothing,Frames.Frame,Frames.FDFrame} where {T<:Union{SlcanInterface,SlcanFDInterface}}
     # read rx buffer & push it to program buffer
     res = SerialHAL.nonblocking_read(interface.sp)
     interface.buffer *= String(res)
@@ -175,6 +168,8 @@ function Interfaces.recv(interface::T) where {T<:Union{SlcanInterface,SlcanFDInt
             else
                 return nothing
             end
+        else
+            return nothing
         end
     end
 end

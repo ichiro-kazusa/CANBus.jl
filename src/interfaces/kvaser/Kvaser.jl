@@ -117,8 +117,8 @@ function _init_kvaser(channel::Int, bitrate::Int, silent::Bool,
 end
 
 
-function Interfaces.send(interface::KvaserInterface,
-    msg::Frames.Frame)::Nothing
+function Interfaces.send(interface::T,
+    msg::Frames.Frame)::Nothing where {T<:Union{KvaserInterface,KvaserFDInterface}}
 
     pmsg_t = Ref(msg.data, 1)
     len = Cuint(length(msg))
@@ -168,7 +168,7 @@ function Interfaces.recv(interface::KvaserInterface)::Union{Nothing,Frames.Frame
 end
 
 
-function Interfaces.recv(interface::KvaserFDInterface)::Union{Nothing,Frames.FDFrame}
+function Interfaces.recv(interface::KvaserFDInterface)::Union{Nothing,Frames.Frame,Frames.FDFrame}
     pid = Ref(Clong(0))
     msg = zeros(Cuchar, 64)
     pmsg = Ref(msg, 1)
@@ -178,9 +178,14 @@ function Interfaces.recv(interface::KvaserFDInterface)::Union{Nothing,Frames.FDF
     status = Canlib.canRead(interface.handle, pid, pmsg, plen, pflag, ptime)
 
     if status == Canlib.canOK
-        ret = Frames.FDFrame(pid[], msg[1:plen[]], (pflag[] & Canlib.canMSG_EXT) != 0,
-            (pflag[] & Canlib.canFDMSG_BRS) != 0, (pflag[] & Canlib.canFDMSG_ESI) != 0)
-        return ret
+        if (pflag[] & Canlib.canFDMSG_FDF) != 0 # FD Message
+            ret = Frames.FDFrame(pid[], msg[1:plen[]], (pflag[] & Canlib.canMSG_EXT) != 0,
+                (pflag[] & Canlib.canFDMSG_BRS) != 0, (pflag[] & Canlib.canFDMSG_ESI) != 0)
+            return ret
+        else
+            ret = Frames.Frame(pid[], msg[1:plen[]], (pflag[] & Canlib.canMSG_EXT) != 0)
+            return ret
+        end
     elseif status != Canlib.canERR_NOMSG
         error("Kvaser: CANFD receive error. $status")
     end

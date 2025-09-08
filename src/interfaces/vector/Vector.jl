@@ -161,14 +161,19 @@ function Interfaces.send(interface::VectorInterface, msg::Frames.Frame)
 end
 
 
-function Interfaces.send(interface::VectorFDInterface, msg::Frames.FDFrame)
+function Interfaces.send(interface::VectorFDInterface, msg::T) where {T<:Union{Frames.Frame,Frames.FDFrame}}
     canid = msg.is_extended ? msg.id | Vxlapi.XL_CAN_EXT_MSG_ID : msg.id
     len = length(msg)
     dlc = len <= 8 ? len : Vxlapi.CANFD_LEN2DLC[len]
-    flags = msg.bitrate_switch ? Vxlapi.XL_CAN_TXMSG_FLAG_BRS : Cuint(0)
-    flags |= 8 < len ? Vxlapi.XL_CAN_TXMSG_FLAG_EDL : Cuint(0)
     data_pad = zeros(Cuchar, Vxlapi.XL_CAN_MAX_DATA_LEN)
     data_pad[1:len] .= msg.data
+
+    flags = Cuint(0) # classic can message
+
+    if T == Frames.FDFrame
+        flags = msg.bitrate_switch ? Vxlapi.XL_CAN_TXMSG_FLAG_BRS : Cuint(0)
+        flags |= 8 < len ? Vxlapi.XL_CAN_TXMSG_FLAG_EDL : Cuint(0)
+    end
 
     event = Vxlapi.XLcanTxEvent(Vxlapi.XL_CAN_EV_TAG_TX_MSG, 0, 0, zeros(Cuchar, 3),
         Vxlapi.XL_CAN_TX_MSG(canid, flags, dlc, zeros(Cuchar, 7), data_pad))
