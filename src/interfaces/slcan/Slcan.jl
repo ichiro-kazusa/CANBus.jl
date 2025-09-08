@@ -1,39 +1,42 @@
 module SlcanInterfaces
 
 using LibSerialPort
+import ...SerialHAL
 import ..Interfaces
 import ...Frames
 
 include("slcandef.jl")
 import .slcandef
 
-const DELIMITER = "\r"
+const DELIMITER = '\r'
 
 
 mutable struct SlcanInterface <: Interfaces.AbstractCANInterface
     sp::SerialPort
-    buffer::Vector{UInt8}
+    # buffer::Vector{UInt8}
+    buffer::String
 
     function SlcanInterface(channel::String, bitrate::Int;
         serialbaud::Int=115200, silent::Bool=false)
 
         sp = _init_slcan(channel, bitrate, serialbaud, silent, false, 0)
 
-        new(sp, [])
+        new(sp, "")
     end
 end
 
 
-mutable struct SlcanFDInterface <: Interfaces.AbstractCANInterface
-    sp::SerialPort
-    buffer::Vector{UInt8}
+mutable struct SlcanFDInterface{T<:Union{SerialPort,Cint}} <: Interfaces.AbstractCANInterface
+    sp::T
+    # buffer::Vector{UInt8}
+    buffer::String
 
     function SlcanFDInterface(channel::String, bitrate::Int, datarate::Int;
         serialbaud::Int=115200, silent::Bool=false)
 
         sp = _init_slcan(channel, bitrate, serialbaud, silent, true, datarate)
 
-        new(sp, [])
+        new{typeof(sp)}(sp, "")
     end
 end
 
@@ -46,20 +49,24 @@ function _init_slcan(channel::String, bitrate::Int,
         error("Slcan: $channel is not found.")
     end
 
-    sp = LibSerialPort.open(channel, serialbaud)
+    sp = SerialHAL.open(channel, serialbaud)
 
-    write(sp, "C" * DELIMITER) # temporary close channel
+    sleep(1)
+
+    SerialHAL.write(sp, "C" * DELIMITER) # temporary close channel
+    sleep(0.1)
 
     # silent mode
     mode = silent ? "M1" : "M0"
-    write(sp, mode * DELIMITER)
+    SerialHAL.write(sp, mode * DELIMITER)
 
     # set bitrate
     if !haskey(slcandef.BITRATE_DICT, bitrate)
         k = sort(collect(keys(slcandef.BITRATE_DICT)))
         error("Slcan: unsupported bitrate. choose from $k")
     end
-    write(sp, slcandef.BITRATE_DICT[bitrate] * DELIMITER)
+    SerialHAL.write(sp, slcandef.BITRATE_DICT[bitrate] * DELIMITER)
+    sleep(0.1)
 
     # set bitrate fd
     if fd
@@ -67,16 +74,16 @@ function _init_slcan(channel::String, bitrate::Int,
             k = sort(collect(keys(slcandef.BITRATE_DICT_FD)))
             error("Slcan: unsupported datarate. choose from $k")
         end
-        write(sp, slcandef.BITRATE_DICT_FD[datarate] * DELIMITER)
+        SerialHAL.write(sp, slcandef.BITRATE_DICT_FD[datarate] * DELIMITER)
+        sleep(0.1)
     end
 
     # open channel
-    write(sp, "O" * DELIMITER)
-    flush(sp)
+    SerialHAL.write(sp, "O" * DELIMITER)
 
     # clear receive buffer
-    sleep(0.1) # wait open
-    nonblocking_read(sp)
+    sleep(0.2) # wait open
+    SerialHAL.clear_buffer(sp)
 
     return sp
 end
@@ -97,8 +104,7 @@ function Interfaces.send(interface::SlcanInterface, msg::Frames.Frame)
     data = join(map(x -> lpad(string(x, base=16), 2, "0"), msg.data))
     sendstr *= (len * data * DELIMITER)
 
-    write(interface.sp, sendstr)
-    flush(interface.sp)
+    SerialHAL.write(interface.sp, sendstr)
 
 end
 
@@ -120,53 +126,51 @@ function Interfaces.send(interface::SlcanFDInterface, msg::Frames.FDFrame)
     data = join(map(x -> lpad(string(x, base=16), 2, "0"), msg.data))
     sendstr *= (dlc * data * DELIMITER)
 
-    write(interface.sp, sendstr)
-    flush(interface.sp)
+    SerialHAL.write(interface.sp, sendstr)
 
 end
 
 
 function Interfaces.recv(interface::T) where {T<:Union{SlcanInterface,SlcanFDInterface}}
     # read rx buffer & push it to program buffer
-    res = nonblocking_read(interface.sp)
-    append!(interface.buffer, res)
+    res = SerialHAL.nonblocking_read(interface.sp)
+    interface.buffer *= String(res)
 
-    idx = findfirst(x -> x == 0x0d, interface.buffer) # delimiter index
+    idx = findfirst(c -> c == '\n' || c == '\r', interface.buffer) # delimiter index
 
     if idx === nothing
         return nothing # queue is empty
     else
         # split token
-        token = interface.buffer[1:idx]
-        interface.buffer = interface.buffer[idx+1:end]
+        token = interface.buffer[1:idx-1] # split before delimiter
+        interface.buffer = lstrip(interface.buffer[idx:end],
+            ['\n', '\r']) # strip leading delimiter
 
-        if 0x41 <= token[1] <= 0x5a # extended
+        if isuppercase(token[1]) # extended
+            id = parse(UInt32, token[2:9], base=16)
+            len = slcandef.DLC2LEN[UInt8(token[10])]
+            data = hex2bytes(token[11:end])
 
-            id = parse(UInt32, String(token[2:9]), base=16)
-            len = slcandef.DLC2LEN[token[10]]
-            data = hex2bytes(String(token[11:end-1]))
-
-            if token[1] == 0x54 # T
+            if token[1] == 'T'
                 return Frames.Frame(id, data[1:len], true)
-            elseif token[1] == 0x44 # D
+            elseif token[1] == 'D'
                 return Frames.FDFrame(id, data[1:len], true, false, false)
-            elseif token[1] == 0x42 # B
+            elseif token[1] == 'B'
                 return Frames.FDFrame(id, data[1:len], true, true, false)
             else
                 return nothing
             end
 
-        elseif 0x61 <= token[1] <= 0x7a # standard
+        elseif islowercase(token[1]) # standard
+            id = parse(UInt32, token[2:4], base=16)
+            len = slcandef.DLC2LEN[UInt8(token[5])]
+            data = hex2bytes(token[6:end])
 
-            id = parse(UInt32, String(token[2:4]), base=16)
-            len = slcandef.DLC2LEN[token[5]]
-            data = hex2bytes(String(token[6:end-1]))
-
-            if token[1] == 0x74 # t
+            if token[1] == 't'
                 return Frames.Frame(id, data[1:len], false)
-            elseif token[1] == 0x64 # d
+            elseif token[1] == 'd'
                 return Frames.FDFrame(id, data[1:len], false, false, false)
-            elseif token[1] == 0x62 # b
+            elseif token[1] == 'b'
                 return Frames.FDFrame(id, data[1:len], false, true, false)
             else
                 return nothing
@@ -177,8 +181,8 @@ end
 
 
 function Interfaces.shutdown(interface::T) where {T<:Union{SlcanInterface,SlcanFDInterface}}
-    write(interface.sp, "C" * DELIMITER) # close channel
-    LibSerialPort.close(interface.sp)
+    SerialHAL.write(interface.sp, "C" * DELIMITER) # close channel
+    SerialHAL.close(interface.sp)
     return nothing
 end
 

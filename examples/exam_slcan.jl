@@ -1,27 +1,28 @@
 using Revise
 using CANBus
 
-
 function main()
 
     # # CAN
-    slcan1 = SlcanFDInterface("COM3", 1000000, 2000000)
-    slcan2 = SlcanFDInterface("COM4", 1000000, 2000000)
+    slcan1 = SlcanFDInterface("/dev/ttyACM0", 1000000,2000000)
+    # slcan2 = SlcanFDInterface("/dev/ttyACM3", 1000000,2000000)
 
-    
-    frm = FDFrame(0x111112e, collect(1:16), true, true, false)
-    
-    for i in 1:20
-        send(slcan1, frm)
+
+    println(slcan1)
+
+    for i in 1:40
+        frm_t = FDFrame(0x1, collect(1:7), false, false, false)
+        send(slcan1, frm_t)
         sleep(0.5)
-        frm = recv(slcan2)
+
+        frm = recv(slcan1)
         if frm !== nothing
             println(frm)
         end
     end
     
     shutdown(slcan1)
-    shutdown(slcan2)
+    # shutdown(slcan2)
 end
 
 

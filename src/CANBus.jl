@@ -1,5 +1,10 @@
 module CANBus
 
+include("core/LinuxSerial.jl")
+include("core/SerialHAL.jl")
+import .LinuxSerial # internal use
+import .SerialHAL
+
 include("frames/Frames.jl")
 import .Frames: Frame, FDFrame
 export Frame, FDFrame
