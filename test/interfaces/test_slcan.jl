@@ -3,8 +3,8 @@ using Test
 
 function test_slcan_normal()
     # use CAN
-    scan1 = SlcanInterface("/dev/ttyACM0", 1000000)
-    scan2 = SlcanInterface("/dev/ttyACM1", 1000000)
+    scan1 = SlcanInterface("COM3", 1000000)
+    scan2 = SlcanInterface("COM4", 1000000)
 
     msg_t1 = CANBus.Frame(1, [1, 1, 2, 2, 3, 3, 4], true)
     send(scan1, msg_t1)
@@ -30,8 +30,8 @@ end
 
 
 function test_slcan_normal_fd()
-    scanfd1 = SlcanFDInterface("/dev/ttyACM0", 1000000, 2000000)
-    scanfd2 = SlcanFDInterface("/dev/ttyACM1", 1000000, 2000000)
+    scanfd1 = SlcanFDInterface("COM3", 1000000, 2000000)
+    scanfd2 = SlcanFDInterface("COM4", 1000000, 2000000)
 
     msg_t = CANBus.FDFrame(1, collect(1:16), false, false, false)
     send(scanfd1, msg_t)
@@ -59,7 +59,7 @@ end
 
 
 # This feature can not be able to test on GitHub Actions.
-if !haskey(ENV, "GITHUB_ACTIONS") && Sys.islinux()
+if !haskey(ENV, "GITHUB_ACTIONS") && (Sys.islinux() || Sys.iswindows())
     @testset "slcan" begin
         @test test_slcan_normal()
         @test_throws ErrorException test_slcan_nodevice()
