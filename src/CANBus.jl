@@ -1,9 +1,7 @@
 module CANBus
 
  # internal use
-include("core/LinuxSerial.jl")
 include("core/SerialHAL.jl")
-import .LinuxSerial
 import .SerialHAL
 
 

@@ -9,6 +9,8 @@ function test_slcan_normal()
     msg_t1 = CANBus.Frame(1, [1, 1, 2, 2, 3, 3, 4], true)
     send(scan1, msg_t1)
 
+    sleep(0.1)
+
     msg_r = recv(scan2)
     @assert msg_r == msg_t1
 
@@ -36,17 +38,23 @@ function test_slcan_normal_fd()
     msg_t = CANBus.FDFrame(1, collect(1:16), false, false, false)
     send(scanfd1, msg_t) # normal FD
 
+    sleep(0.1)
+
     msg_r = recv(scanfd2)
     @assert msg_t == msg_r
 
     msg_t = CANBus.FDFrame(1, collect(1:16), false, true, false)
     send(scanfd1, msg_t) # bitrate switch
 
+    sleep(0.1)
+
     msg_r = recv(scanfd2)
     @assert msg_t == msg_r
 
     msg_t = CANBus.Frame(2, collect(1:7), true)
     send(scanfd1, msg_t)
+
+    sleep(0.1)
 
     msg_r = recv(scanfd2) # classic frame
     @assert msg_r == msg_t

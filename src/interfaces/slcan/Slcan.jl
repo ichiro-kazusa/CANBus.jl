@@ -26,8 +26,8 @@ This version is tested on CANable 2.0.
 * bitrate: bit rate in bit/s
 * silent(optional): listen only flag in bool.
 """
-mutable struct SlcanInterface{T<:Union{SerialPort,Cint}} <: Interfaces.AbstractCANInterface
-    sp::T
+mutable struct SlcanInterface <: Interfaces.AbstractCANInterface
+    sp::SerialHAL.HandleType
     buffer::String
 
     function SlcanInterface(channel::String, bitrate::Int;
@@ -35,7 +35,7 @@ mutable struct SlcanInterface{T<:Union{SerialPort,Cint}} <: Interfaces.AbstractC
 
         sp = _init_slcan(channel, bitrate, serialbaud, silent, false, 0)
 
-        new{typeof(sp)}(sp, "")
+        new(sp, "")
     end
 end
 
@@ -52,8 +52,8 @@ This interface supports send CAN FD frame.
 * datarate: data rate in bit/s
 * silent(optional): listen only flag in bool.
 """
-mutable struct SlcanFDInterface{T<:Union{SerialPort,Cint}} <: Interfaces.AbstractCANInterface
-    sp::T
+mutable struct SlcanFDInterface <: Interfaces.AbstractCANInterface
+    sp::SerialHAL.HandleType
     buffer::String
 
     function SlcanFDInterface(channel::String, bitrate::Int, datarate::Int;
@@ -61,19 +61,35 @@ mutable struct SlcanFDInterface{T<:Union{SerialPort,Cint}} <: Interfaces.Abstrac
 
         sp = _init_slcan(channel, bitrate, serialbaud, silent, true, datarate)
 
-        new{typeof(sp)}(sp, "")
+        new(sp, "")
     end
 end
 
 
 function _init_slcan(channel::String, bitrate::Int,
     serialbaud::Int, silent::Bool,
-    fd::Bool, datarate::Int)::Union{SerialPort,Cint}
+    fd::Bool, datarate::Int)::SerialHAL.HandleType
+
+
+    # check arguments
+    # bitrate
+    if !haskey(slcandef.BITRATE_DICT, bitrate)
+        k = sort(collect(keys(slcandef.BITRATE_DICT)))
+        error("Slcan: unsupported bitrate. choose from $k")
+    end
+    # datarate
+    if fd
+        if !haskey(slcandef.BITRATE_DICT_FD, datarate)
+            k = sort(collect(keys(slcandef.BITRATE_DICT_FD)))
+            error("Slcan: unsupported datarate. choose from $k")
+        end
+    end
 
     if !(channel in get_port_list())
         error("Slcan: $channel is not found.")
     end
 
+    # open port
     sp = SerialHAL.open(channel, serialbaud)
 
     SerialHAL.write(sp, "C" * DELIMITER) # temporary close channel
@@ -83,18 +99,10 @@ function _init_slcan(channel::String, bitrate::Int,
     SerialHAL.write(sp, mode * DELIMITER)
 
     # set bitrate
-    if !haskey(slcandef.BITRATE_DICT, bitrate)
-        k = sort(collect(keys(slcandef.BITRATE_DICT)))
-        error("Slcan: unsupported bitrate. choose from $k")
-    end
     SerialHAL.write(sp, slcandef.BITRATE_DICT[bitrate] * DELIMITER)
 
-    # set bitrate fd
+    # set datarate fd
     if fd
-        if !haskey(slcandef.BITRATE_DICT_FD, datarate)
-            k = sort(collect(keys(slcandef.BITRATE_DICT_FD)))
-            error("Slcan: unsupported datarate. choose from $k")
-        end
         SerialHAL.write(sp, slcandef.BITRATE_DICT_FD[datarate] * DELIMITER)
     end
 
@@ -102,7 +110,6 @@ function _init_slcan(channel::String, bitrate::Int,
     SerialHAL.write(sp, "O" * DELIMITER)
 
     # clear receive buffer
-    sleep(0.2) # wait open
     SerialHAL.clear_buffer(sp)
 
     return sp
@@ -159,7 +166,7 @@ function Interfaces.recv(interface::T)::Union{Nothing,Frames.Frame,Frames.FDFram
     idx = findfirst(c -> c == '\n' || c == '\r', interface.buffer) # delimiter index
 
     if idx === nothing
-        return nothing # queue is empty
+        return nothing # queue is empty or incomplete
     else
         # split token
         token = interface.buffer[1:idx-1] # split before delimiter
