@@ -8,23 +8,37 @@ CurrentModule = CANBus
 
 ## Introduction
 
-`CANBus.jl` is a package for communicating on Controller Area Network (CAN, CANbus), supports several hardware interfaces.
+`CANBus.jl` is a package for communicating on Controller Area Network (CAN, CANBus), supports several hardware interfaces.
 
 ## Features
 
 * Setup device and Transmit/Receive CAN messages in unified easy way.
-* CAN FD support (experimental).
+* Pure julia implementation, directly calls native or C apis, does not depend on other languages.
+* CAN FD support.
 
 ## Installation
-Install from GitHub.
+Install via package mode.
 
 ```julia-repl
-pkg> add https://github.com/ichiro-kazusa/CANBus.jl
+pkg> add CANBus
 ```
 
 ## TODO
 
-* supports Bit-Timings configuration
-* supports other interfaces
-* supports multi-threading
-* supports async programming
+### Upcoming plans until v0.1.0
+
+I'm going to:
+* Try to support PCAN-Basic API for Windows.
+* Test Vector & Kvaser interfaces with physical hardware.
+* Add blocking-recv function.
+* Add timestamp to frames.
+* Support Bit-Timing configuration.
+* Add RTR / Error frame implementation. -> done
+
+### Further ahead
+
+* Careful error-handling.
+* Supports other interfaces.
+* Performance optimization.
+* Thread-safe send (shareable send interfaces between threads).
+* Reconsider data structure about CAN/CANFD distinction. -> done

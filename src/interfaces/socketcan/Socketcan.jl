@@ -107,10 +107,11 @@ function _init_can(channel::String,
 end
 
 
-function Interfaces.send(interface::SocketCANInterface,
-    msg::Frames.Frame)::Nothing
+function Interfaces.send(interface::T,
+    msg::Frames.Frame)::Nothing where {T<:Union{SocketCANInterface,SocketCANFDInterface}}
 
     id = msg.is_extended ? msg.id | SocketCAN.CAN_EFF_FLAG : msg.id
+    id |= msg.is_error_frame ? SocketCAN.CAN_RTR_FLAG : UInt32(0)
     dlc = size(msg.data, 1)
     data = zeros(UInt8, 8)
     data[1:dlc] .= msg.data
@@ -152,12 +153,14 @@ function Interfaces.recv(interface::SocketCANInterface)::Union{Nothing,Frames.Fr
     if nbytes >= 0
         rawid = pframe_r[].can_id
         isext = (rawid & SocketCAN.CAN_EFF_FLAG) != 0
+        isrtr = (rawid & SocketCAN.CAN_RTR_FLAG) != 0
+        iserr = (rawid & SocketCAN.CAN_ERR_FLAG) != 0
         id = isext ? rawid - SocketCAN.CAN_EFF_FLAG : rawid
         dlc = pframe_r[].len
+
         frame = Frames.Frame(
-            id,
-            pframe_r[].data[1:dlc],
-            isext
+            id, pframe_r[].data[1:dlc];
+            is_extended=isext, is_remote_frame=isrtr, is_error_frame=iserr
         )
         return frame
     end
@@ -165,23 +168,32 @@ function Interfaces.recv(interface::SocketCANInterface)::Union{Nothing,Frames.Fr
 end
 
 
-function Interfaces.recv(interface::SocketCANFDInterface)::Union{Nothing,Frames.FDFrame}
+function Interfaces.recv(interface::SocketCANFDInterface)::Union{Nothing,Frames.Frame,Frames.FDFrame}
     frame_r = SocketCAN.canfd_frame(0, 0, 0, 0, 0, zeros(Cchar, 64)) # empty frame
     pframe_r = Ref(frame_r)
     nbytes = SocketCAN.read(interface.socket, pframe_r, Cuint(72))
     if nbytes >= 0
         rawid = pframe_r[].can_id
         isext = (rawid & SocketCAN.CAN_EFF_FLAG) != 0
+        isrtr = (rawid & SocketCAN.CAN_RTR_FLAG) != 0
+        iserr = (rawid & SocketCAN.CAN_ERR_FLAG) != 0
+        isfdf = (pframe_r[].flags & SocketCAN.CANFD_FDF) != 0
         isbrs = (pframe_r[].flags & SocketCAN.CANFD_BRS) != 0
         isesi = (pframe_r[].flags & SocketCAN.CANFD_ESI) != 0
         id = isext ? rawid - SocketCAN.CAN_EFF_FLAG : rawid
         len = pframe_r[].len
-        msg = Frames.FDFrame(
-            id,
-            pframe_r[].data[1:len],
-            isext, isbrs, isesi
-        )
-        return msg
+
+        if isfdf
+            msg = Frames.FDFrame(
+                id, pframe_r[].data[1:len];
+                is_extended=isext, bitrate_switch=isbrs,
+                error_state=isesi, is_error_frame=iserr)
+            return msg
+        else
+            msg = Frames.Frame(id, pframe_r[].data[1:len];
+                is_extended=isext, is_remote_frame=isrtr, is_error_frame=iserr)
+            return msg
+        end
     end
     return nothing
 end

@@ -24,7 +24,7 @@ function main()
     println(sockcan1)
     println(sockcan2)
 
-    frame = CANBus.Frame(14, [1, 1, 2, 2, 3, 3, 4], true)
+    frame = CANBus.Frame(14, [1, 1, 2, 2, 3, 3, 4]; is_extended=true)
 
     send(sockcan1, frame)
 
@@ -45,7 +45,7 @@ function main()
     println(scanfd0)
     println(scanfd1)
 
-    msg = CANBus.FDFrame(14, collect(1:16), true, false, false)
+    msg = CANBus.FDFrame(14, collect(1:16); is_extended=true, bitrate_switch=false)
 
     send(scanfd0, msg)
 

@@ -21,7 +21,7 @@ CANBus.Frames.Frame
 CANBus.Frames.FDFrame
 ```
 
-## Compatibility with `CANalyze` package
+## Compatibility with `CANalyze.jl` package
 
 `Frame` and `FDFrame` has intercompatibility with `CANalyze.CANFrame` and `CANAlyze.CANFdFrame` respectively.
 
@@ -42,7 +42,7 @@ In the opposite direction, `CANalyze.CANFrame` and `CANalyze.CANFdFrame` constru
 so that you can feed `Frame` and `FDFrame` structs to `CANalyze.Decode.decode` function with conversion.
 
 ```jl
-frm = CANBus.Frame(0x0e, [1, 2, 3, 4], false)
+frm = CANBus.Frame(0x0e, [1, 2, 3, 4]; is_extended=true)
 
 signal = CANalyze.Signals.NamedSignal("myfloat", nothing, nothing,
     CANalyze.Signals.Float32Signal(start=0; byte_order=:little_endian))

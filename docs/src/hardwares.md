@@ -6,6 +6,8 @@ This section describes basic usage for each supported hardwares.
 
 `KvaserInterface` supports Win64 platform.
 
+This interface requires `canlib32.dll` (should be installed along with the device driver). 
+
 To setup interface, do something like below,
 
 ```jl
@@ -21,7 +23,25 @@ kvaser0 = KvaserFDInterface(0, 500000, 2000000)  # channel 0, 500kbps, 2Mbps
 
 `send`, `recv`, `shutdown` functions can be use.
 
-Kvaser's api library is redistributed with `CANBus.jl` after its license, users does not need to install them separately.
+## slcan
+
+`SlcanInterface` supports Win64/Linux platform. Tested on [CANable 2.0](https://canable.io/) firmware.
+
+To setup interface, 
+
+```jl
+using CANBus
+
+slcan0 = SlcanInterface("COM3", 1000000)  # for Linux, e.g. "/dev/ttyACM0"
+```
+
+For CAN FD,
+```jl
+slcan0 = SocketCANFDInterface("COM3", 1000000, 2000000) # bitrate 1Mbps, datarate 2Mbps
+```
+
+CAN FD on `slcan`, datarate must be chosen from `2000000`, `5000000`.
+
 
 ## SocketCAN
 

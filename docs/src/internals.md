@@ -8,6 +8,12 @@
 CANBus.Interfaces.KvaserInterfaces.Canlib
 ```
 
+### SerialHAL
+
+```@docs
+CANBus.SerialHAL
+```
+
 ### SocketCAN
 
 ```@docs

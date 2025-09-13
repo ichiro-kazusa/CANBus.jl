@@ -84,6 +84,8 @@ const canDRIVER_OFF::Cuint = 0
 # These defines are used in canWrite(). 
 const canMSG_STD::Cuint = 0x0002 #///< Message has a standard (11-bit) identifier
 const canMSG_EXT::Cuint = 0x0004 #///< Message has an extended (29-bit) identifier
+const canMSG_RTR::Cuint = 0x0001
+const canMSG_ERROR_FRAME::Cuint = 0x0020
 const canFDMSG_FDF::Cuint = 0x010000 # Message is an FD message (CAN FD) 
 const canFDMSG_BRS::Cuint = 0x020000 # Message is sent/received with bit rate switch (CAN FD) 
 const canFDMSG_ESI::Cuint = 0x040000 # Sender of the message is in error passive mode (CAN FD) 

@@ -13,6 +13,8 @@ const SOCK_NONBLOCK = Cint(0o4000)
 const CAN_RAW = Cint(1)
 const SIOCGIFINDEX = Cint(0x8933)
 const CAN_EFF_FLAG = UInt32(0x80000000)
+const CAN_RTR_FLAG = UInt32(0x40000000)
+const CAN_ERR_FLAG = UInt32(0x20000000)
 const SOL_CAN_BASE = Cint(100)
 const SOL_CAN_RAW = SOL_CAN_BASE + CAN_RAW
 const CAN_RAW_FILTER = Cint(1)
@@ -85,7 +87,7 @@ end
 
 function read(socket::Cint, pframe::Ref{T},
     len::Cuint)::Clong where T<:Union{can_frame,canfd_frame}
-    
+
     ccall(:read, Clong, (Cint, Ptr{T}, Cuint),
         socket, pframe, len)
 end

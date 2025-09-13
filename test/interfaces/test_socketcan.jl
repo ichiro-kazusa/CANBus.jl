@@ -7,12 +7,13 @@ function test_scan_normal()
     scan2 = SocketCANInterface("vcan1";
         filters=[AcceptanceFilter(0x01, 0x01)])
 
-    msg_t1 = CANBus.Frame(1, [1, 1, 2, 2, 3, 3, 4], true)
+    msg_t1 = CANBus.Frame(1, [1, 1, 2, 2, 3, 3, 4]; is_extended=true)
     send(scan1, msg_t1)
 
-    msg_t2 = CANBus.Frame(2, [1, 1, 2, 2, 3, 3, 4], true)
+    msg_t2 = CANBus.Frame(2, [1, 1, 2, 2, 3, 3, 4]; is_extended=true)
     send(scan1, msg_t2) # decline by filter
 
+    sleep(0.1)
 
     msg_r = recv(scan2) # accept by filter
     @assert msg_r == msg_t1
@@ -42,22 +43,30 @@ function test_scan_normal_fd()
     scanfd2 = SocketCANFDInterface("vcan1";
         filters=[AcceptanceFilter(0x01, 0x01)])
 
-    msg_t = CANBus.FDFrame(1, collect(1:16), false, false, false)
+    msg_t = CANBus.FDFrame(1, collect(1:16); bitrate_switch=false)
     send(scanfd1, msg_t)
+    sleep(0.1)
 
     msg_r = recv(scanfd2)
     @assert msg_t == msg_r
 
-    msg_t = CANBus.FDFrame(1, collect(1:16), false, true, false)
+    msg_t = CANBus.FDFrame(1, collect(1:16))
     send(scanfd1, msg_t)
-
+    sleep(0.1)
     msg_r = recv(scanfd2)
     @assert msg_t == msg_r
 
-    msg_t = CANBus.FDFrame(2, collect(1:16), true, true, false)
+    msg_t = CANBus.FDFrame(2, collect(1:16); is_extended=true)
     send(scanfd1, msg_t)
+    sleep(0.1)
     msg_r = recv(scanfd2) # filtered
     @assert msg_r === nothing
+
+    msg_t = CANBus.Frame(1, collect(1:6))
+    send(scanfd1, msg_t)
+    sleep(0.1)
+    msg_r = recv(scanfd2)
+    @assert msg_t == msg_r # classic frame
 
     msg_r = recv(scanfd2) # empty
     @assert msg_r === nothing

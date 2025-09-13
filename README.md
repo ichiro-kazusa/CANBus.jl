@@ -7,27 +7,30 @@
 [![Aqua QA](https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg)](https://github.com/JuliaTesting/Aqua.jl)
 
 
-`CANBus.jl` is a Controller Area Network (CAN Bus) communication package for Julia language.
+`CANBus.jl` is a Controller Area Network (CAN Bus) communication package for julia language.
 
 `CANBus.jl` only does communication itself.
-To encode/decode messages, use tsavelmann's [`CANalyze.jl`](https://github.com/tsabelmann/CANalyze.jl/tree/main).
+
+To decode messages, use tsavelmann's [`CANalyze.jl`](https://github.com/tsabelmann/CANalyze.jl/tree/main).
 
 At this time, this is an alpha version software. 
+* Fewer supported devices.
 * Several interfaces are tested only on virtual bus.
 * Package behavior changes frequently.
 
-For more details, read full [documentation](https://ichiro-kazusa.github.io/CANBus.jl/stable/).
+For more details, read [documentation](https://ichiro-kazusa.github.io/CANBus.jl/stable/).
 
 ## Installation
-Install from GitHub. on julia package mode, 
+Install via julia package mode, 
 
 ```julia-repl
-pkg> add https://github.com/ichiro-kazusa/CANBus.jl
+pkg> add CANBus
 ```
 
 ## Supported hardwares at this time
 
 * Kvaser
+* slcan - tested on CANable 2.0
 * SocketCAN
 * Vector - requires [XL Driver Library](https://www.vector.com/int/en/download/xl-driver-library/)
 
@@ -36,6 +39,7 @@ pkg> add https://github.com/ichiro-kazusa/CANBus.jl
 |Interface|CAN|Ext.ID|Filter|CANFD|Platform|
 |----|----|----|----|----|----|
 |Kvaser|✓|✓|✓|✓|Win64|
+|slcan|✓|✓|NO|✓|Win64, Linux|
 |SocketCAN|✓|✓|✓|✓|Linux|
 |Vector|✓|✓|✓|✓|Win64|
 

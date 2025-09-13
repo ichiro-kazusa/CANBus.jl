@@ -141,11 +141,13 @@ function Interfaces.send(interface::VectorInterface, msg::Frames.Frame)
     data_pad = zeros(Cuchar, Vxlapi.MAX_MSG_LEN)
     data_pad[1:dlc] .= msg.data
     id = msg.is_extended ? msg.id | Vxlapi.XL_CAN_EXT_MSG_ID : msg.id
+    can_msg_flag = msg.is_remote_frame ? Vxlapi.XL_CAN_MSG_FLAG_REMOTE_FRAME : Cushort(0)
+
 
     # construct XLEvent
     EventList_t = Vector{Vxlapi.XLevent}([
         Vxlapi.XLevent(Vxlapi.XL_TRANSMIT_MSG, 0, 0, 0, 0, 0, 0,
-            Vxlapi.s_xl_can_msg(id, 0, dlc, 0, data_pad, 0))
+            Vxlapi.s_xl_can_msg(id, can_msg_flag, dlc, 0, data_pad, 0))
         for i in 1:messageCount])
 
     # send message
@@ -161,14 +163,20 @@ function Interfaces.send(interface::VectorInterface, msg::Frames.Frame)
 end
 
 
-function Interfaces.send(interface::VectorFDInterface, msg::Frames.FDFrame)
+function Interfaces.send(interface::VectorFDInterface, msg::T) where {T<:Union{Frames.Frame,Frames.FDFrame}}
     canid = msg.is_extended ? msg.id | Vxlapi.XL_CAN_EXT_MSG_ID : msg.id
     len = length(msg)
     dlc = len <= 8 ? len : Vxlapi.CANFD_LEN2DLC[len]
-    flags = msg.bitrate_switch ? Vxlapi.XL_CAN_TXMSG_FLAG_BRS : Cuint(0)
-    flags |= 8 < len ? Vxlapi.XL_CAN_TXMSG_FLAG_EDL : Cuint(0)
     data_pad = zeros(Cuchar, Vxlapi.XL_CAN_MAX_DATA_LEN)
     data_pad[1:len] .= msg.data
+
+    flags = Cuint(0)
+    if T == Frames.FDFrame
+        flags |= Vxlapi.XL_CAN_TXMSG_FLAG_EDL
+        flags |= msg.bitrate_switch ? Vxlapi.XL_CAN_TXMSG_FLAG_BRS : Cuint(0)
+    else # classic frame
+        flags |= msg.is_remote_frame ? Vxlapi.XL_CAN_TXMSG_FLAG_RTR : Cuint(0)
+    end
 
     event = Vxlapi.XLcanTxEvent(Vxlapi.XL_CAN_EV_TAG_TX_MSG, 0, 0, zeros(Cuchar, 3),
         Vxlapi.XL_CAN_TX_MSG(canid, flags, dlc, zeros(Cuchar, 7), data_pad))
@@ -198,12 +206,14 @@ function Interfaces.recv(interface::VectorInterface)::Union{Nothing,Frames.Frame
             totalid = EventList_r[1].tagData.id
             isext = (totalid & Vxlapi.XL_CAN_EXT_MSG_ID) != 0
             id = isext ? totalid - Vxlapi.XL_CAN_EXT_MSG_ID : totalid
+            isrtr = (EventList_r[1].tagData.flags & Vxlapi.XL_CAN_MSG_FLAG_REMOTE_FRAME) != 0
+            iserr = (EventList_r[1].tagData.flags & Vxlapi.XL_CAN_MSG_FLAG_ERROR_FRAME) != 0
 
             # frame
             frame = Frames.Frame(
                 id,
-                EventList_r[1].tagData.data[1:EventList_r[1].tagData.dlc],
-                isext
+                EventList_r[1].tagData.data[1:EventList_r[1].tagData.dlc];
+                is_extended=isext, is_remote_frame=isrtr, is_error_frame=iserr
             )
             return frame
         end
@@ -212,7 +222,7 @@ function Interfaces.recv(interface::VectorInterface)::Union{Nothing,Frames.Frame
 end
 
 
-function Interfaces.recv(interface::VectorFDInterface)::Union{Nothing,Frames.FDFrame}
+function Interfaces.recv(interface::VectorFDInterface)::Union{Nothing,Frames.AnyFrame}
     canrxevt = Vxlapi.XLcanRxEvent(0, 0, 0, 0, 0, 0, 0, 0, 0,
         Vxlapi.XL_CAN_EV_RX_MSG(0, 0, 0, zeros(Cuchar, 12), 0, 0,
             zeros(Cuchar, 5), zeros(Cuchar, Vxlapi.XL_CAN_MAX_DATA_LEN)))
@@ -228,13 +238,21 @@ function Interfaces.recv(interface::VectorFDInterface)::Union{Nothing,Frames.FDF
             len = dlc <= 8 ? dlc : Vxlapi.CANFD_DLC2LEN[dlc]
             isext = (pcanrxevt[].tagData.canId & Vxlapi.XL_CAN_EXT_MSG_ID) != 0
             id = isext ? pcanrxevt[].tagData.canId - Vxlapi.XL_CAN_EXT_MSG_ID : pcanrxevt[].tagData.canId
+            isfd = (pcanrxevt[].tagData.msgFlags & Vxlapi.XL_CAN_RXMSG_FLAG_EDL) != 0
             isbrs = (pcanrxevt[].tagData.msgFlags & Vxlapi.XL_CAN_RXMSG_FLAG_BRS) != 0
             isesi = (pcanrxevt[].tagData.msgFlags & Vxlapi.XL_CAN_RXMSG_FLAG_ESI) != 0
+            isrtr = (pcanrxevt[].tagData.msgFlags & Vxlapi.XL_CAN_RXMSG_FLAG_RTR) != 0
+            iserr = (pcanrxevt[].tagData.msgFlags & Vxlapi.XL_CAN_RXMSG_FLAG_EF) != 0
 
-            msg = Frames.FDFrame(id, pcanrxevt[].tagData.data[1:len],
-                isext, isbrs, isesi)
-
-            return msg
+            if isfd
+                msg = Frames.FDFrame(id, pcanrxevt[].tagData.data[1:len];
+                    is_extended=isext, bitrate_switch=isbrs, error_state=isesi, is_error_frame=iserr)
+                return msg
+            else
+                msg = Frames.Frame(id, pcanrxevt[].tagdata.data[1:len];
+                    is_extended=isext, is_remote_frame=isrtr, is_error_frame=iserr)
+                return msg
+            end
         end
     end
     error("Vector: receive failed. $status")
