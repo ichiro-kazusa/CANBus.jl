@@ -5,7 +5,7 @@ using StaticArrays
 
 include("canlibdef.jl")
 
-const canlib = joinpath(@__DIR__(), "..", "..", "..", "deps", "lib", "kvaser", "canlib32")
+const canlib = "canlib32"
 
 #########################################################
 # function wrappers

@@ -289,6 +289,17 @@ const XL_ACTIVATE_RESET_CLOCK::Cuint =
 const XL_EVENT_FLAG_OVERRUN::Cuchar = 0x01  #!< Used in XLevent.flags
 
 
+# flags in s_xl_can_msg
+const XL_CAN_MSG_FLAG_ERROR_FRAME::Cushort = 0x01
+const XL_CAN_MSG_FLAG_OVERRUN::Cushort = 0x02  #//!< Overrun in Driver or CAN Controller, previous msgs have been lost.
+const XL_CAN_MSG_FLAG_NERR::Cushort = 0x04  #//!< Line Error on Lowspeed
+const XL_CAN_MSG_FLAG_WAKEUP::Cushort = 0x08  #//!< High Voltage Message on Single Wire CAN
+const XL_CAN_MSG_FLAG_REMOTE_FRAME::Cushort = 0x10
+const XL_CAN_MSG_FLAG_RESERVED_1::Cushort = 0x20
+const XL_CAN_MSG_FLAG_TX_COMPLETED::Cushort = 0x40  #//!< Message Transmitted
+const XL_CAN_MSG_FLAG_TX_REQUEST::Cushort = 0x80  #//!< Transmit Message stored into Controller
+const XL_CAN_MSG_FLAG_SRR_BIT_DOM::Cushort = 0x0200  #//!< SRR bit in CAN message is dominant
+
 
 # //
 # // common event tags

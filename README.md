@@ -7,19 +7,21 @@
 [![Aqua QA](https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg)](https://github.com/JuliaTesting/Aqua.jl)
 
 
-`CANBus.jl` is a Controller Area Network (CAN Bus) communication package for Julia language.
+`CANBus.jl` is a Controller Area Network (CAN Bus) communication package for julia language.
 
 `CANBus.jl` only does communication itself.
-To encode/decode messages, use tsavelmann's [`CANalyze.jl`](https://github.com/tsabelmann/CANalyze.jl/tree/main).
+
+To decode messages, use tsavelmann's [`CANalyze.jl`](https://github.com/tsabelmann/CANalyze.jl/tree/main).
 
 At this time, this is an alpha version software. 
+* Fewer supported devices.
 * Several interfaces are tested only on virtual bus.
 * Package behavior changes frequently.
 
-For more details, read full [documentation](https://ichiro-kazusa.github.io/CANBus.jl/stable/).
+For more details, read [documentation](https://ichiro-kazusa.github.io/CANBus.jl/stable/).
 
 ## Installation
-Install in julia package mode, 
+Install via julia package mode, 
 
 ```julia-repl
 pkg> add CANBus
@@ -56,7 +58,7 @@ function main()
     println(kvaser1)
     println(kvaser2)
 
-    msg = CANBus.Frame(2, [1, 1, 2, 2, 3, 3, 4], true)
+    msg = CANBus.Frame(2, [1, 1, 2, 2, 3, 3, 4]; is_extended=true)
     send(kvaser1, msg)
 
     msg = recv(kvaser2) # accept by filter
@@ -71,7 +73,7 @@ function main()
     println(kvaserfd1)
     println(kvaserfd2)
 
-    msg = CANBus.FDFrame(1, collect(1:16), false, false, false)
+    msg = CANBus.FDFrame(1, collect(1:16); bitrate_switch=false)
     send(kvaserfd1, msg)
 
     msg = recv(kvaserfd2)

@@ -29,7 +29,7 @@ Abstract function for receive message.
 
 Common behavior of concrete implements:
 * non-blocking
-* When receive successed, returns Frame or FDFrame.
+* When receive successed, returns `Frame` or `FDFrame`.
 * When receive queue is empty, returns nothing.
 * When fails to receive in other reasons, throws error.
 * Classic CAN interfaces return only `Frame` object.

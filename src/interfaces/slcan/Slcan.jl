@@ -19,10 +19,10 @@ This version is tested on CANable 2.0.
 !!! note
 
     `slcan` with FD firmware (b158aa7) is seemd to be always on FD mode,
-    thus there is no **pure CAN** mode. Therefore, this interface receives
-    FDFrame when someone send that.
+    thus there is no **pure CAN** mode. Therefore, this interface exceptionally receives
+    `FDFrame` when someone sends that.
 
-* port: port name string e.g. on Windows: "COM3", on Linux: "/dev/ttyACM0"
+* port: port name string e.g. `COM3` on Windows,  `/dev/ttyACM0` on Linux.
 * bitrate: bit rate in bit/s
 * silent(optional): listen only flag in bool.
 """
@@ -47,7 +47,7 @@ slcan is a CAN over serial protocol by CANable.
 This version is tested on CANable 2.0.
 This interface supports send CAN FD frame.
 
-* port: port name string e.g. on Windows: "COM3", on Linux: "/dev/ttyACM0"
+* port: port name string.
 * bitrate: bit rate in bit/s
 * datarate: data rate in bit/s
 * silent(optional): listen only flag in bool.
@@ -119,18 +119,26 @@ end
 function Interfaces.send(interface::T, msg::Frames.Frame) where {T<:Union{SlcanInterface,SlcanFDInterface}}
 
     sendstr::String = ""
-    if msg.is_extended
-        id = lpad(string(msg.id, base=16), 8, "0")
-        sendstr *= ("T" * id)
-    else
-        id = lpad(string(msg.id, base=16), 3, "0")
-        sendstr *= ("t" * id)
-    end
-
     len = string(length(msg))
     data = join(map(x -> lpad(string(x, base=16), 2, "0"), msg.data))
-    sendstr *= (len * data * DELIMITER)
 
+    if msg.is_extended
+        id = lpad(string(msg.id, base=16), 8, "0")
+        if msg.is_remote_frame
+            sendstr *= ("R" * id * len)
+        else
+            sendstr *= ("T" * id * len * data)
+        end
+    else
+        id = lpad(string(msg.id, base=16), 3, "0")
+        if msg.is_remote_frame
+            sendstr *= ("r" * id * len)
+        else
+            sendstr *= ("t" * id * len * data)
+        end
+    end
+
+    sendstr *= DELIMITER
     SerialHAL.write(interface.sp, sendstr)
 
 end
@@ -179,11 +187,13 @@ function Interfaces.recv(interface::T)::Union{Nothing,Frames.Frame,Frames.FDFram
             data = hex2bytes(token[11:end])
 
             if token[1] == 'T'
-                return Frames.Frame(id, data[1:len], true)
+                return Frames.Frame(id, data[1:len]; is_extended=true)
+            elseif token[1] == 'R'
+                return Frames.Frame(id, data[1:len]; is_extended=true, is_remote_frame=true)
             elseif token[1] == 'D'
-                return Frames.FDFrame(id, data[1:len], true, false, false)
+                return Frames.FDFrame(id, data[1:len]; is_extended=true, bitrate_switch=false)
             elseif token[1] == 'B'
-                return Frames.FDFrame(id, data[1:len], true, true, false)
+                return Frames.FDFrame(id, data[1:len]; is_extended=true)
             else
                 return nothing
             end
@@ -194,11 +204,13 @@ function Interfaces.recv(interface::T)::Union{Nothing,Frames.Frame,Frames.FDFram
             data = hex2bytes(token[6:end])
 
             if token[1] == 't'
-                return Frames.Frame(id, data[1:len], false)
+                return Frames.Frame(id, data[1:len])
+            elseif token[1] == 'r'
+                return Frames.Frame(id, data[1:len]; is_remote_frame=true)
             elseif token[1] == 'd'
-                return Frames.FDFrame(id, data[1:len], false, false, false)
+                return Frames.FDFrame(id, data[1:len]; bitrate_switch=false)
             elseif token[1] == 'b'
-                return Frames.FDFrame(id, data[1:len], false, true, false)
+                return Frames.FDFrame(id, data[1:len])
             else
                 return nothing
             end

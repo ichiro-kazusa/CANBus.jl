@@ -36,6 +36,8 @@ CANBus.Interfaces.KvaserInterfaces.KvaserFDInterface
 
 ## slcan
 
+`slcan` does not support hardware filter.
+
 ```@docs
 CANBus.Interfaces.SlcanInterfaces.SlcanInterface
 ```

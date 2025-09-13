@@ -10,10 +10,10 @@ function main()
     println(kvaser1)
     println(kvaser2)
 
-    frame = Frame(1, [1, 1, 2, 2, 3, 3, 4], true)
+    frame = Frame(1, [1, 1, 2, 2, 3, 3, 4]; is_extended=true)
     send(kvaser1, frame)
 
-    msg = CANBus.Frame(2, [1, 1, 2, 2, 3, 3, 4], true)
+    msg = CANBus.Frame(2, [1, 1, 2, 2, 3, 3, 4]; is_extended=true)
     send(kvaser1, msg)
 
     msg = recv(kvaser2) # accept by filter
@@ -31,7 +31,7 @@ function main()
     println(kvaserfd1)
     println(kvaserfd2)
 
-    msg = CANBus.FDFrame(1, collect(1:16), false, false, false)
+    msg = CANBus.FDFrame(1, collect(1:16); bitrate_switch=false)
     send(kvaserfd1, msg)
 
     msg = recv(kvaserfd2)

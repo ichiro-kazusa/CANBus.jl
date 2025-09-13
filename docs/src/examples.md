@@ -9,7 +9,7 @@ function main()
     vector1 = VectorInterface(0, 500000, "NewApp")
     vector2 = VectorInterface(1, 500000, "NewApp")
 
-    frame = CANBus.Frame(15, [1, 1, 2, 2, 3, 3, 4], true)
+    frame = CANBus.Frame(15, [1, 1, 2, 2, 3, 3, 4])
 
     send(vector1, frame)
 

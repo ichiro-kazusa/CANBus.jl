@@ -6,7 +6,7 @@ function test_slcan_normal()
     scan1 = SlcanInterface("COM3", 1000000)
     scan2 = SlcanInterface("COM4", 1000000)
 
-    msg_t1 = CANBus.Frame(1, [1, 1, 2, 2, 3, 3, 4], true)
+    msg_t1 = CANBus.Frame(1, [1, 1, 2, 2, 3, 3, 4]; is_extended=true)
     send(scan1, msg_t1)
 
     sleep(0.1)
@@ -35,7 +35,7 @@ function test_slcan_normal_fd()
     scanfd1 = SlcanFDInterface("COM3", 1000000, 2000000)
     scanfd2 = SlcanFDInterface("COM4", 1000000, 2000000)
 
-    msg_t = CANBus.FDFrame(1, collect(1:16), false, false, false)
+    msg_t = CANBus.FDFrame(1, collect(1:16); bitrate_switch=false)
     send(scanfd1, msg_t) # normal FD
 
     sleep(0.1)
@@ -43,7 +43,7 @@ function test_slcan_normal_fd()
     msg_r = recv(scanfd2)
     @assert msg_t == msg_r
 
-    msg_t = CANBus.FDFrame(1, collect(1:16), false, true, false)
+    msg_t = CANBus.FDFrame(1, collect(1:16))
     send(scanfd1, msg_t) # bitrate switch
 
     sleep(0.1)
@@ -51,7 +51,7 @@ function test_slcan_normal_fd()
     msg_r = recv(scanfd2)
     @assert msg_t == msg_r
 
-    msg_t = CANBus.Frame(2, collect(1:7), true)
+    msg_t = CANBus.Frame(2, collect(1:7); is_extended=true)
     send(scanfd1, msg_t)
 
     sleep(0.1)
