@@ -73,7 +73,7 @@ function main()
     println(kvaserfd1)
     println(kvaserfd2)
 
-    msg = CANBus.FDFrame(1, collect(1:16), false, false, false)
+    msg = CANBus.FDFrame(1, collect(1:16); bitrate_switch=false)
     send(kvaserfd1, msg)
 
     msg = recv(kvaserfd2)
