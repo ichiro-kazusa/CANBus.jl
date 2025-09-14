@@ -17,8 +17,8 @@ function main()
     send(kvaser1, msg)
     sleep(0.1)
 
-    msg = recv(kvaser2) # accept by filter
-    println(msg)
+    msg1 = recv(kvaser2) # accept by filter
+    println(msg1)
 
     msg = recv(kvaser2) # decline by filter
     println(msg)
@@ -37,10 +37,11 @@ function main()
     sleep(0.1)
     send(kvaserfd1, msg)
 
-    msg1 = recv(kvaserfd2)
-    println(msg1)
     msg2 = recv(kvaserfd2)
+    println(msg2)
+    msg3 = recv(kvaserfd2)
     println(msg2.timestamp - msg1.timestamp)
+    println(msg3.timestamp - msg2.timestamp)
 
     shutdown(kvaserfd1)
     shutdown(kvaserfd2)

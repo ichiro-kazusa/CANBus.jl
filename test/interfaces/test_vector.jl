@@ -43,21 +43,28 @@ end
 
 
 function test_vector_normal_fd()
+
     vectorfd1 = VectorFDInterface(0, 500000, 2000000, "NewApp")
     vectorfd2 = VectorFDInterface(1, 500000, 2000000, "NewApp";
         extfilter=AcceptanceFilter(0x01, 0x01))
 
-    msg_t = CANBus.FDFrame(1, collect(1:16); bitrate_switch=false)
-    send(vectorfd1, msg_t)
+    msg_t1 = CANBus.FDFrame(1, collect(1:16); bitrate_switch=false)
+    send(vectorfd1, msg_t1)
+    
+    sleep(0.1)
 
-    msg_r = recv(vectorfd2)
-    @assert msg_t == msg_r
+    msg_t2 = CANBus.FDFrame(1, collect(1:16))
+    send(vectorfd1, msg_t2)
+    
+    sleep(0.1)
 
-    msg_t = CANBus.FDFrame(1, collect(1:16))
-    send(vectorfd1, msg_t)
+    msg_r1 = recv(vectorfd2)
+    @assert msg_t1 == msg_r1
 
-    msg_r = recv(vectorfd2)
-    @assert msg_t == msg_r
+    msg_r2 = recv(vectorfd2)
+    @assert msg_t2 == msg_r2
+
+    @assert 0.099 < msg_r2.timestamp - msg_r1.timestamp < 0.11
 
     msg_t = CANBus.FDFrame(2, collect(1:16); is_extended=true)
     send(vectorfd1, msg_t)

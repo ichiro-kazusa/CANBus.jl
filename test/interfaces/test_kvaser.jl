@@ -54,12 +54,19 @@ function test_kvaser_normal_fd()
     msg_r = recv(kvaserfd2)
     @assert msg_t == msg_r
 
-    msg_t = CANBus.FDFrame(1, collect(1:16))
+    msg_t = CANBus.FDFrame(1, collect(1:16)) # first message
     send(kvaserfd1, msg_t)
-    sleep(0.1)
+    sleep(1)
+    msg_t = CANBus.FDFrame(1, collect(1:16)) # check timestamp
+    send(kvaserfd1, msg_t)
+    
+    sleep(0.1) # wait for arrive
 
-    msg_r = recv(kvaserfd2)
-    @assert msg_t == msg_r
+    msg_r1 = recv(kvaserfd2)
+    @assert msg_t == msg_r1
+
+    msg_r2 = recv(kvaserfd2)
+    @assert 0.999 <= msg_r2.timestamp - msg_r1.timestamp <= 1.01 # check timestamp
 
     msg_t = CANBus.FDFrame(2, collect(1:16); is_extended=true)
     send(kvaserfd1, msg_t)

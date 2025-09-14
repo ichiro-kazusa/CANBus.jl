@@ -123,4 +123,17 @@ function xlCanSetChannelOutput(portHandle::XLportHandle,
         portHandle, accessMask, mode)
 end
 
+function xlGetSyncTime(portHandle::XLportHandle,
+    ptime::Ref{XLuint64})::XLstatus
+
+    ccall((:xlGetSyncTime, vxlapi), XLstatus,
+        (XLportHandle, Ptr{XLuint64}),
+        portHandle, ptime)
+end
+
+function xlResetClock(portHandle::XLportHandle)::XLstatus
+    ccall((:xlResetClock, vxlapi), XLstatus,
+        (XLportHandle,), portHandle)
+end
+
 end # Vxlapi

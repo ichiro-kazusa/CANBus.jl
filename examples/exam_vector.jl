@@ -16,8 +16,8 @@ function main()
     frame = CANBus.Frame(2, [1, 1, 2, 2, 3, 3, 4]; is_extended=true)
     send(vector1, frame)
 
-    frame = recv(vector2) # accept by filter
-    println(frame)
+    frame1 = recv(vector2) # accept by filter
+    println(frame1)
 
     frame = recv(vector2) # decline by filter
     println(frame)
@@ -33,12 +33,22 @@ function main()
 
     msg = CANBus.FDFrame(1, collect(1:16); bitrate_switch=false)
     send(vectorfd1, msg)
+    sleep(1)
+    msg = CANBus.FDFrame(1, collect(1:16); bitrate_switch=false)
+    send(vectorfd1, msg)
 
-    msg = recv(vectorfd2)
-    println(msg)
+    sleep(0.1)
+
+    msg_1 = recv(vectorfd2)
+    println(msg_1)
+    msg_2 = recv(vectorfd2)
+    println(msg_2)
 
     shutdown(vectorfd1)
     shutdown(vectorfd2)
+
+    println(msg_1.timestamp - frame1.timestamp)
+    println(msg_2.timestamp - msg_1.timestamp)
 
     true
 end
