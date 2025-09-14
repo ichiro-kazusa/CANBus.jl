@@ -177,6 +177,7 @@ function Interfaces.recv(interface::T)::Union{Nothing,Frames.Frame,Frames.FDFram
         return nothing # queue is empty or incomplete
     else
         # split token
+        timestamp = time() # slcan has no device timestamp, therefore system time is used.
         token = interface.buffer[1:idx-1] # split before delimiter
         interface.buffer = lstrip(interface.buffer[idx:end],
             ['\n', '\r']) # strip leading delimiter
@@ -187,13 +188,13 @@ function Interfaces.recv(interface::T)::Union{Nothing,Frames.Frame,Frames.FDFram
             data = hex2bytes(token[11:end])
 
             if token[1] == 'T'
-                return Frames.Frame(id, data[1:len]; is_extended=true)
+                return Frames.Frame(id, data[1:len]; is_extended=true, timestamp=timestamp)
             elseif token[1] == 'R'
-                return Frames.Frame(id, data[1:len]; is_extended=true, is_remote_frame=true)
+                return Frames.Frame(id, data[1:len]; is_extended=true, is_remote_frame=true, timestamp=timestamp)
             elseif token[1] == 'D'
-                return Frames.FDFrame(id, data[1:len]; is_extended=true, bitrate_switch=false)
+                return Frames.FDFrame(id, data[1:len]; is_extended=true, bitrate_switch=false, timestamp=timestamp)
             elseif token[1] == 'B'
-                return Frames.FDFrame(id, data[1:len]; is_extended=true)
+                return Frames.FDFrame(id, data[1:len]; is_extended=true, timestamp=timestamp)
             else
                 return nothing
             end
@@ -204,13 +205,13 @@ function Interfaces.recv(interface::T)::Union{Nothing,Frames.Frame,Frames.FDFram
             data = hex2bytes(token[6:end])
 
             if token[1] == 't'
-                return Frames.Frame(id, data[1:len])
+                return Frames.Frame(id, data[1:len], timestamp=timestamp)
             elseif token[1] == 'r'
-                return Frames.Frame(id, data[1:len]; is_remote_frame=true)
+                return Frames.Frame(id, data[1:len]; is_remote_frame=true, timestamp=timestamp)
             elseif token[1] == 'd'
-                return Frames.FDFrame(id, data[1:len]; bitrate_switch=false)
+                return Frames.FDFrame(id, data[1:len]; bitrate_switch=false, timestamp=timestamp)
             elseif token[1] == 'b'
-                return Frames.FDFrame(id, data[1:len])
+                return Frames.FDFrame(id, data[1:len], timestamp=timestamp)
             else
                 return nothing
             end

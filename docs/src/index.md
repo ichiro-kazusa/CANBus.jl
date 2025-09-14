@@ -33,6 +33,8 @@ I'm going to:
 * Add blocking-recv function.
 * Add timestamp to frames.
 * Support Bit-Timing configuration.
+* Support do~end statement.
+* Add loop back flag.
 * Add RTR / Error frame implementation. -> done
 
 ### Further ahead
