@@ -48,13 +48,14 @@ frame = CANBus.Frame(0x5, [1, 2, 3, 4, 5, 6, 7, 8]; is_extended=true)
 ```
 """
 struct Frame <: AbstractFrame
+    timestamp::Float64
     id::UInt32
     data::Vector{UInt8}
     is_extended::Bool
     is_remote_frame::Bool
     is_error_frame::Bool
 
-    function Frame(id::IT, data::V; is_extended::Bool=false,
+    function Frame(id::IT, data::V; timestamp::Float64=0.0, is_extended::Bool=false,
         is_remote_frame::Bool=false, is_error_frame::Bool=false) where {IT<:Integer,V<:AbstractVector}
 
         if !_check_id(id, is_extended)
@@ -64,7 +65,7 @@ struct Frame <: AbstractFrame
             error("Frame: invalid data length.")
         end
 
-        new(id, data, is_extended, is_remote_frame, is_error_frame)
+        new(timestamp, id, data, is_extended, is_remote_frame, is_error_frame)
     end
 end
 
@@ -96,6 +97,7 @@ kwargs:
 * `is_error_frame` : Flag which indicates error frame. Cared in RX only. default=`false`
 """
 struct FDFrame <: AbstractFrame
+    timestamp::Float64
     id::UInt32
     data::Vector{UInt8}
     is_extended::Bool
@@ -103,8 +105,8 @@ struct FDFrame <: AbstractFrame
     error_state::Bool
     is_error_frame::Bool
 
-    function FDFrame(id::IT, data::V; is_extended::Bool=false,
-        bitrate_switch::Bool=true, error_state::Bool=false,
+    function FDFrame(id::IT, data::V; timestamp::Float64=0.0,
+        is_extended::Bool=false, bitrate_switch::Bool=true, error_state::Bool=false,
         is_error_frame::Bool=false) where {IT<:Integer,V<:AbstractVector}
 
         if !_check_id(id, is_extended)
@@ -114,9 +116,11 @@ struct FDFrame <: AbstractFrame
             error("Frame: invalid data length.")
         end
 
-        new(id, data, is_extended, bitrate_switch, error_state, is_error_frame)
+        new(timestamp, id, data, is_extended, bitrate_switch, error_state, is_error_frame)
     end
 end
+
+
 
 function FDFrame(frm::CANalyze.CANFdFrame; bitrate_switch::Bool=true)
     FDFrame(frm.frame_id, frm.data; is_extended=frm.is_extended, bitrate_switch=bitrate_switch)

@@ -87,4 +87,17 @@ function canSetAcceptanceFilter(handle::Cint, code::Cuint,
         handle, code, mask, is_extended)
 end
 
+function kvReadTimer(handle::Cint, ptime::Ref{Cuint})::canStatus
+    ccall((:kvReadTimer, canlib), canStatus,
+        (Cint, Ptr{Cuint}), handle, ptime)
+end
+
+function canIoCtl(hnd::Cint, func::Cuint,
+    buf::Base.RefValue{UInt32}, buflen::Cuint)::canStatus
+
+    ccall((:canIoCtl, canlib), canStatus,
+        (Cint, Cuint, Ptr{Cvoid}, Cuint),
+        hnd, func, buf, buflen)
+end
+
 end # Canlib
