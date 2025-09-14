@@ -166,7 +166,7 @@ function Interfaces.send(interface::SlcanFDInterface, msg::Frames.FDFrame)
 end
 
 
-function Interfaces.recv(interface::T)::Union{Nothing,Frames.Frame,Frames.FDFrame} where {T<:Union{SlcanInterface,SlcanFDInterface}}
+function Interfaces.recv(interface::T)::Union{Nothing,Frames.AnyFrame} where {T<:Union{SlcanInterface,SlcanFDInterface}}
     # read rx buffer & push it to program buffer
     res = SerialHAL.nonblocking_read(interface.sp)
     interface.buffer *= String(res)
