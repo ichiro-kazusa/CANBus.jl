@@ -135,6 +135,9 @@ end
 function Base.:(==)(msg1::T, msg2::T) where {T<:AbstractFrame}
     res::Bool = true
     for n in fieldnames(T)
+        if n == :timestamp # skip to compare timestamp
+            continue
+        end
         res &= getproperty(msg1, n) == getproperty(msg2, n)
     end
     res

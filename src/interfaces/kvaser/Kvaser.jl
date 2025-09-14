@@ -20,7 +20,7 @@ Setup Kvaser interface
 """
 struct KvaserInterface <: Interfaces.AbstractCANInterface
     handle::Cint
-    time_offset::UInt64
+    time_offset::Float64
 end
 
 
@@ -52,7 +52,7 @@ Setup Kvaser interface for CAN FD.
 """
 struct KvaserFDInterface <: Interfaces.AbstractCANInterface
     handle::Cint
-    time_offset::UInt64
+    time_offset::Float64
 end
 
 
@@ -72,7 +72,7 @@ end
 function _init_kvaser(channel::Int, bitrate::Int, silent::Bool,
     stdfilter::Union{Nothing,Interfaces.AcceptanceFilter},
     extfilter::Union{Nothing,Interfaces.AcceptanceFilter},
-    fd::Bool, non_iso::Bool, datarate::Int)::Tuple{Cint,UInt64}
+    fd::Bool, non_iso::Bool, datarate::Int)::Tuple{Cint,Float64}
 
     # initialize library
     Canlib.canInitializeLibrary()
@@ -124,7 +124,7 @@ function _init_kvaser(channel::Int, bitrate::Int, silent::Bool,
     # get time offset
     ptime = Ref(Cuint(0))
     Canlib.kvReadTimer(hnd, ptime)
-    time_offset = time_ns() - ptime[] * 1000 # arrange in nanosec
+    time_offset = time() - ptime[] * 1.e-6 # arrange in sec
 
     return hnd, time_offset
 end
@@ -185,7 +185,7 @@ function _recv_kvaser_internal(interface::T)::Union{Nothing,Frames.AnyFrame} whe
     if status == Canlib.canOK
         is_ext = (pflag[] & Canlib.canMSG_EXT) != 0
         is_err = (pflag[] & Canlib.canMSG_ERROR_FRAME) != 0
-        timestamp = 1e-9 * (interface.time_offset + ptime[] * 1000) # arrange in nanosec
+        timestamp = interface.time_offset + ptime[] * 1.e-6 # arrange in sec
 
         if (pflag[] & Canlib.canFDMSG_FDF) != 0 # FD Message
             brs = (pflag[] & Canlib.canFDMSG_BRS) != 0
