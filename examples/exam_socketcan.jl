@@ -51,7 +51,7 @@ function main()
     msg2 = CANBus.Frame(14, [1, 1, 2, 2, 3, 3, 4]; is_extended=true)
 
     send(scanfd0, msg1) # FD frame
-    sleep(1) # check timestamp
+    sleep(0.5) # check timestamp
     send(scanfd0, msg2) # FD interface can send classic frame
 
     sleep(0.1) # wait for arrive
