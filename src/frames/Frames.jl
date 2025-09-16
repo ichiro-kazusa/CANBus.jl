@@ -1,7 +1,6 @@
 module Frames
 
 using CANalyze
-using StaticArrays
 
 
 """Abstract type for Frames."""

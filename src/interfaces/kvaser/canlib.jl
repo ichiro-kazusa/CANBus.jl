@@ -1,8 +1,6 @@
 "Low level API for Kvaser CANlib SDK"
 module Canlib
 
-using StaticArrays
-
 include("canlibdef.jl")
 
 const canlib = "canlib32"

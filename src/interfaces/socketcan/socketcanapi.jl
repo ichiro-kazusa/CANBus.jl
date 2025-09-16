@@ -1,7 +1,11 @@
 "Low level API for SocketCAN"
 module SocketCAN
 
-using StaticArrays
+
+########################################
+# typdefs
+########################################
+const socklen_t = Cuint
 
 ########################################
 # definitions
@@ -17,6 +21,8 @@ const CAN_RTR_FLAG = UInt32(0x40000000)
 const CAN_ERR_FLAG = UInt32(0x20000000)
 const SOL_CAN_BASE = Cint(100)
 const SOL_CAN_RAW = SOL_CAN_BASE + CAN_RAW
+const SOL_SOCKET = Cint(1)
+const SO_TIMESTAMPNS_NEW = Cint(64)
 const CAN_RAW_FILTER = Cint(1)
 const CAN_RAW_FD_FRAMES = Cint(5)
 #/*
@@ -26,18 +32,20 @@ const CANFD_BRS::UInt8 = 0x01 #/* bit rate switch (second bitrate for payload da
 const CANFD_ESI::UInt8 = 0x02 #/* error state indicator of the transmitting node */
 const CANFD_FDF::UInt8 = 0x04 #/* mark CAN FD for dual use of struct canfd_frame */
 
+const EAGAIN = 11
+
 ########################################
 # structs
 ########################################
 struct ifreq
-    ifr_ifrn::SVector{16,Cchar}
-    ifr_ifru::SVector{16,Cchar}
+    ifr_ifrn::NTuple{16,Cchar}
+    ifr_ifru::NTuple{16,Cchar}
 end
 
 struct sockaddr_can # 19 bytes
     can_family::Cushort
     can_ifindex::Cint
-    can_addr::SVector{13,Cchar}
+    can_addr::NTuple{13,Cchar}
 end
 
 struct can_frame # 16 bytes
@@ -46,7 +54,7 @@ struct can_frame # 16 bytes
     __pad::UInt8
     __res0::UInt8
     len8_dlc::UInt8
-    data::SVector{8,UInt8}
+    data::NTuple{8,UInt8}
 end
 
 struct canfd_frame # 72 bytes
@@ -55,7 +63,7 @@ struct canfd_frame # 72 bytes
     flags::UInt8
     __res0::UInt8
     __res1::UInt8
-    data::SVector{64,UInt8}
+    data::NTuple{64,UInt8}
 end
 
 struct can_filter # 8 bytes
@@ -63,6 +71,31 @@ struct can_filter # 8 bytes
     can_mask::UInt32
 end
 
+struct timespec
+    tv_sec::Clong
+    tv_nsec::Clong
+end
+
+struct iovec
+    iov_base::Ptr{Cvoid}
+    iov_len::Csize_t
+end
+
+struct msghdr
+    msg_name::Ptr{Cvoid}
+    msg_namelen::socklen_t
+    msg_iov::Ptr{iovec}
+    msg_iovlen::Csize_t
+    msg_control::Ptr{Cvoid}
+    msg_controllen::Csize_t
+    msg_flags::Cint
+end
+
+struct cmsghdr
+    cmsg_len::Csize_t
+    cmsg_level::Cint
+    cmsg_type::Cint
+end
 
 ########################################
 # function wrappers
@@ -72,6 +105,7 @@ function socket(domain::Cint, type::Cint, protocol::Cint)::Cint
 end
 
 function ioctl(fd::Cint, cmd::Cint, arg::Base.RefValue{ifreq})::Cint
+    # ioctl to set ifreq
     ccall(:ioctl, Cint, (Cint, Cint, Ptr{ifreq}), fd, cmd, arg)
 end
 
@@ -112,6 +146,14 @@ function setsockopt(socket::Cint, level::Cint, optionname::Cint,
     ccall(:setsockopt, Cint,
         (Cint, Cint, Cint, Ptr{Cvoid}, Cuint),
         socket, level, optionname, optionvalue, optionlength)
+end
+
+function recvmsg(socket::Cint, pmsg::Ref{msghdr},
+    flag::Cint)::Cssize_t
+
+    ccall(:recvmsg, Cssize_t,
+        (Cint, Ptr{msghdr}, Cint),
+        socket, pmsg, flag)
 end
 
 end # Socketcanapi

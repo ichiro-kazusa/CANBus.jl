@@ -16,6 +16,8 @@ function main()
     frame = CANBus.Frame(2, [1, 1, 2, 2, 3, 3, 4]; is_extended=true)
     send(vector1, frame)
 
+    sleep(0.1) # wait arrive
+
     frame1 = recv(vector2) # accept by filter
     println(frame1)
 
@@ -37,7 +39,7 @@ function main()
     msg = CANBus.FDFrame(1, collect(1:16); bitrate_switch=false)
     send(vectorfd1, msg)
 
-    sleep(0.1)
+    sleep(0.1) # wait arrive
 
     msg_1 = recv(vectorfd2)
     println(msg_1)

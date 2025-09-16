@@ -15,7 +15,8 @@ function main()
 
     msg = CANBus.Frame(2, [1, 1, 2, 2, 3, 3, 4]; is_extended=true)
     send(kvaser1, msg)
-    sleep(0.1)
+
+    sleep(0.1) # wait for arrive
 
     msg1 = recv(kvaser2) # accept by filter
     println(msg1)
@@ -34,8 +35,9 @@ function main()
 
     msg = CANBus.FDFrame(1, collect(1:16); bitrate_switch=false)
     send(kvaserfd1, msg)
-    sleep(0.1)
+    sleep(0.1) # check timestamp
     send(kvaserfd1, msg)
+    sleep(0.1) # wait for arrive
 
     msg2 = recv(kvaserfd2)
     println(msg2)

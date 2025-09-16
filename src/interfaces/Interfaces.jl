@@ -18,7 +18,7 @@ Common behavior of concrete implements:
 * Classic CAN interfaces can send ONLY `Frame`
 * CAN FD interfaces can send both `Frame` and `FDFrame`
 """
-function send(interface::AbstractCANInterface, frame::Frames.AbstractFrame)
+function send()
     error("abstract 'send' is not implemented.")
 end
 
@@ -35,7 +35,7 @@ Common behavior of concrete implements:
 * Classic CAN interfaces return only `Frame` object.
 * CAN FD interfaces return either `Frame` or `FDFrame` object.
 """
-function recv(interface::AbstractCANInterface)
+function recv()
     error("abstract 'recv' is not implemented.")
 end
 
@@ -46,7 +46,7 @@ end
 Abstract function for shutdown interface.
 Always returns nothing.
 """
-function shutdown(interface::AbstractCANInterface)
+function shutdown()
     error("abstract 'shutdown' is not implemented.")
 end
 
