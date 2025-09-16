@@ -154,24 +154,13 @@ function Interfaces.send(interface::SocketCANFDInterface,
 end
 
 
-@inline function cmsg_align(n::Integer)
-    a = Int(sizeof(Csize_t))
-    return (Int(n) + a - 1) & -a
-end
-
-@inline cmsg_len(payload_len::Integer) = Csize_t(sizeof(SocketCAN.cmsghdr) + payload_len)
-@inline cmsg_space(payload_len::Integer) = Csize_t(cmsg_align(sizeof(SocketCAN.cmsghdr)) + cmsg_align(payload_len))
-
-
 function Interfaces.recv(interface::T)::Union{Nothing,Frames.AnyFrame} where {T<:Union{SocketCANInterface,SocketCANFDInterface}}
 
     r_frame = Ref{SocketCAN.canfd_frame}()
     r_iov = Ref{SocketCAN.iovec}()
     r_addr = Ref{SocketCAN.sockaddr_can}()
 
-    # buffer for ctrl msg（SCM_TIMESTAMPING: timespec×3 + RXQ_OVFL）
-    ts_psz = sizeof(SocketCAN.timespec)
-    ctrl_len = Int(cmsg_space(3 * ts_psz) + cmsg_space(sizeof(UInt32)))
+    ctrl_len = 100
     ctrlbuf = Vector{UInt8}(undef, ctrl_len)
 
 
