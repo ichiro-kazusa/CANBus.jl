@@ -160,7 +160,7 @@ function Interfaces.send(interface::VectorInterface, msg::Frames.Frame)
     # construct XLEvent
     EventList_t = Vector{Vxlapi.XLevent}([
         Vxlapi.XLevent(Vxlapi.XL_TRANSMIT_MSG, 0, 0, 0, 0, 0, 0,
-            Vxlapi.s_xl_can_msg(id, can_msg_flag, dlc, 0, data_pad, 0))
+            Vxlapi.s_xl_can_msg(id, can_msg_flag, dlc, 0, (data_pad...,), 0))
         for i in 1:messageCount])
 
     # send message
@@ -191,8 +191,8 @@ function Interfaces.send(interface::VectorFDInterface, msg::T) where {T<:Union{F
         flags |= msg.is_remote_frame ? Vxlapi.XL_CAN_TXMSG_FLAG_RTR : Cuint(0)
     end
 
-    event = Vxlapi.XLcanTxEvent(Vxlapi.XL_CAN_EV_TAG_TX_MSG, 0, 0, zeros(Cuchar, 3),
-        Vxlapi.XL_CAN_TX_MSG(canid, flags, dlc, zeros(Cuchar, 7), data_pad))
+    event = Vxlapi.XLcanTxEvent(Vxlapi.XL_CAN_EV_TAG_TX_MSG, 0, 0, (zeros(Cuchar, 3)...,),
+        Vxlapi.XL_CAN_TX_MSG(canid, flags, dlc, (zeros(Cuchar, 7)...,), (data_pad...,)))
     pevent = Ref(event)
     pMsgCntSent = Ref(Cuint(0))
 
@@ -228,7 +228,7 @@ function Interfaces.recv(interface::VectorInterface)::Union{Nothing,Frames.Frame
             # frame
             frame = Frames.Frame(
                 id,
-                EventList_r[1].tagData.data[1:EventList_r[1].tagData.dlc];
+                collect(EventList_r[1].tagData.data[1:EventList_r[1].tagData.dlc]);
                 is_extended=isext, is_remote_frame=isrtr, is_error_frame=iserr,
                 timestamp=timestamp
             )
@@ -241,8 +241,8 @@ end
 
 function Interfaces.recv(interface::VectorFDInterface)::Union{Nothing,Frames.AnyFrame}
     canrxevt = Vxlapi.XLcanRxEvent(0, 0, 0, 0, 0, 0, 0, 0, 0,
-        Vxlapi.XL_CAN_EV_RX_MSG(0, 0, 0, zeros(Cuchar, 12), 0, 0,
-            zeros(Cuchar, 5), zeros(Cuchar, Vxlapi.XL_CAN_MAX_DATA_LEN)))
+        Vxlapi.XL_CAN_EV_RX_MSG(0, 0, 0, (zeros(Cuchar, 12)...,), 0, 0,
+            (zeros(Cuchar, 5)...,), (zeros(Cuchar, Vxlapi.XL_CAN_MAX_DATA_LEN)...,)))
     pcanrxevt = Ref(canrxevt)
 
     status = Vxlapi.xlCanReceive!(interface.portHandle, pcanrxevt)
@@ -265,12 +265,12 @@ function Interfaces.recv(interface::VectorFDInterface)::Union{Nothing,Frames.Any
             iserr = (pcanrxevt[].tagData.msgFlags & Vxlapi.XL_CAN_RXMSG_FLAG_EF) != 0
 
             if isfd
-                msg = Frames.FDFrame(id, pcanrxevt[].tagData.data[1:len];
+                msg = Frames.FDFrame(id, collect(pcanrxevt[].tagData.data[1:len]);
                     is_extended=isext, bitrate_switch=isbrs, error_state=isesi,
                     is_error_frame=iserr, timestamp=timestamp)
                 return msg
             else
-                msg = Frames.Frame(id, pcanrxevt[].tagdata.data[1:len];
+                msg = Frames.Frame(id, collect(pcanrxevt[].tagdata.data[1:len]);
                     is_extended=isext, is_remote_frame=isrtr,
                     is_error_frame=iserr, timestamp=timestamp)
                 return msg

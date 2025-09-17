@@ -31,16 +31,16 @@ I'm going to:
 * Try to support PCAN-Basic API for Windows.
 * Test Vector & Kvaser interfaces with physical hardware.
 * Add blocking-recv function.
-* Add timestamp to frames.
 * Support Bit-Timing configuration.
-* Support do~end statement.
 * Add loop back flag.
+* Add timestamp to frames. -> done
 * Add RTR / Error frame implementation. -> done
+* Reconsider data structure about CAN/CANFD distinction. -> done
 
 ### Further ahead
 
+* Support do~end statement.
 * Careful error-handling.
 * Supports other interfaces.
 * Performance optimization.
 * Thread-safe send (shareable send interfaces between threads).
-* Reconsider data structure about CAN/CANFD distinction. -> done

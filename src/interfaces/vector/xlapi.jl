@@ -73,7 +73,7 @@ function xlCanFdSetConfiguration(portHandle::XLportHandle,
 end
 
 function xlReceive!(portHandle::XLportHandle, pEventCount::Base.RefValue{Cuint},
-    pEventList::Base.RefArray{XLevent,Vector{XLevent},Nothing})::XLstatus
+    pEventList::Ref{XLevent})::XLstatus
 
     ccall((:xlReceive, vxlapi), XLstatus,
         (XLportHandle, Ptr{Cuint}, Ptr{XLevent}),
