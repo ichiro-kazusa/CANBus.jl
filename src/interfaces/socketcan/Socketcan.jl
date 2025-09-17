@@ -6,7 +6,7 @@ import ...Frames
 include("socketcanapi.jl")
 import .SocketCAN
 
-
+using FileWatching
 
 """
     SocketCANInterface(channel::String; filters::Vector{AcceptanceFilter})
@@ -154,8 +154,13 @@ function Interfaces.send(interface::SocketCANFDInterface,
 end
 
 
-function Interfaces.recv(interface::T)::Union{Nothing,Frames.AnyFrame} where {T<:Union{SocketCANInterface,SocketCANFDInterface}}
+function Interfaces.recv(interface::T; timeout::Real=0)::Union{Nothing,Frames.AnyFrame} where {T<:Union{SocketCANInterface,SocketCANFDInterface}}
 
+    # polling (Do not use ccall(:poll). It may blocks julia's process.)
+    poll_fd(Libc.RawFD(interface.socket), timeout; readable=true)
+
+
+    # prepare to receive
     r_frame = Ref{SocketCAN.canfd_frame}()
     r_iov = Ref{SocketCAN.iovec}()
     r_addr = Ref{SocketCAN.sockaddr_can}()

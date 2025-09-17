@@ -65,6 +65,15 @@ function main()
 
     println(msg_r2.timestamp - msg_r1.timestamp)
 
+    # timeout example (timeout)
+    msg = recv(scanfd1; timeout=1.0) # timeout
+    println(msg)
+
+    # timeout example (reached)
+    send(scanfd0, msg1)
+    msg = recv(scanfd1; timeout=-1) # receives
+    println(msg)
+
     shutdown(scanfd0)
     shutdown(scanfd1)
 

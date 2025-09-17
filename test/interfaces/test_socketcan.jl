@@ -78,11 +78,68 @@ function test_scan_normal_fd()
 end
 
 
+function test_subroutine_recv()
+    scanfd1 = SocketCANFDInterface("vcan0")
+
+
+    shutdown(scanfd1)
+end
+
+function test_socketcan_timeout()
+
+    scanfd1 = SocketCANFDInterface("vcan0")
+    scanfd2 = SocketCANFDInterface("vcan1")
+
+    # compile
+    msg_t = CANBus.FDFrame(1, collect(1:16); bitrate_switch=false)
+    send(scanfd2, msg_t)
+    recv(scanfd1)
+    sleep(0.1)
+
+    # tests
+    res = @elapsed begin
+        ret = recv(scanfd1; timeout=1)
+        @assert ret === nothing
+    end
+    @assert 0.9 < res < 1.1
+
+    res = @elapsed begin
+        ret = recv(scanfd1)
+        @assert ret === nothing
+    end
+    @assert 0. < res < 0.1
+
+
+    t1 = @async begin
+        res = @elapsed begin
+            recv(scanfd1; timeout=2)
+        end
+        res
+    end
+
+    t2 = @async begin
+        sleep(1)
+        send(scanfd2, msg_t)
+    end
+
+    res = fetch(t1)
+    wait(t2)
+
+    @assert 0.9 < res < 1.1
+
+    shutdown(scanfd1)
+    shutdown(scanfd2)
+
+    true
+end
+
+
 # This feature can not be able to test on GitHub Actions.
 if !haskey(ENV, "GITHUB_ACTIONS") && Sys.islinux()
     @testset "SocketCAN" begin
         @test test_scan_normal()
         @test_throws ErrorException test_scan_nodevice()
         @test test_scan_normal_fd()
+        @test test_socketcan_timeout()
     end
 end
