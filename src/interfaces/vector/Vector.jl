@@ -136,8 +136,6 @@ function _init_vector(channel::Union{Int,AbstractVector{Int}},
 
 
     # get time offset
-    # ptime = Ref(Vxlapi.XLuint64(0))
-    # Vxlapi.xlGetSyncTime(pportHandle[], ptime)
     status = Vxlapi.xlResetClock(pportHandle[])
     if status != Vxlapi.XL_SUCCESS
         error("Vector: clock reset failed. $status")

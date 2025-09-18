@@ -50,12 +50,12 @@ function test_vector_normal_fd()
 
     msg_t1 = CANBus.FDFrame(1, collect(1:16); bitrate_switch=false)
     send(vectorfd1, msg_t1)
-    
+
     sleep(0.1)
 
     msg_t2 = CANBus.FDFrame(1, collect(1:16))
     send(vectorfd1, msg_t2)
-    
+
     sleep(0.1)
 
     msg_r1 = recv(vectorfd2)
@@ -83,6 +83,61 @@ function test_vector_normal_fd()
     true
 end
 
+function test_vector_timeout()
+    # recv for classic CAN interface
+    vector1 = VectorInterface(0, 500000, "NewApp")
+    vector2 = VectorInterface(1, 500000, "NewApp")
+
+    msg = CANBus.Frame(1, [1, 1, 2, 2, 3, 3, 4]; is_extended=true)
+    t1 = @async begin
+        sleep(1)
+        println("sending")
+        send(vector1, msg)
+    end
+
+    t2 = @async begin
+        local ret
+        et = @elapsed begin
+            ret = recv(vector2, timeout_s=3)
+        end
+        @assert 0.9 < et < 1.1
+    end
+
+    wait(t1)
+    wait(t2)
+
+    shutdown(vector1)
+    shutdown(vector2)
+
+    # recv for CANFD interface
+    vectorfd1 = VectorFDInterface(0, 500000, 2000000, "NewApp")
+    vectorfd2 = VectorFDInterface(1, 500000, 2000000, "NewApp")
+
+    msg = CANBus.FDFrame(2, collect(1:16); is_extended=true)
+    t1 = @async begin
+        sleep(1)
+        println("sending")
+        send(vectorfd1, msg)
+    end
+
+    t2 = @async begin
+        local ret
+        et = @elapsed begin
+            ret = recv(vectorfd2, timeout_s=3)
+        end
+        @assert 0.9 < et < 1.1
+    end
+
+    wait(t1)
+    wait(t2)
+
+    shutdown(vectorfd1)
+    shutdown(vectorfd2)
+
+    true
+end
+
+
 
 # This feature can not be able to test on GitHub Actions.
 if !haskey(ENV, "GITHUB_ACTIONS") && Sys.iswindows()
@@ -91,5 +146,6 @@ if !haskey(ENV, "GITHUB_ACTIONS") && Sys.iswindows()
         @test_throws ErrorException test_vector_nodevice()
         @test_throws ErrorException test_vector_invalidrate()
         @test test_vector_normal_fd()
+        @test test_vector_timeout()
     end
 end
