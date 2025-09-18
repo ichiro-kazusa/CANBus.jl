@@ -154,10 +154,10 @@ function Interfaces.send(interface::SocketCANFDInterface,
 end
 
 
-function Interfaces.recv(interface::T; timeout::Real=0)::Union{Nothing,Frames.AnyFrame} where {T<:Union{SocketCANInterface,SocketCANFDInterface}}
+function Interfaces.recv(interface::T; timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame} where {T<:Union{SocketCANInterface,SocketCANFDInterface}}
 
     # polling (Do not use ccall(:poll). It may blocks julia's process.)
-    poll_fd(Libc.RawFD(interface.socket), timeout; readable=true)
+    poll_fd(Libc.RawFD(interface.socket), timeout_s; readable=true)
 
 
     # prepare to receive

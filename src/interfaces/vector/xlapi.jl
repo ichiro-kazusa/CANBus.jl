@@ -136,4 +136,13 @@ function xlResetClock(portHandle::XLportHandle)::XLstatus
         (XLportHandle,), portHandle)
 end
 
+function xlSetNotification(portHandle::XLportHandle,
+    p_handle::Ref{XLhandle}, queueLevel::Cint)::XLstatus
+
+    ccall((:xlSetNotification, vxlapi), XLstatus,
+        (XLportHandle, Ptr{XLhandle}, Cint),
+        portHandle, p_handle, queueLevel)
+end
+
+
 end # Vxlapi

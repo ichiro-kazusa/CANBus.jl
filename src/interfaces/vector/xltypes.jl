@@ -2,12 +2,16 @@
 # in module Vxlapi
 #########################################################
 
+
+const HANDLE = Ptr{Cvoid}
+
 const XLlong = Clong
 const XLuint64 = Culonglong
 const XLaccess = XLuint64
 const XLstatus = Cshort
 const XLportHandle = XLlong
 const XLeventTag = Cuchar
+const XLhandle = HANDLE
 
 const MAX_MSG_LEN = 8
 const XL_CAN_MAX_DATA_LEN = 64

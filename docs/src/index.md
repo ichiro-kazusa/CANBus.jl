@@ -28,7 +28,6 @@ pkg> add CANBus
 ### Upcoming plans until v0.1.0
 
 I'm going to:
-* Try to support PCAN-Basic API for Windows.
 * Test Vector & Kvaser interfaces with physical hardware.
 * Add blocking-recv function.
 * Support Bit-Timing configuration.
@@ -39,6 +38,7 @@ I'm going to:
 
 ### Further ahead
 
+* Try to support PCAN-Basic API for Windows.
 * Support do~end statement.
 * Careful error-handling.
 * Supports other interfaces.

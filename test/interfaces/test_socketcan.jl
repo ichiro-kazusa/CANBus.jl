@@ -98,7 +98,7 @@ function test_socketcan_timeout()
 
     # tests
     res = @elapsed begin
-        ret = recv(scanfd1; timeout=1)
+        ret = recv(scanfd1; timeout_s=1)
         @assert ret === nothing
     end
     @assert 0.9 < res < 1.1
@@ -112,7 +112,7 @@ function test_socketcan_timeout()
 
     t1 = @async begin
         res = @elapsed begin
-            recv(scanfd1; timeout=2)
+            recv(scanfd1; timeout_s=2)
         end
         res
     end

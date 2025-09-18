@@ -2,10 +2,12 @@ module VectorInterfaces
 
 import ..Interfaces
 import ...Frames
+import ...WinWrap
 
 include("xlapi.jl")
 import .Vxlapi
 
+using FileWatching
 
 
 """
@@ -206,7 +208,12 @@ function Interfaces.send(interface::VectorFDInterface, msg::T) where {T<:Union{F
 end
 
 
-function Interfaces.recv(interface::VectorInterface)::Union{Nothing,Frames.Frame}
+function Interfaces.recv(interface::VectorInterface; timeout_s::Real=0)::Union{Nothing,Frames.Frame}
+
+    # poll
+    _poll(interface.portHandle, timeout_s)
+
+    # prepare to receive
     pEventCount = Ref(Cuint(1))
     EventList_r = Vector{Vxlapi.XLevent}([Vxlapi.XLevent() for i in 1:pEventCount[]])
     pEventList_r = Ref(EventList_r, 1)
@@ -239,7 +246,12 @@ function Interfaces.recv(interface::VectorInterface)::Union{Nothing,Frames.Frame
 end
 
 
-function Interfaces.recv(interface::VectorFDInterface)::Union{Nothing,Frames.AnyFrame}
+function Interfaces.recv(interface::VectorFDInterface; timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame}
+
+    # poll
+    _poll(interface.portHandle, timeout_s)
+
+    # receive    
     canrxevt = Vxlapi.XLcanRxEvent(0, 0, 0, 0, 0, 0, 0, 0, 0,
         Vxlapi.XL_CAN_EV_RX_MSG(0, 0, 0, (zeros(Cuchar, 12)...,), 0, 0,
             (zeros(Cuchar, 5)...,), (zeros(Cuchar, Vxlapi.XL_CAN_MAX_DATA_LEN)...,)))
@@ -318,5 +330,19 @@ function _get_channel_mask(channel::Union{Int,AbstractVector{Int}}, appname::Str
 
     channelMask
 end
+
+
+function _poll(portHandle::Vxlapi.XLportHandle, timeout_s::Real)
+    # block until frame comes or timeout
+    if timeout_s != 0
+        r_hnd = Ref{Vxlapi.XLhandle}()
+        st = Vxlapi.xlSetNotification(portHandle, r_hnd, Cint(1))
+        if st != Vxlapi.XL_SUCCESS
+            error("Vector: poll notifier set failed. $st")
+        end
+        WinWrap.WaitForSingleObject(r_hnd[], Culong(timeout_s * 1e3))
+    end
+end
+
 
 end # VectorInterfaces

@@ -46,11 +46,33 @@ function main()
     msg_2 = recv(vectorfd2)
     println(msg_2)
 
-    shutdown(vectorfd1)
-    shutdown(vectorfd2)
-
+    
     println(msg_1.timestamp - frame1.timestamp)
     println(msg_2.timestamp - msg_1.timestamp)
+    
+    # timeout sample
+    msg = CANBus.FDFrame(1, collect(1:16); bitrate_switch=false)
+
+    t1 = @async begin
+        sleep(1)
+        println("sending")
+        send(vectorfd1, msg)
+    end
+
+    t2 = @async begin
+        local ret
+        et = @elapsed begin
+            ret = recv(vectorfd2, timeout_s=3)
+        end
+        println(et)
+        println(ret)
+    end
+    
+    wait(t1)
+    wait(t2)
+    
+    shutdown(vectorfd1)
+    shutdown(vectorfd2)
 
     true
 end
