@@ -23,12 +23,14 @@ function send()
 end
 
 """
-    recv(interface::T<:AbstractCANInterface)
+    recv(interface::T<:AbstractCANInterface; timeout_s::Real=0)
 
 Abstract function for receive message.
 
 Common behavior of concrete implements:
-* non-blocking
+* Default non-blocking.
+    * For blocking receivement, set `timeout_s` in seconds. 
+    * Set `timeout_s` < 0 for infinite bloking.
 * When receive successed, returns `Frame` or `FDFrame`.
 * When receive queue is empty, returns nothing.
 * When fails to receive in other reasons, throws error.

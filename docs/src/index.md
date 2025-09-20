@@ -28,9 +28,9 @@ pkg> add CANBus
 ### Upcoming plans until v0.1.0
 
 I'm going to:
-* Add blocking-recv function.
 * Support Bit-Timing configuration.
 * Add loop back flag.
+* Add blocking-recv function. -> done
 * Test Vector & Kvaser interfaces with physical hardware. -> done
 * Add timestamp to frames. -> done
 * Add RTR / Error frame implementation. -> done
@@ -41,6 +41,6 @@ I'm going to:
 * Try to support PCAN-Basic API for Windows.
 * Support do~end statement.
 * Careful error-handling.
-* Supports other interfaces.
+* Support other interfaces.
 * Performance optimization.
 * Thread-safe send (shareable send interfaces between threads).

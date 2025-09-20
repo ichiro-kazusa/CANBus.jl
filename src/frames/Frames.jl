@@ -30,14 +30,16 @@ end
 
 """
     CANBus.Frame(id::Integer, data::AbstractVector;
-        is_extended::Bool=false, is_remote_frame::Bool=false, is_error_frame::Bool=false)
+        timestamp::Float64=0, is_extended::Bool=false, 
+        is_remote_frame::Bool=false, is_error_frame::Bool=false)
 
-Frame struct represents classic (8bytes) CAN frame.
+Frame struct represents classic (MAX 8bytes) CAN frame.
 
 * `id`: arbitration id
 * `data`: Vector of Integer with length <= 8. If input has element > 255, throws error.
 
 kwargs:
+* `timestamp`: When receive, arrive time stamp is set in this field. When transmission, this field is not cared.
 * `is_extended`: Flag which arbitration id is extended. default=`false`
 * `is_remote_frame`: Flag which indicates remote frame. default=`false`
 * `is_error_frame` : Flag which indicates error frame. Cared in RX only. default=`false`
@@ -81,15 +83,17 @@ end
 
 
 """
-    CANBus.FDFrame(id::Integer, data::AbstractVector; is_extended::Bool=false,
+    CANBus.FDFrame(id::Integer, data::AbstractVector;
+        timestamp::Float64=0, is_extended::Bool=false,
         bitrate_switch::Bool=true, error_state::Bool=false, is_error_frame::Bool=false)
 
-FDFrame struct represents CAN FD (64bytes) frame.
+FDFrame struct represents CAN FD (MAX 64bytes) frame.
 
 * `id`: arbitration id
 * `data`: Vector of Integer. Length must be in CAN FD DLC standard. Elements must not be > 255.
 
 kwargs:
+* `timestamp`: When receive, arrive time stamp is set in this field. When transmission, this field is not cared.
 * `is_extended`: Flag which arbitration id is extended. default=`false`
 * `bitrate_switch`: Flag to use `bitrate_switch`. **default=`true`**
 * `error_state`: Flag corresponds to `error_state_indicator`. Cared in RX only. default=`false`

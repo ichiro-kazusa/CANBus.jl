@@ -175,7 +175,7 @@ function Interfaces.recv(interface::T; timeout_s::Real=0)::Union{Nothing,Frames.
         r_iov[] = iov
 
         msg = SocketCAN.msghdr(
-            Ptr{Cvoid}(Base.unsafe_convert(Ptr{SocketCAN.sockaddr_can}, r_addr)),                # msg_name
+            Ptr{Cvoid}(Base.unsafe_convert(Ptr{SocketCAN.sockaddr_can}, r_addr)), # msg_name
             SocketCAN.socklen_t(sizeof(SocketCAN.sockaddr_can)),
             Base.unsafe_convert(Ptr{SocketCAN.iovec}, r_iov),
             Csize_t(1),
