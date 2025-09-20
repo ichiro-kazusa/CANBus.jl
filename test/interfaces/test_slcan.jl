@@ -66,11 +66,62 @@ function test_slcan_normal_fd()
 end
 
 
+function test_slcan_timeout()
+
+    slcanfd1 = SlcanFDInterface("COM3", 500000, 2000000)
+    slcanfd2 = SlcanFDInterface("COM4", 500000, 2000000)
+
+    # compile
+    msg_t = CANBus.FDFrame(1, collect(1:16); bitrate_switch=false)
+    send(slcanfd2, msg_t)
+    sleep(0.1)
+    recv(slcanfd1)
+    sleep(0.1)
+
+    # tests
+    res = @elapsed begin # timeout 1s
+        ret = recv(slcanfd1; timeout_s=1)
+        @assert ret === nothing
+    end
+    @assert 0.9 < res < 1.2
+
+    res = @elapsed begin # non-blocking
+        ret = recv(slcanfd1)
+        @assert ret === nothing
+    end
+    @assert 0. < res < 0.2
+
+
+    t1 = @async begin # receive in 1s
+        res = @elapsed begin
+            recv(slcanfd1; timeout_s=2)
+        end
+        res
+    end
+
+    t2 = @async begin # async send to task1
+        sleep(1)
+        send(slcanfd2, msg_t)
+    end
+
+    res = fetch(t1)
+    wait(t2)
+
+    @assert 0.9 < res < 1.2
+
+    shutdown(slcanfd1)
+    shutdown(slcanfd2)
+
+    true
+end
+
+
 # This feature can not be able to test on GitHub Actions.
 if !haskey(ENV, "GITHUB_ACTIONS") && (Sys.islinux() || Sys.iswindows())
     @testset "slcan" begin
         @test test_slcan_normal()
         @test_throws ErrorException test_slcan_nodevice()
         @test test_slcan_normal_fd()
+        @test test_slcan_timeout()
     end
 end
