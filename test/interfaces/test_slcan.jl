@@ -1,10 +1,14 @@
 using CANBus
 using Test
 
+const port1 = "/dev/ttyACM0"
+const port2 = "/dev/ttyACM1"
+
+
 function test_slcan_normal()
     # use CAN
-    scan1 = SlcanInterface("COM3", 1000000)
-    scan2 = SlcanInterface("COM4", 1000000)
+    scan1 = SlcanInterface(port1, 1000000)
+    scan2 = SlcanInterface(port2, 1000000)
 
     msg_t1 = CANBus.Frame(1, [1, 1, 2, 2, 3, 3, 4]; is_extended=true)
     send(scan1, msg_t1)
@@ -32,8 +36,8 @@ end
 
 
 function test_slcan_normal_fd()
-    scanfd1 = SlcanFDInterface("COM3", 1000000, 2000000)
-    scanfd2 = SlcanFDInterface("COM4", 1000000, 2000000)
+    scanfd1 = SlcanFDInterface(port1, 1000000, 2000000)
+    scanfd2 = SlcanFDInterface(port2, 1000000, 2000000)
 
     msg_t = CANBus.FDFrame(1, collect(1:16); bitrate_switch=false)
     send(scanfd1, msg_t) # normal FD
@@ -68,8 +72,8 @@ end
 
 function test_slcan_timeout()
 
-    slcanfd1 = SlcanFDInterface("COM3", 500000, 2000000)
-    slcanfd2 = SlcanFDInterface("COM4", 500000, 2000000)
+    slcanfd1 = SlcanFDInterface(port1, 500000, 2000000)
+    slcanfd2 = SlcanFDInterface(port2, 500000, 2000000)
 
     # compile
     msg_t = CANBus.FDFrame(1, collect(1:16); bitrate_switch=false)
