@@ -29,7 +29,6 @@ pkg> add CANBus
 
 I'm going to:
 * Support Bit-Timing configuration.
-* Add loop back flag.
 * Add blocking-recv function. -> done
 * Test Vector & Kvaser interfaces with physical hardware. -> done
 * Add timestamp to frames. -> done

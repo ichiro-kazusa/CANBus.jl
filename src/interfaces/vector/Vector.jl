@@ -144,7 +144,7 @@ function _init_vector(channel::Union{Int,AbstractVector{Int}},
     end
     time_offset = time() # assume device clock is 0.
 
-    # retrieve notirication object to timeout
+    # retrieve notirication object for timeout waiting
     r_hnd = Ref{Vxlapi.XLhandle}()
     st = Vxlapi.xlSetNotification(pportHandle[], r_hnd, Cint(1))
     if st != Vxlapi.XL_SUCCESS

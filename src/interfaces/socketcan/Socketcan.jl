@@ -125,9 +125,9 @@ function Interfaces.send(interface::T,
     data[1:dlc] .= msg.data
     msg = SocketCAN.can_frame(id, dlc, 0, 0, 0, (data...,))
     pmsg = Ref(msg)
-    written = SocketCAN.write(interface.socket, pmsg, Cuint(16))
+    written = SocketCAN.write(interface.socket, pmsg, Cuint(sizeof(SocketCAN.can_frame)))
 
-    if written != Cuint(16)
+    if written != Cuint(sizeof(SocketCAN.can_frame))
         error("SocketCAN: Failed to transmit.")
     end
     return nothing
@@ -145,9 +145,9 @@ function Interfaces.send(interface::SocketCANFDInterface,
             SocketCAN.CANFD_FDF
     msg = SocketCAN.canfd_frame(id, len, flags, 0, 0, (data...,))
     pmsg = Ref(msg)
-    written = SocketCAN.write(interface.socket, pmsg, Cuint(72))
+    written = SocketCAN.write(interface.socket, pmsg, Cuint(sizeof(SocketCAN.canfd_frame)))
 
-    if written != Cuint(72)
+    if written != Cuint(sizeof(SocketCAN.canfd_frame))
         error("SocketCAN: Failed to transmit.")
     end
     return nothing
@@ -195,7 +195,7 @@ function Interfaces.recv(interface::T; timeout_s::Real=0)::Union{Nothing,Frames.
                 error("SocketCAN: receive error: $ern")
             end
         else
-            if nbytes != 72 && nbytes != 16
+            if nbytes != sizeof(SocketCAN.canfd_frame) && nbytes != sizeof(SocketCAN.can_frame)
                 error("Socketcan: received unexpected length: $nbytes")
             end
         end
