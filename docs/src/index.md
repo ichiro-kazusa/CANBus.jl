@@ -28,10 +28,10 @@ pkg> add CANBus
 ### Upcoming plans until v0.1.0
 
 I'm going to:
-* Test Vector & Kvaser interfaces with physical hardware.
 * Add blocking-recv function.
 * Support Bit-Timing configuration.
 * Add loop back flag.
+* Test Vector & Kvaser interfaces with physical hardware. -> done
 * Add timestamp to frames. -> done
 * Add RTR / Error frame implementation. -> done
 * Reconsider data structure about CAN/CANFD distinction. -> done

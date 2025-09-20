@@ -166,7 +166,17 @@ function Interfaces.send(interface::SlcanFDInterface, msg::Frames.FDFrame)
 end
 
 
-function Interfaces.recv(interface::T)::Union{Nothing,Frames.AnyFrame} where {T<:Union{SlcanInterface,SlcanFDInterface}}
+function Interfaces.recv(interface::T; timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame} where {T<:Union{SlcanInterface,SlcanFDInterface}}
+
+    # poll
+
+    if timeout_s != 0
+        # timeout_s < 0(inf) -> pass 0ms(inf)
+        timeout_ms = timeout_s < 0 ? 0 : Cint(timeout_s * 1e3)
+        buf = SerialHAL.blocking_read(interface.sp.ref, 1, timeout_ms)        
+        interface.buffer *= String(buf)
+    end
+
     # read rx buffer & push it to program buffer
     res = SerialHAL.nonblocking_read(interface.sp)
     interface.buffer *= String(res)
