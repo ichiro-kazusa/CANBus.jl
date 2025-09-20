@@ -1,7 +1,9 @@
 #########################################################
 # in module Vxlapi
 #########################################################
-using StaticArrays
+
+
+const HANDLE = Ptr{Cvoid}
 
 const XLlong = Clong
 const XLuint64 = Culonglong
@@ -9,6 +11,7 @@ const XLaccess = XLuint64
 const XLstatus = Cshort
 const XLportHandle = XLlong
 const XLeventTag = Cuchar
+const XLhandle = HANDLE
 
 const MAX_MSG_LEN = 8
 const XL_CAN_MAX_DATA_LEN = 64
@@ -21,7 +24,7 @@ const XL_CANFD_MAX_EVENT_SIZE = 128
     flags::Cushort = 0
     dlc::Cushort = 0
     resl::XLuint64 = 0
-    data::SVector{MAX_MSG_LEN,Cuchar} = @SVector zeros(MAX_MSG_LEN)
+    data::NTuple{MAX_MSG_LEN,Cuchar} = (zeros(Cuchar, MAX_MSG_LEN)...,)
     res2::XLuint64 = 0
 end
 
@@ -48,12 +51,12 @@ struct XLcanFdConf
     tseg2Dbr::Cuint
     reserved::Cuchar
     options::Cuchar
-    reserved1::SVector{2,Cuchar}
+    reserved1::NTuple{2,Cuchar}
     reserved2::Cuint
 
     function XLcanFdConf(bitrate::Cuint, datarate::Cuint, non_iso::Bool)
         flag = non_iso ? CANFD_CONFOPT_NO_ISO : Cuchar(0)
-        new(bitrate, 2, 6, 3, datarate, 2, 6, 3, 0, flag, [0, 0], 0)
+        new(bitrate, 2, 6, 3, datarate, 2, 6, 3, 0, flag, (0, 0), 0)
     end
 end
 
@@ -62,8 +65,8 @@ struct XL_CAN_TX_MSG
     canId::Cuint
     msgFlags::Cuint
     dlc::Cuchar
-    reserved::SVector{7,Cuchar}
-    data::SVector{XL_CAN_MAX_DATA_LEN,Cuchar}
+    reserved::NTuple{7,Cuchar}
+    data::NTuple{XL_CAN_MAX_DATA_LEN,Cuchar}
 end
 
 
@@ -71,7 +74,7 @@ struct XLcanTxEvent
     tag::Cushort
     transId::Cushort
     channelIndex::Cuchar
-    reserved::SVector{3,Cuchar}
+    reserved::NTuple{3,Cuchar}
     canMsg::XL_CAN_TX_MSG
 end
 
@@ -80,11 +83,11 @@ struct XL_CAN_EV_RX_MSG
     canId::Cuint
     msgFlags::Cuint
     crc::Cuint
-    reserved1::SVector{12,Cuchar}
+    reserved1::NTuple{12,Cuchar}
     totalBitCnt::Cushort
     dlc::Cuchar
-    reserved::SVector{5,Cuchar}
-    data::SVector{XL_CAN_MAX_DATA_LEN,Cuchar}
+    reserved::NTuple{5,Cuchar}
+    data::NTuple{XL_CAN_MAX_DATA_LEN,Cuchar}
 end
 
 

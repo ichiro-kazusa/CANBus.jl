@@ -6,7 +6,7 @@ import ...Frames
 include("socketcanapi.jl")
 import .SocketCAN
 
-
+using FileWatching
 
 """
     SocketCANInterface(channel::String; filters::Vector{AcceptanceFilter})
@@ -59,10 +59,10 @@ function _init_can(channel::String,
         error("SocketCAN: socket could not open.")
     end
 
-    # ioctl
+    # ioctl to set ch name
     ifname = Vector{Cchar}(codeunits(channel))
     ifname_pad = vcat(ifname, zeros(Cchar, 16 - length(ifname)))
-    ifr = SocketCAN.ifreq(ifname_pad, zeros(Cchar, 16))
+    ifr = SocketCAN.ifreq((ifname_pad...,), (zeros(Cchar, 16)...,))
     pifr = Ref(ifr)
     io = SocketCAN.ioctl(s, SocketCAN.SIOCGIFINDEX, pifr)
     if io < 0
@@ -74,10 +74,18 @@ function _init_can(channel::String,
         enable_canfd::Cint = 1
         penable_canfd = Ref(enable_canfd)
         so = SocketCAN.setsockopt(s, SocketCAN.SOL_CAN_RAW,
-            SocketCAN.CAN_RAW_FD_FRAMES, penable_canfd, Cuint(4))
+            SocketCAN.CAN_RAW_FD_FRAMES, penable_canfd, Cuint(sizeof(Cint)))
         if so < 0
             error("SocketCAN: setting CAN FD failed. $so")
         end
+    end
+
+    # use timestamp (software)
+    p_on = Ref(Cint(1))
+    so = SocketCAN.setsockopt(s, SocketCAN.SOL_SOCKET,
+        SocketCAN.SO_TIMESTAMPNS_NEW, p_on, Cuint(sizeof(Cint)))
+    if so < 0
+        error("SocketCAN: setting up for capture timestamp is failed. $so")
     end
 
     # set filters
@@ -93,10 +101,10 @@ function _init_can(channel::String,
     end
 
     # bind
-    ptr = Base.unsafe_convert(Ptr{Cint}, pointer(pifr[].ifr_ifru))
+    ptr = ccall(:jl_value_ptr, Ptr{Cint}, (Any,), pifr[].ifr_ifru) # convert to Cint pointer
     ifr_ifindex = unsafe_load(ptr)
     addr = SocketCAN.sockaddr_can(SocketCAN.AF_CAN, ifr_ifindex,
-        zeros(Cchar, 13))
+        (zeros(Cchar, 13)...,))
     paddr = Ref(addr)
     b = SocketCAN.bind(s, paddr, Cuint(19))
     if b < 0
@@ -115,7 +123,7 @@ function Interfaces.send(interface::T,
     dlc = size(msg.data, 1)
     data = zeros(UInt8, 8)
     data[1:dlc] .= msg.data
-    msg = SocketCAN.can_frame(id, dlc, 0, 0, 0, data)
+    msg = SocketCAN.can_frame(id, dlc, 0, 0, 0, (data...,))
     pmsg = Ref(msg)
     written = SocketCAN.write(interface.socket, pmsg, Cuint(16))
 
@@ -135,7 +143,7 @@ function Interfaces.send(interface::SocketCANFDInterface,
     data[1:len] .= msg.data
     flags = msg.bitrate_switch ? SocketCAN.CANFD_BRS | SocketCAN.CANFD_FDF :
             SocketCAN.CANFD_FDF
-    msg = SocketCAN.canfd_frame(id, len, flags, 0, 0, data)
+    msg = SocketCAN.canfd_frame(id, len, flags, 0, 0, (data...,))
     pmsg = Ref(msg)
     written = SocketCAN.write(interface.socket, pmsg, Cuint(72))
 
@@ -146,56 +154,84 @@ function Interfaces.send(interface::SocketCANFDInterface,
 end
 
 
-function Interfaces.recv(interface::SocketCANInterface)::Union{Nothing,Frames.Frame}
-    frame_r = SocketCAN.can_frame(0, 0, 0, 0, 0, zeros(Cchar, 8)) # empty frame
-    pframe_r = Ref(frame_r)
-    nbytes = SocketCAN.read(interface.socket, pframe_r, Cuint(16))
-    if nbytes >= 0
-        rawid = pframe_r[].can_id
-        isext = (rawid & SocketCAN.CAN_EFF_FLAG) != 0
-        isrtr = (rawid & SocketCAN.CAN_RTR_FLAG) != 0
-        iserr = (rawid & SocketCAN.CAN_ERR_FLAG) != 0
-        id = isext ? rawid - SocketCAN.CAN_EFF_FLAG : rawid
-        dlc = pframe_r[].len
+function Interfaces.recv(interface::T; timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame} where {T<:Union{SocketCANInterface,SocketCANFDInterface}}
 
-        frame = Frames.Frame(
-            id, pframe_r[].data[1:dlc];
-            is_extended=isext, is_remote_frame=isrtr, is_error_frame=iserr
+    # polling (Do not use ccall(:poll). It may blocks julia's process.)
+    poll_fd(Libc.RawFD(interface.socket), timeout_s; readable=true)
+
+
+    # prepare to receive
+    r_frame = Ref{SocketCAN.canfd_frame}()
+    r_iov = Ref{SocketCAN.iovec}()
+    r_addr = Ref{SocketCAN.sockaddr_can}()
+
+    ctrl_len = 100
+    ctrlbuf = Vector{UInt8}(undef, ctrl_len)
+
+
+    GC.@preserve r_frame r_iov r_addr ctrlbuf begin
+        p_frame = Base.unsafe_convert(Ptr{SocketCAN.canfd_frame}, r_frame)
+        iov = SocketCAN.iovec(Ptr{Cvoid}(p_frame), Csize_t(sizeof(SocketCAN.canfd_frame)))
+        r_iov[] = iov
+
+        msg = SocketCAN.msghdr(
+            Ptr{Cvoid}(Base.unsafe_convert(Ptr{SocketCAN.sockaddr_can}, r_addr)), # msg_name
+            SocketCAN.socklen_t(sizeof(SocketCAN.sockaddr_can)),
+            Base.unsafe_convert(Ptr{SocketCAN.iovec}, r_iov),
+            Csize_t(1),
+            Ptr{Cvoid}(pointer(ctrlbuf)),
+            Csize_t(ctrl_len),
+            Cint(0)
         )
-        return frame
-    end
-    return nothing
-end
+        r_msg = Ref(msg)
 
+        nbytes = SocketCAN.recvmsg(interface.socket, r_msg, Cint(0))
 
-function Interfaces.recv(interface::SocketCANFDInterface)::Union{Nothing,Frames.Frame,Frames.FDFrame}
-    frame_r = SocketCAN.canfd_frame(0, 0, 0, 0, 0, zeros(Cchar, 64)) # empty frame
-    pframe_r = Ref(frame_r)
-    nbytes = SocketCAN.read(interface.socket, pframe_r, Cuint(72))
-    if nbytes >= 0
-        rawid = pframe_r[].can_id
+        if nbytes < 0
+            ern = Libc.errno()
+            if ern == SocketCAN.EAGAIN
+                return nothing # rx queue is empty
+            else
+                error("SocketCAN: receive error: $ern")
+            end
+        else
+            if nbytes != 72 && nbytes != 16
+                error("Socketcan: received unexpected length: $nbytes")
+            end
+        end
+
+        # parse timestamp
+        p_ctrlhdr = Ptr{SocketCAN.cmsghdr}(r_msg[].msg_control)
+        p_ctrldata = Ptr{SocketCAN.timespec}(p_ctrlhdr + sizeof(SocketCAN.cmsghdr))
+        ts = unsafe_load(p_ctrldata)
+        timestamp = ts.tv_sec + ts.tv_nsec * 1.e-9
+
+        # parse frame
+        rawid = r_frame[].can_id
         isext = (rawid & SocketCAN.CAN_EFF_FLAG) != 0
         isrtr = (rawid & SocketCAN.CAN_RTR_FLAG) != 0
         iserr = (rawid & SocketCAN.CAN_ERR_FLAG) != 0
-        isfdf = (pframe_r[].flags & SocketCAN.CANFD_FDF) != 0
-        isbrs = (pframe_r[].flags & SocketCAN.CANFD_BRS) != 0
-        isesi = (pframe_r[].flags & SocketCAN.CANFD_ESI) != 0
+        isfdf = (r_frame[].flags & SocketCAN.CANFD_FDF) != 0
+        isbrs = (r_frame[].flags & SocketCAN.CANFD_BRS) != 0
+        isesi = (r_frame[].flags & SocketCAN.CANFD_ESI) != 0
         id = isext ? rawid - SocketCAN.CAN_EFF_FLAG : rawid
-        len = pframe_r[].len
+        len = r_frame[].len
 
         if isfdf
             msg = Frames.FDFrame(
-                id, pframe_r[].data[1:len];
+                id, collect(r_frame[].data[1:len]);
                 is_extended=isext, bitrate_switch=isbrs,
-                error_state=isesi, is_error_frame=iserr)
+                error_state=isesi, is_error_frame=iserr,
+                timestamp=timestamp)
             return msg
         else
-            msg = Frames.Frame(id, pframe_r[].data[1:len];
-                is_extended=isext, is_remote_frame=isrtr, is_error_frame=iserr)
+            msg = Frames.Frame(id, collect(r_frame[].data[1:len]);
+                is_extended=isext, is_remote_frame=isrtr, is_error_frame=iserr,
+                timestamp=timestamp)
             return msg
         end
+
     end
-    return nothing
 end
 
 function Interfaces.shutdown(interface::T) where {T<:Union{SocketCANInterface,SocketCANFDInterface}}

@@ -18,24 +18,26 @@ Common behavior of concrete implements:
 * Classic CAN interfaces can send ONLY `Frame`
 * CAN FD interfaces can send both `Frame` and `FDFrame`
 """
-function send(interface::AbstractCANInterface, frame::Frames.AbstractFrame)
+function send()
     error("abstract 'send' is not implemented.")
 end
 
 """
-    recv(interface::T<:AbstractCANInterface)
+    recv(interface::T<:AbstractCANInterface; timeout_s::Real=0)
 
 Abstract function for receive message.
 
 Common behavior of concrete implements:
-* non-blocking
+* Default non-blocking.
+    * For blocking receivement, set `timeout_s` in seconds. 
+    * Set `timeout_s` < 0 for infinite bloking.
 * When receive successed, returns `Frame` or `FDFrame`.
 * When receive queue is empty, returns nothing.
 * When fails to receive in other reasons, throws error.
 * Classic CAN interfaces return only `Frame` object.
 * CAN FD interfaces return either `Frame` or `FDFrame` object.
 """
-function recv(interface::AbstractCANInterface)
+function recv()
     error("abstract 'recv' is not implemented.")
 end
 
@@ -46,7 +48,7 @@ end
 Abstract function for shutdown interface.
 Always returns nothing.
 """
-function shutdown(interface::AbstractCANInterface)
+function shutdown()
     error("abstract 'shutdown' is not implemented.")
 end
 

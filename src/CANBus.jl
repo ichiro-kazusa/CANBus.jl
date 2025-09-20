@@ -3,6 +3,8 @@ module CANBus
  # internal use
 include("core/SerialHAL.jl")
 import .SerialHAL
+include("core/WinWrap.jl")
+import .WinWrap
 
 
 # public api: data structure

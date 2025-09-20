@@ -20,6 +20,7 @@ Setup Kvaser interface
 """
 struct KvaserInterface <: Interfaces.AbstractCANInterface
     handle::Cint
+    time_offset::Float64
 end
 
 
@@ -29,10 +30,10 @@ function KvaserInterface(channel::Int, bitrate::Int;
     extfilter::Union{Nothing,Interfaces.AcceptanceFilter}=nothing)
 
     # initialize Kvaser CAN
-    hnd = _init_kvaser(channel, bitrate, silent, stdfilter, extfilter,
+    hnd, time_offset = _init_kvaser(channel, bitrate, silent, stdfilter, extfilter,
         false, false, 0)
 
-    KvaserInterface(hnd)
+    KvaserInterface(hnd, time_offset)
 end
 
 
@@ -51,6 +52,7 @@ Setup Kvaser interface for CAN FD.
 """
 struct KvaserFDInterface <: Interfaces.AbstractCANInterface
     handle::Cint
+    time_offset::Float64
 end
 
 
@@ -60,17 +62,17 @@ function KvaserFDInterface(channel::Int, bitrate::Int, datarate::Int;
     extfilter::Union{Nothing,Interfaces.AcceptanceFilter}=nothing)
 
     # initialize Kvaser CAN FD
-    hnd = _init_kvaser(channel, bitrate, silent, stdfilter, extfilter,
+    hnd, time_offset = _init_kvaser(channel, bitrate, silent, stdfilter, extfilter,
         true, non_iso, datarate)
 
-    KvaserFDInterface(hnd)
+    KvaserFDInterface(hnd, time_offset)
 end
 
 
 function _init_kvaser(channel::Int, bitrate::Int, silent::Bool,
     stdfilter::Union{Nothing,Interfaces.AcceptanceFilter},
     extfilter::Union{Nothing,Interfaces.AcceptanceFilter},
-    fd::Bool, non_iso::Bool, datarate::Int)::Cint
+    fd::Bool, non_iso::Bool, datarate::Int)::Tuple{Cint,Float64}
 
     # initialize library
     Canlib.canInitializeLibrary()
@@ -112,7 +114,19 @@ function _init_kvaser(channel::Int, bitrate::Int, silent::Bool,
         error("Kvaser: Bus on failed. $status")
     end
 
-    return hnd
+    # set timer scale at microsec
+    status = Canlib.canIoCtl(hnd, Canlib.canIOCTL_SET_TIMER_SCALE,
+        Ref(UInt32(1)), UInt32(4))
+    if status != Canlib.canOK
+        error("Kvaser: failed to set timer scale.")
+    end
+
+    # get time offset
+    ptime = Ref(Cuint(0))
+    Canlib.kvReadTimer(hnd, ptime)
+    time_offset = time() - ptime[] * 1.e-6 # arrange in sec
+
+    return hnd, time_offset
 end
 
 
@@ -149,17 +163,26 @@ function Interfaces.send(interface::KvaserFDInterface,
 end
 
 
-function Interfaces.recv(interface::KvaserInterface)::Union{Nothing,Frames.Frame}
-    _recv_kvaser_internal(interface)
+function Interfaces.recv(interface::KvaserInterface;
+    timeout_s::Real=0)::Union{Nothing,Frames.Frame}
+    _recv_kvaser_internal(interface, timeout_s)
 end
 
 
-function Interfaces.recv(interface::KvaserFDInterface)::Union{Nothing,Frames.AnyFrame}
-    _recv_kvaser_internal(interface)
+function Interfaces.recv(interface::KvaserFDInterface;
+    timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame}
+    _recv_kvaser_internal(interface, timeout_s)
 end
 
 
-function _recv_kvaser_internal(interface::T)::Union{Nothing,Frames.AnyFrame} where {T<:Union{KvaserInterface,KvaserFDInterface}}
+function _recv_kvaser_internal(interface::T,
+    timeout_s::Real)::Union{Nothing,Frames.AnyFrame} where {T<:Union{KvaserInterface,KvaserFDInterface}}
+
+    # poll
+    timeout_ms = timeout_s < 0 ? Culong(0xFFFFFFFF) : Culong(timeout_s * 1e3)
+    Canlib.canReadSync(interface.handle, timeout_ms)
+
+    # receive
     pid = Ref(Clong(0))
     msg = zeros(Cuchar, T == KvaserFDInterface ? 64 : 8)
     pmsg = Ref(msg, 1)
@@ -171,6 +194,7 @@ function _recv_kvaser_internal(interface::T)::Union{Nothing,Frames.AnyFrame} whe
     if status == Canlib.canOK
         is_ext = (pflag[] & Canlib.canMSG_EXT) != 0
         is_err = (pflag[] & Canlib.canMSG_ERROR_FRAME) != 0
+        timestamp = interface.time_offset + ptime[] * 1.e-6 # arrange in sec
 
         if (pflag[] & Canlib.canFDMSG_FDF) != 0 # FD Message
             brs = (pflag[] & Canlib.canFDMSG_BRS) != 0
@@ -178,12 +202,13 @@ function _recv_kvaser_internal(interface::T)::Union{Nothing,Frames.AnyFrame} whe
 
             ret = Frames.FDFrame(pid[], msg[1:plen[]];
                 is_extended=is_ext, is_error_frame=is_err,
-                bitrate_switch=brs, error_state=esi)
+                bitrate_switch=brs, error_state=esi, timestamp=timestamp)
             return ret
         else
             is_rtr = (pflag[] & Canlib.canMSG_RTR) != 0
             ret = Frames.Frame(pid[], msg[1:plen[]]; is_extended=is_ext,
-                is_remote_frame=is_rtr, is_error_frame=is_err)
+                is_remote_frame=is_rtr, is_error_frame=is_err,
+                timestamp=timestamp)
             return ret
         end
     elseif status == Canlib.canERR_NOMSG

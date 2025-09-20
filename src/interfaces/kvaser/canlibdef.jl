@@ -89,3 +89,54 @@ const canMSG_ERROR_FRAME::Cuint = 0x0020
 const canFDMSG_FDF::Cuint = 0x010000 # Message is an FD message (CAN FD) 
 const canFDMSG_BRS::Cuint = 0x020000 # Message is sent/received with bit rate switch (CAN FD) 
 const canFDMSG_ESI::Cuint = 0x040000 # Sender of the message is in error passive mode (CAN FD) 
+
+
+
+
+#############################################
+# These defines are used in canIoCtl(). 
+#define  canIOCTL_PREFER_EXT   1 
+#define  canIOCTL_PREFER_STD   2 
+#define  canIOCTL_CLEAR_ERROR_COUNTERS   5 
+const canIOCTL_SET_TIMER_SCALE::Cuint = 6
+#define  canIOCTL_SET_TXACK   7 
+#define  canIOCTL_GET_RX_BUFFER_LEVEL   8 
+#define  canIOCTL_GET_TX_BUFFER_LEVEL   9 
+#define  canIOCTL_FLUSH_RX_BUFFER   10 
+#define  canIOCTL_FLUSH_TX_BUFFER   11 
+#define  canIOCTL_GET_TIMER_SCALE   12 
+#define  canIOCTL_SET_TXRQ   13 
+#define  canIOCTL_GET_EVENTHANDLE   14 
+#define  canIOCTL_SET_BYPASS_MODE   15 
+#define  canIOCTL_SET_WAKEUP   16 
+#define  canIOCTL_GET_DRIVERHANDLE   17 
+#define  canIOCTL_MAP_RXQUEUE   18 
+#define  canIOCTL_GET_WAKEUP   19 
+#define  canIOCTL_SET_REPORT_ACCESS_ERRORS   20 
+#define  canIOCTL_GET_REPORT_ACCESS_ERRORS   21 
+#define  canIOCTL_CONNECT_TO_VIRTUAL_BUS   22 
+#define  canIOCTL_DISCONNECT_FROM_VIRTUAL_BUS   23 
+#define  canIOCTL_SET_USER_IOPORT   24 
+#define  canIOCTL_GET_USER_IOPORT   25 
+#define  canIOCTL_SET_BUFFER_WRAPAROUND_MODE   26 
+#define  canIOCTL_SET_RX_QUEUE_SIZE   27 
+#define  canIOCTL_SET_USB_THROTTLE   28 
+#define  canIOCTL_GET_USB_THROTTLE   29 
+#define  canIOCTL_SET_BUSON_TIME_AUTO_RESET   30 
+#define  canIOCTL_GET_TXACK   31 
+#define  canIOCTL_SET_LOCAL_TXECHO   32 
+#define  canIOCTL_SET_ERROR_FRAMES_REPORTING   33 
+#define  canIOCTL_GET_CHANNEL_QUALITY   34 
+#define  canIOCTL_GET_ROUNDTRIP_TIME   35 
+#define  canIOCTL_GET_BUS_TYPE   36 
+#define  canIOCTL_GET_DEVNAME_ASCII   37 
+#define  canIOCTL_GET_TIME_SINCE_LAST_SEEN   38 
+#define  canIOCTL_GET_TREF_LIST   39 
+#define  canIOCTL_TX_INTERVAL   40 
+#define  canIOCTL_SET_BRLIMIT   43 
+#define  canIOCTL_SET_USB_THROTTLE_SCALED   41 
+#define  canIOCTL_SET_THROTTLE_SCALED   41 
+#define  canIOCTL_GET_USB_THROTTLE_SCALED   42 
+#define  canIOCTL_GET_THROTTLE_SCALED   42 
+#define  canIOCTL_RESET_OVERRUN_COUNT   44 
+#define  canIOCTL_LIN_MODE   45 

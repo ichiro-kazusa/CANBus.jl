@@ -1,8 +1,6 @@
 "Low level API for Kvaser CANlib SDK"
 module Canlib
 
-using StaticArrays
-
 include("canlibdef.jl")
 
 const canlib = "canlib32"
@@ -85,6 +83,25 @@ function canSetAcceptanceFilter(handle::Cint, code::Cuint,
     ccall((:canSetAcceptanceFilter, canlib), canStatus,
         (Cint, Cuint, Cuint, Cint),
         handle, code, mask, is_extended)
+end
+
+function kvReadTimer(handle::Cint, ptime::Ref{Cuint})::canStatus
+    ccall((:kvReadTimer, canlib), canStatus,
+        (Cint, Ptr{Cuint}), handle, ptime)
+end
+
+function canIoCtl(hnd::Cint, func::Cuint,
+    buf::Base.RefValue{UInt32}, buflen::Cuint)::canStatus
+
+    ccall((:canIoCtl, canlib), canStatus,
+        (Cint, Cuint, Ptr{Cvoid}, Cuint),
+        hnd, func, buf, buflen)
+end
+
+function canReadSync(handle::Cint, timeout_ms::Culong)
+
+    Threads.@threadcall((:canReadSync, canlib), canStatus,
+        (Cint, Culong), handle, timeout_ms)
 end
 
 end # Canlib

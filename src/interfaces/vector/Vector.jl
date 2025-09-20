@@ -2,10 +2,12 @@ module VectorInterfaces
 
 import ..Interfaces
 import ...Frames
+import ...WinWrap
 
 include("xlapi.jl")
 import .Vxlapi
 
+using FileWatching
 
 
 """
@@ -22,6 +24,7 @@ Setup Vector interface.
 struct VectorInterface <: Interfaces.AbstractCANInterface
     portHandle::Vxlapi.XLportHandle
     channelMask::Vxlapi.XLaccess
+    time_offset::Float64
 
 
     function VectorInterface(channel::Union{Int,AbstractVector{Int}},
@@ -32,11 +35,11 @@ struct VectorInterface <: Interfaces.AbstractCANInterface
 
 
         # init Vector CAN
-        portHandle, channelMask = _init_vector(channel, bitrate, appname,
+        portHandle, channelMask, time_offset = _init_vector(channel, bitrate, appname,
             rxqueuesize, silent, stdfilter, extfilter,
             false, false, 0)
 
-        new(portHandle, channelMask)
+        new(portHandle, channelMask, time_offset)
     end
 end
 
@@ -57,6 +60,7 @@ Setup Vector interface for CAN FD.
 struct VectorFDInterface <: Interfaces.AbstractCANInterface
     portHandle::Vxlapi.XLportHandle
     channelMask::Vxlapi.XLaccess
+    time_offset::Float64
 
 
     function VectorFDInterface(channel::Union{Int,AbstractVector{Int}},
@@ -67,11 +71,11 @@ struct VectorFDInterface <: Interfaces.AbstractCANInterface
 
 
         # init Vector CAN
-        portHandle, channelMask = _init_vector(channel, bitrate, appname,
+        portHandle, channelMask, time_offset = _init_vector(channel, bitrate, appname,
             rxqueuesize, silent, stdfilter, extfilter,
             true, non_iso, datarate)
 
-        new(portHandle, channelMask)
+        new(portHandle, channelMask, time_offset)
     end
 end
 
@@ -80,7 +84,7 @@ function _init_vector(channel::Union{Int,AbstractVector{Int}},
     bitrate::Int, appname::String, rxqueuesize::Cuint, silent::Bool,
     stdfilter::Union{Nothing,Interfaces.AcceptanceFilter},
     extfilter::Union{Nothing,Interfaces.AcceptanceFilter},
-    fd::Bool, non_iso::Bool, datarate::Int)::Tuple{Vxlapi.XLportHandle,Vxlapi.XLaccess}
+    fd::Bool, non_iso::Bool, datarate::Int)::Tuple{Vxlapi.XLportHandle,Vxlapi.XLaccess,Float64}
 
     # open driver
     status = Vxlapi.xlOpenDriver()
@@ -130,7 +134,16 @@ function _init_vector(channel::Union{Int,AbstractVector{Int}},
     status = Vxlapi.xlActivateChannel(pportHandle[], channelMask,
         Vxlapi.XL_BUS_TYPE_CAN, Vxlapi.XL_ACTIVATE_RESET_CLOCK)
 
-    return pportHandle[], channelMask
+
+    # get time offset
+    status = Vxlapi.xlResetClock(pportHandle[])
+    if status != Vxlapi.XL_SUCCESS
+        error("Vector: clock reset failed. $status")
+    end
+    time_offset = time() # assume device clock is 0.
+
+
+    return pportHandle[], channelMask, time_offset
 end
 
 
@@ -147,7 +160,7 @@ function Interfaces.send(interface::VectorInterface, msg::Frames.Frame)
     # construct XLEvent
     EventList_t = Vector{Vxlapi.XLevent}([
         Vxlapi.XLevent(Vxlapi.XL_TRANSMIT_MSG, 0, 0, 0, 0, 0, 0,
-            Vxlapi.s_xl_can_msg(id, can_msg_flag, dlc, 0, data_pad, 0))
+            Vxlapi.s_xl_can_msg(id, can_msg_flag, dlc, 0, (data_pad...,), 0))
         for i in 1:messageCount])
 
     # send message
@@ -178,8 +191,8 @@ function Interfaces.send(interface::VectorFDInterface, msg::T) where {T<:Union{F
         flags |= msg.is_remote_frame ? Vxlapi.XL_CAN_TXMSG_FLAG_RTR : Cuint(0)
     end
 
-    event = Vxlapi.XLcanTxEvent(Vxlapi.XL_CAN_EV_TAG_TX_MSG, 0, 0, zeros(Cuchar, 3),
-        Vxlapi.XL_CAN_TX_MSG(canid, flags, dlc, zeros(Cuchar, 7), data_pad))
+    event = Vxlapi.XLcanTxEvent(Vxlapi.XL_CAN_EV_TAG_TX_MSG, 0, 0, (zeros(Cuchar, 3)...,),
+        Vxlapi.XL_CAN_TX_MSG(canid, flags, dlc, (zeros(Cuchar, 7)...,), (data_pad...,)))
     pevent = Ref(event)
     pMsgCntSent = Ref(Cuint(0))
 
@@ -193,7 +206,12 @@ function Interfaces.send(interface::VectorFDInterface, msg::T) where {T<:Union{F
 end
 
 
-function Interfaces.recv(interface::VectorInterface)::Union{Nothing,Frames.Frame}
+function Interfaces.recv(interface::VectorInterface; timeout_s::Real=0)::Union{Nothing,Frames.Frame}
+
+    # poll
+    _poll(interface.portHandle, timeout_s)
+
+    # prepare to receive
     pEventCount = Ref(Cuint(1))
     EventList_r = Vector{Vxlapi.XLevent}([Vxlapi.XLevent() for i in 1:pEventCount[]])
     pEventList_r = Ref(EventList_r, 1)
@@ -202,6 +220,9 @@ function Interfaces.recv(interface::VectorInterface)::Union{Nothing,Frames.Frame
 
     if status != Vxlapi.XL_ERR_QUEUE_IS_EMPTY
         if EventList_r[1].tag == Vxlapi.XL_RECEIVE_MSG
+
+            timestamp = interface.time_offset + EventList_r[1].timeStamp * 1.e-9 # nsec -> sec
+
             # split id to extended flag
             totalid = EventList_r[1].tagData.id
             isext = (totalid & Vxlapi.XL_CAN_EXT_MSG_ID) != 0
@@ -212,8 +233,9 @@ function Interfaces.recv(interface::VectorInterface)::Union{Nothing,Frames.Frame
             # frame
             frame = Frames.Frame(
                 id,
-                EventList_r[1].tagData.data[1:EventList_r[1].tagData.dlc];
-                is_extended=isext, is_remote_frame=isrtr, is_error_frame=iserr
+                collect(EventList_r[1].tagData.data[1:EventList_r[1].tagData.dlc]);
+                is_extended=isext, is_remote_frame=isrtr, is_error_frame=iserr,
+                timestamp=timestamp
             )
             return frame
         end
@@ -222,10 +244,15 @@ function Interfaces.recv(interface::VectorInterface)::Union{Nothing,Frames.Frame
 end
 
 
-function Interfaces.recv(interface::VectorFDInterface)::Union{Nothing,Frames.AnyFrame}
+function Interfaces.recv(interface::VectorFDInterface; timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame}
+
+    # poll
+    _poll(interface.portHandle, timeout_s)
+
+    # receive    
     canrxevt = Vxlapi.XLcanRxEvent(0, 0, 0, 0, 0, 0, 0, 0, 0,
-        Vxlapi.XL_CAN_EV_RX_MSG(0, 0, 0, zeros(Cuchar, 12), 0, 0,
-            zeros(Cuchar, 5), zeros(Cuchar, Vxlapi.XL_CAN_MAX_DATA_LEN)))
+        Vxlapi.XL_CAN_EV_RX_MSG(0, 0, 0, (zeros(Cuchar, 12)...,), 0, 0,
+            (zeros(Cuchar, 5)...,), (zeros(Cuchar, Vxlapi.XL_CAN_MAX_DATA_LEN)...,)))
     pcanrxevt = Ref(canrxevt)
 
     status = Vxlapi.xlCanReceive!(interface.portHandle, pcanrxevt)
@@ -234,6 +261,9 @@ function Interfaces.recv(interface::VectorFDInterface)::Union{Nothing,Frames.Any
         return nothing
     elseif status == Vxlapi.XL_SUCCESS
         if pcanrxevt[].tag == Vxlapi.XL_CAN_EV_TAG_RX_OK
+
+            timestamp = interface.time_offset + pcanrxevt[].timeStampSync * 1.e-9
+
             dlc = pcanrxevt[].tagData.dlc
             len = dlc <= 8 ? dlc : Vxlapi.CANFD_DLC2LEN[dlc]
             isext = (pcanrxevt[].tagData.canId & Vxlapi.XL_CAN_EXT_MSG_ID) != 0
@@ -245,12 +275,14 @@ function Interfaces.recv(interface::VectorFDInterface)::Union{Nothing,Frames.Any
             iserr = (pcanrxevt[].tagData.msgFlags & Vxlapi.XL_CAN_RXMSG_FLAG_EF) != 0
 
             if isfd
-                msg = Frames.FDFrame(id, pcanrxevt[].tagData.data[1:len];
-                    is_extended=isext, bitrate_switch=isbrs, error_state=isesi, is_error_frame=iserr)
+                msg = Frames.FDFrame(id, collect(pcanrxevt[].tagData.data[1:len]);
+                    is_extended=isext, bitrate_switch=isbrs, error_state=isesi,
+                    is_error_frame=iserr, timestamp=timestamp)
                 return msg
             else
-                msg = Frames.Frame(id, pcanrxevt[].tagdata.data[1:len];
-                    is_extended=isext, is_remote_frame=isrtr, is_error_frame=iserr)
+                msg = Frames.Frame(id, collect(pcanrxevt[].tagdata.data[1:len]);
+                    is_extended=isext, is_remote_frame=isrtr,
+                    is_error_frame=iserr, timestamp=timestamp)
                 return msg
             end
         end
@@ -296,5 +328,19 @@ function _get_channel_mask(channel::Union{Int,AbstractVector{Int}}, appname::Str
 
     channelMask
 end
+
+
+function _poll(portHandle::Vxlapi.XLportHandle, timeout_s::Real)
+    # block until frame comes or timeout
+    if timeout_s != 0
+        r_hnd = Ref{Vxlapi.XLhandle}()
+        st = Vxlapi.xlSetNotification(portHandle, r_hnd, Cint(1))
+        if st != Vxlapi.XL_SUCCESS
+            error("Vector: poll notifier set failed. $st")
+        end
+        WinWrap.WaitForSingleObject(r_hnd[], Culong(timeout_s * 1e3))
+    end
+end
+
 
 end # VectorInterfaces

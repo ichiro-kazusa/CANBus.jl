@@ -28,6 +28,8 @@ function main()
 
     send(sockcan1, frame)
 
+    sleep(0.1) # wait for arrive
+
     frame = recv(sockcan2) # non-blocking receive
     println(frame)
 
@@ -45,11 +47,31 @@ function main()
     println(scanfd0)
     println(scanfd1)
 
-    msg = CANBus.FDFrame(14, collect(1:16); is_extended=true, bitrate_switch=false)
+    msg1 = CANBus.FDFrame(14, collect(1:16); is_extended=true, bitrate_switch=false)
+    msg2 = CANBus.Frame(14, [1, 1, 2, 2, 3, 3, 4]; is_extended=true)
 
-    send(scanfd0, msg)
+    send(scanfd0, msg1) # FD frame
+    sleep(0.5) # check timestamp
+    send(scanfd0, msg2) # FD interface can send classic frame
 
-    msg = recv(scanfd1)
+    sleep(0.1) # wait for arrive
+
+    msg_r1 = recv(scanfd1) # receive fd message
+    println(msg_r1)
+    msg_r2 = recv(scanfd1) # receive classic message
+    println(msg_r2)
+    msg_r3 = recv(scanfd1) # receive nothing
+    println(msg_r3)
+
+    println(msg_r2.timestamp - msg_r1.timestamp)
+
+    # timeout example (timeout)
+    msg = recv(scanfd1; timeout_s=1.0) # timeout
+    println(msg)
+
+    # timeout example (reached)
+    send(scanfd0, msg1)
+    msg = recv(scanfd1; timeout_s=-1) # receives
     println(msg)
 
     shutdown(scanfd0)

@@ -73,7 +73,7 @@ function xlCanFdSetConfiguration(portHandle::XLportHandle,
 end
 
 function xlReceive!(portHandle::XLportHandle, pEventCount::Base.RefValue{Cuint},
-    pEventList::Base.RefArray{XLevent,Vector{XLevent},Nothing})::XLstatus
+    pEventList::Ref{XLevent})::XLstatus
 
     ccall((:xlReceive, vxlapi), XLstatus,
         (XLportHandle, Ptr{Cuint}, Ptr{XLevent}),
@@ -122,5 +122,27 @@ function xlCanSetChannelOutput(portHandle::XLportHandle,
         (XLportHandle, XLaccess, Cuchar),
         portHandle, accessMask, mode)
 end
+
+function xlGetSyncTime(portHandle::XLportHandle,
+    ptime::Ref{XLuint64})::XLstatus
+
+    ccall((:xlGetSyncTime, vxlapi), XLstatus,
+        (XLportHandle, Ptr{XLuint64}),
+        portHandle, ptime)
+end
+
+function xlResetClock(portHandle::XLportHandle)::XLstatus
+    ccall((:xlResetClock, vxlapi), XLstatus,
+        (XLportHandle,), portHandle)
+end
+
+function xlSetNotification(portHandle::XLportHandle,
+    p_handle::Ref{XLhandle}, queueLevel::Cint)::XLstatus
+
+    ccall((:xlSetNotification, vxlapi), XLstatus,
+        (XLportHandle, Ptr{XLhandle}, Cint),
+        portHandle, p_handle, queueLevel)
+end
+
 
 end # Vxlapi

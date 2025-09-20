@@ -54,12 +54,19 @@ function test_kvaser_normal_fd()
     msg_r = recv(kvaserfd2)
     @assert msg_t == msg_r
 
-    msg_t = CANBus.FDFrame(1, collect(1:16))
+    msg_t = CANBus.FDFrame(1, collect(1:16)) # first message
     send(kvaserfd1, msg_t)
-    sleep(0.1)
+    sleep(1)
+    msg_t = CANBus.FDFrame(1, collect(1:16)) # check timestamp
+    send(kvaserfd1, msg_t)
+    
+    sleep(0.1) # wait for arrive
 
-    msg_r = recv(kvaserfd2)
-    @assert msg_t == msg_r
+    msg_r1 = recv(kvaserfd2)
+    @assert msg_t == msg_r1
+
+    msg_r2 = recv(kvaserfd2)
+    @assert 0.999 <= msg_r2.timestamp - msg_r1.timestamp <= 1.01 # check timestamp
 
     msg_t = CANBus.FDFrame(2, collect(1:16); is_extended=true)
     send(kvaserfd1, msg_t)
@@ -78,6 +85,56 @@ function test_kvaser_normal_fd()
 end
 
 
+
+function test_kvaser_timeout()
+
+    kvaserfd1 = KvaserFDInterface(0, 500000, 2000000)
+    kvaserfd2 = KvaserFDInterface(1, 500000, 2000000)
+
+    # compile
+    msg_t = CANBus.FDFrame(1, collect(1:16); bitrate_switch=false)
+    send(kvaserfd2, msg_t)
+    recv(kvaserfd1)
+    sleep(0.1)
+
+    # tests
+    res = @elapsed begin
+        ret = recv(kvaserfd1; timeout_s=1)
+        @assert ret === nothing
+    end
+    @assert 0.9 < res < 1.1
+
+    res = @elapsed begin
+        ret = recv(kvaserfd1)
+        @assert ret === nothing
+    end
+    @assert 0. < res < 0.1
+
+
+    t1 = @async begin
+        res = @elapsed begin
+            recv(kvaserfd1; timeout_s=2)
+        end
+        res
+    end
+
+    t2 = @async begin
+        sleep(1)
+        send(kvaserfd2, msg_t)
+    end
+
+    res = fetch(t1)
+    wait(t2)
+
+    @assert 0.9 < res < 1.1
+
+    shutdown(kvaserfd1)
+    shutdown(kvaserfd2)
+
+    true
+end
+
+
 # This feature can not be able to test on GitHub Actions.
 if !haskey(ENV, "GITHUB_ACTIONS") && Sys.iswindows()
     @testset "Kvaser" begin
@@ -85,5 +142,6 @@ if !haskey(ENV, "GITHUB_ACTIONS") && Sys.iswindows()
         @test_throws ErrorException test_kvaser_nodevice()
         @test_throws ErrorException test_kvaser_invalidrate()
         @test test_kvaser_normal_fd()
+        @test test_kvaser_timeout()
     end
 end

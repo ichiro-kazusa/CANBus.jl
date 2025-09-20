@@ -16,8 +16,10 @@ function main()
     msg = CANBus.Frame(2, [1, 1, 2, 2, 3, 3, 4]; is_extended=true)
     send(kvaser1, msg)
 
-    msg = recv(kvaser2) # accept by filter
-    println(msg)
+    sleep(0.1) # wait for arrive
+
+    msg1 = recv(kvaser2) # accept by filter
+    println(msg1)
 
     msg = recv(kvaser2) # decline by filter
     println(msg)
@@ -33,9 +35,36 @@ function main()
 
     msg = CANBus.FDFrame(1, collect(1:16); bitrate_switch=false)
     send(kvaserfd1, msg)
+    sleep(0.1) # check timestamp
+    send(kvaserfd1, msg)
+    sleep(0.1) # wait for arrive
 
-    msg = recv(kvaserfd2)
-    println(msg)
+    msg2 = recv(kvaserfd2)
+    println(msg2)
+    msg3 = recv(kvaserfd2)
+    println(msg2.timestamp - msg1.timestamp)
+    println(msg3.timestamp - msg2.timestamp)
+
+    # timeout sample
+    msg = CANBus.FDFrame(1, collect(1:16); bitrate_switch=false)
+
+    t1 = @async begin
+        sleep(1)
+        println("sending")
+        send(kvaserfd1, msg)
+    end
+
+    t2 = @async begin
+        local ret
+        et = @elapsed begin
+            ret = recv(kvaserfd2, timeout_s=3)
+        end
+        println(et)
+        println(ret)
+    end
+
+    wait(t1)
+    wait(t2)
 
     shutdown(kvaserfd1)
     shutdown(kvaserfd2)
