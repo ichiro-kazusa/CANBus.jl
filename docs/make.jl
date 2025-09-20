@@ -20,7 +20,8 @@ makedocs(;
             "Interfaces" => "interfaces.md",
             "Frames" => "frames.md",
             "Internals" => "internals.md"
-        ]
+        ],
+        "Changelog" => "changelog.md"
     ],
 )
 
