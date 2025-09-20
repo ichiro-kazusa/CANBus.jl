@@ -163,17 +163,26 @@ function Interfaces.send(interface::KvaserFDInterface,
 end
 
 
-function Interfaces.recv(interface::KvaserInterface)::Union{Nothing,Frames.Frame}
-    _recv_kvaser_internal(interface)
+function Interfaces.recv(interface::KvaserInterface;
+    timeout_s::Real=0)::Union{Nothing,Frames.Frame}
+    _recv_kvaser_internal(interface, timeout_s)
 end
 
 
-function Interfaces.recv(interface::KvaserFDInterface)::Union{Nothing,Frames.AnyFrame}
-    _recv_kvaser_internal(interface)
+function Interfaces.recv(interface::KvaserFDInterface;
+    timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame}
+    _recv_kvaser_internal(interface, timeout_s)
 end
 
 
-function _recv_kvaser_internal(interface::T)::Union{Nothing,Frames.AnyFrame} where {T<:Union{KvaserInterface,KvaserFDInterface}}
+function _recv_kvaser_internal(interface::T,
+    timeout_s::Real)::Union{Nothing,Frames.AnyFrame} where {T<:Union{KvaserInterface,KvaserFDInterface}}
+
+    # poll
+    timeout_ms = timeout_s < 0 ? Culong(0xFFFFFFFF) : Culong(timeout_s * 1e3)
+    Canlib.canReadSync(interface.handle, timeout_ms)
+
+    # receive
     pid = Ref(Clong(0))
     msg = zeros(Cuchar, T == KvaserFDInterface ? 64 : 8)
     pmsg = Ref(msg, 1)

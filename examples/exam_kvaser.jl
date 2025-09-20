@@ -45,6 +45,27 @@ function main()
     println(msg2.timestamp - msg1.timestamp)
     println(msg3.timestamp - msg2.timestamp)
 
+    # timeout sample
+    msg = CANBus.FDFrame(1, collect(1:16); bitrate_switch=false)
+
+    t1 = @async begin
+        sleep(1)
+        println("sending")
+        send(kvaserfd1, msg)
+    end
+
+    t2 = @async begin
+        local ret
+        et = @elapsed begin
+            ret = recv(kvaserfd2, timeout_s=3)
+        end
+        println(et)
+        println(ret)
+    end
+
+    wait(t1)
+    wait(t2)
+
     shutdown(kvaserfd1)
     shutdown(kvaserfd2)
 

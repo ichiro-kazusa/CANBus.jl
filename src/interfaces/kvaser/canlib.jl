@@ -98,4 +98,10 @@ function canIoCtl(hnd::Cint, func::Cuint,
         hnd, func, buf, buflen)
 end
 
+function canReadSync(handle::Cint, timeout_ms::Culong)
+
+    Threads.@threadcall((:canReadSync, canlib), canStatus,
+        (Cint, Culong), handle, timeout_ms)
+end
+
 end # Canlib

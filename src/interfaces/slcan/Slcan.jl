@@ -169,7 +169,6 @@ end
 function Interfaces.recv(interface::T; timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame} where {T<:Union{SlcanInterface,SlcanFDInterface}}
 
     # poll
-
     if timeout_s != 0
         # timeout_s < 0(inf) -> pass 0ms(inf)
         timeout_ms = timeout_s < 0 ? 0 : Cint(timeout_s * 1e3)
