@@ -1,5 +1,9 @@
 # Changelog
 
+### v0.0.6
+
+* bug fix: Notification object infinitely reproduce in Vector timeout.
+
 ### v0.0.5
 
 * Add receive timestamps

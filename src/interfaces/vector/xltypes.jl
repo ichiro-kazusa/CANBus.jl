@@ -107,7 +107,7 @@ end
 
 const CANFD_LEN2DLC::Dict{Int,Int} = Dict([
     12 => 9, 16 => 10, 20 => 11, 24 => 12,
-    32 => 13, 4 => 14, 64 => 15
+    32 => 13, 48 => 14, 64 => 15
 ])
 
 const CANFD_DLC2LEN::Dict{Int,Int} = Dict([

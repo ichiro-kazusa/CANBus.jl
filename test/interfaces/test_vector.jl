@@ -91,7 +91,6 @@ function test_vector_timeout()
     msg = CANBus.Frame(1, [1, 1, 2, 2, 3, 3, 4]; is_extended=true)
     t1 = @async begin
         sleep(1)
-        println("sending")
         send(vector1, msg)
     end
 
@@ -116,7 +115,6 @@ function test_vector_timeout()
     msg = CANBus.FDFrame(2, collect(1:16); is_extended=true)
     t1 = @async begin
         sleep(1)
-        println("sending")
         send(vectorfd1, msg)
     end
 

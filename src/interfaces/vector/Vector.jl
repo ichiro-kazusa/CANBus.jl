@@ -25,6 +25,7 @@ struct VectorInterface <: Interfaces.AbstractCANInterface
     portHandle::Vxlapi.XLportHandle
     channelMask::Vxlapi.XLaccess
     time_offset::Float64
+    notification_hnd::Vxlapi.XLhandle
 
 
     function VectorInterface(channel::Union{Int,AbstractVector{Int}},
@@ -35,11 +36,11 @@ struct VectorInterface <: Interfaces.AbstractCANInterface
 
 
         # init Vector CAN
-        portHandle, channelMask, time_offset = _init_vector(channel, bitrate, appname,
+        portHandle, channelMask, time_offset, notification_hnd = _init_vector(channel, bitrate, appname,
             rxqueuesize, silent, stdfilter, extfilter,
             false, false, 0)
 
-        new(portHandle, channelMask, time_offset)
+        new(portHandle, channelMask, time_offset, notification_hnd)
     end
 end
 
@@ -61,6 +62,7 @@ struct VectorFDInterface <: Interfaces.AbstractCANInterface
     portHandle::Vxlapi.XLportHandle
     channelMask::Vxlapi.XLaccess
     time_offset::Float64
+    notification_hnd::Vxlapi.XLhandle
 
 
     function VectorFDInterface(channel::Union{Int,AbstractVector{Int}},
@@ -71,11 +73,11 @@ struct VectorFDInterface <: Interfaces.AbstractCANInterface
 
 
         # init Vector CAN
-        portHandle, channelMask, time_offset = _init_vector(channel, bitrate, appname,
+        portHandle, channelMask, time_offset, notification_hnd = _init_vector(channel, bitrate, appname,
             rxqueuesize, silent, stdfilter, extfilter,
             true, non_iso, datarate)
 
-        new(portHandle, channelMask, time_offset)
+        new(portHandle, channelMask, time_offset, notification_hnd)
     end
 end
 
@@ -84,7 +86,7 @@ function _init_vector(channel::Union{Int,AbstractVector{Int}},
     bitrate::Int, appname::String, rxqueuesize::Cuint, silent::Bool,
     stdfilter::Union{Nothing,Interfaces.AcceptanceFilter},
     extfilter::Union{Nothing,Interfaces.AcceptanceFilter},
-    fd::Bool, non_iso::Bool, datarate::Int)::Tuple{Vxlapi.XLportHandle,Vxlapi.XLaccess,Float64}
+    fd::Bool, non_iso::Bool, datarate::Int)::Tuple{Vxlapi.XLportHandle,Vxlapi.XLaccess,Float64,Vxlapi.XLhandle}
 
     # open driver
     status = Vxlapi.xlOpenDriver()
@@ -142,8 +144,14 @@ function _init_vector(channel::Union{Int,AbstractVector{Int}},
     end
     time_offset = time() # assume device clock is 0.
 
+    # retrieve notirication object to timeout
+    r_hnd = Ref{Vxlapi.XLhandle}()
+    st = Vxlapi.xlSetNotification(pportHandle[], r_hnd, Cint(1))
+    if st != Vxlapi.XL_SUCCESS
+        error("Vector: poll notifier set failed. $st")
+    end
 
-    return pportHandle[], channelMask, time_offset
+    return pportHandle[], channelMask, time_offset, r_hnd[]
 end
 
 
@@ -209,7 +217,7 @@ end
 function Interfaces.recv(interface::VectorInterface; timeout_s::Real=0)::Union{Nothing,Frames.Frame}
 
     # poll
-    _poll(interface.portHandle, timeout_s)
+    _poll(interface, timeout_s)
 
     # prepare to receive
     pEventCount = Ref(Cuint(1))
@@ -247,7 +255,7 @@ end
 function Interfaces.recv(interface::VectorFDInterface; timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame}
 
     # poll
-    _poll(interface.portHandle, timeout_s)
+    _poll(interface, timeout_s)
 
     # receive    
     canrxevt = Vxlapi.XLcanRxEvent(0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -330,15 +338,10 @@ function _get_channel_mask(channel::Union{Int,AbstractVector{Int}}, appname::Str
 end
 
 
-function _poll(portHandle::Vxlapi.XLportHandle, timeout_s::Real)
+function _poll(interface::T, timeout_s::Real) where {T<:Union{VectorInterface,VectorFDInterface}}
     # block until frame comes or timeout
     if timeout_s != 0
-        r_hnd = Ref{Vxlapi.XLhandle}()
-        st = Vxlapi.xlSetNotification(portHandle, r_hnd, Cint(1))
-        if st != Vxlapi.XL_SUCCESS
-            error("Vector: poll notifier set failed. $st")
-        end
-        WinWrap.WaitForSingleObject(r_hnd[], Culong(timeout_s * 1e3))
+        WinWrap.WaitForSingleObject(interface.notification_hnd, Culong(timeout_s * 1e3))
     end
 end
 
