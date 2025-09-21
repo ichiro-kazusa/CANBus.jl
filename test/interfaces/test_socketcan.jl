@@ -134,6 +134,21 @@ function test_socketcan_timeout()
 end
 
 
+function test_socketcan_do_end()
+    SocketCANInterface("vcan0") do socketcan
+        msg_t = CANBus.Frame(1, [1, 1, 2, 2, 3, 3, 4]; is_extended=true)
+        send(socketcan, msg_t)
+    end
+
+    SocketCANFDInterface("vcan1") do socketcanfd
+        msg_t = CANBus.Frame(1, [1, 1, 2, 2, 3, 3, 4]; is_extended=true)
+        send(socketcanfd, msg_t)
+    end
+
+    true
+end
+
+
 # This feature can not be able to test on GitHub Actions.
 if !haskey(ENV, "GITHUB_ACTIONS") && Sys.islinux()
     @testset "SocketCAN" begin
@@ -141,5 +156,6 @@ if !haskey(ENV, "GITHUB_ACTIONS") && Sys.islinux()
         @test_throws ErrorException test_scan_nodevice()
         @test test_scan_normal_fd()
         @test test_socketcan_timeout()
+        @test test_socketcan_do_end()
     end
 end
