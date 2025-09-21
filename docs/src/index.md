@@ -28,7 +28,7 @@ pkg> add CANBus
 ### Upcoming plans until v0.1.0
 
 I'm going to:
-* Support Bit-Timing configuration.
+* Support Bit-Timing configuration. -> done
 * Support do-end statement. -> done
 * Add blocking-recv function. -> done
 * Test Vector & Kvaser interfaces with physical hardware. -> done

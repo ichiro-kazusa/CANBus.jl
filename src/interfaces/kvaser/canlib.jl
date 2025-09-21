@@ -31,6 +31,16 @@ function canSetBusParams(handle::Cint, freq::Clong,
         handle, freq, tseg1, tseg2, sjw, noSamp, syncmode)
 end
 
+function canGetBusParams(hnd::Cint, pfreq::Ref{Clong},
+    ptseg1::Ref{Cuint}, ptseg2::Ref{Cuint}, psjw::Ref{Cuint},
+    pnoSamp::Ref{Cuint}, psyncmode::Ref{Cuint})::canStatus
+
+    ccall((:canGetBusParams, canlib), canStatus,
+        (Cint, Ptr{Clong}, Ptr{Cuint}, Ptr{Cuint}, Ptr{Cuint}, Ptr{Cuint}, Ptr{Cuint}),
+        hnd, pfreq, ptseg1, ptseg2, psjw, pnoSamp, psyncmode)
+    
+end
+
 function canSetBusParamsFd(handle::Cint, freq_brs::Clong,
     tseg1_brs::Cuint, tseg2_brs::Cuint, sjw_brs::Cuint)::canStatus
 

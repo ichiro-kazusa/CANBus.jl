@@ -2,6 +2,7 @@ module KvaserInterfaces
 
 import ..Interfaces
 import ...Frames
+import ...core: BitTiming
 
 include("canlib.jl")
 import .Canlib
@@ -25,13 +26,13 @@ end
 
 
 function KvaserInterface(channel::Int, bitrate::Int;
-    silent::Bool=false,
+    silent::Bool=false, sample_point::Real=70,
     stdfilter::Union{Nothing,Interfaces.AcceptanceFilter}=nothing,
     extfilter::Union{Nothing,Interfaces.AcceptanceFilter}=nothing)
 
     # initialize Kvaser CAN
     hnd, time_offset = _init_kvaser(channel, bitrate, silent, stdfilter, extfilter,
-        false, false, 0)
+        false, false, 1, sample_point)
 
     KvaserInterface(hnd, time_offset)
 end
@@ -57,13 +58,13 @@ end
 
 
 function KvaserFDInterface(channel::Int, bitrate::Int, datarate::Int;
-    non_iso::Bool=false, silent::Bool=false,
+    non_iso::Bool=false, silent::Bool=false, sample_point::Real=70,
     stdfilter::Union{Nothing,Interfaces.AcceptanceFilter}=nothing,
     extfilter::Union{Nothing,Interfaces.AcceptanceFilter}=nothing)
 
     # initialize Kvaser CAN FD
     hnd, time_offset = _init_kvaser(channel, bitrate, silent, stdfilter, extfilter,
-        true, non_iso, datarate)
+        true, non_iso, datarate, sample_point)
 
     KvaserFDInterface(hnd, time_offset)
 end
@@ -95,7 +96,7 @@ end
 function _init_kvaser(channel::Int, bitrate::Int, silent::Bool,
     stdfilter::Union{Nothing,Interfaces.AcceptanceFilter},
     extfilter::Union{Nothing,Interfaces.AcceptanceFilter},
-    fd::Bool, non_iso::Bool, datarate::Int)::Tuple{Cint,Float64}
+    fd::Bool, non_iso::Bool, datarate::Int, sample_point::Real)::Tuple{Cint,Float64}
 
     # initialize library
     Canlib.canInitializeLibrary()
@@ -108,11 +109,13 @@ function _init_kvaser(channel::Int, bitrate::Int, silent::Bool,
         error("Kvaser: channel $channel open failed. $hnd")
     end
 
-    # set bitrate / tseg1, tseg2, sjw is used the same numbers as Vector.
+    # set bitrate
+    _, tseg1_a, tseg2_a, sjw_a = BitTiming.calc_bittiming(80_000_000, bitrate, sample_point, 255, 255)
+    _, tseg1_d, tseg2_d, sjw_d = BitTiming.calc_bittiming(80_000_000, datarate, sample_point, 255, 255)
     status1 = Canlib.canSetBusParams(hnd, Clong(bitrate),
-        Cuint(6), Cuint(3), Cuint(2), Cuint(1), Cuint(0))
+        Cuint(tseg1_a), Cuint(tseg2_a), Cuint(sjw_a), Cuint(1), Cuint(0))
     status2 = !fd ? Canlib.canOK : Canlib.canSetBusParamsFd(hnd,
-        Clong(datarate), Cuint(6), Cuint(3), Cuint(2))
+        Clong(datarate), Cuint(tseg1_d), Cuint(tseg2_d), Cuint(sjw_d))
     if status1 < 0 || status2 < 0
         error("Kvaser: bitrate set failed. $status1, $status2")
     end
