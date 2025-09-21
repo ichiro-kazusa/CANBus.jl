@@ -135,6 +135,21 @@ function test_kvaser_timeout()
 end
 
 
+function test_kvaser_do_end()
+    KvaserInterface(0, 500000) do kvaser
+        msg_t = CANBus.Frame(1, [1, 1, 2, 2, 3, 3, 4]; is_extended=true)
+        send(kvaser, msg_t)
+    end
+
+    KvaserFDInterface(0, 500000, 2000000) do kvaser
+        msg_t = CANBus.Frame(1, [1, 1, 2, 2, 3, 3, 4]; is_extended=true)
+        send(kvaser, msg_t)
+    end
+
+    true
+end
+
+
 # This feature can not be able to test on GitHub Actions.
 if !haskey(ENV, "GITHUB_ACTIONS") && Sys.iswindows()
     @testset "Kvaser" begin
@@ -143,5 +158,6 @@ if !haskey(ENV, "GITHUB_ACTIONS") && Sys.iswindows()
         @test_throws ErrorException test_kvaser_invalidrate()
         @test test_kvaser_normal_fd()
         @test test_kvaser_timeout()
+        @test test_kvaser_do_end()
     end
 end

@@ -1,8 +1,8 @@
 using CANBus
 using Test
 
-const port1 = "/dev/ttyACM0"
-const port2 = "/dev/ttyACM1"
+const port1 = "COM3"
+const port2 = "COM4"
 
 
 function test_slcan_normal()
@@ -120,6 +120,21 @@ function test_slcan_timeout()
 end
 
 
+function test_slcan_do_end()
+    SlcanInterface(port1, 1000000) do slcan
+        msg_t = CANBus.Frame(1, [1, 1, 2, 2, 3, 3, 4]; is_extended=true)
+        send(slcan, msg_t)
+    end
+
+    SlcanFDInterface(port1, 1000000, 2000000) do slcanfd
+        msg_t = CANBus.Frame(1, [1, 1, 2, 2, 3, 3, 4]; is_extended=true)
+        send(slcanfd, msg_t)
+    end
+
+    true
+end
+
+
 # This feature can not be able to test on GitHub Actions.
 if !haskey(ENV, "GITHUB_ACTIONS") && (Sys.islinux() || Sys.iswindows())
     @testset "slcan" begin
@@ -127,5 +142,6 @@ if !haskey(ENV, "GITHUB_ACTIONS") && (Sys.islinux() || Sys.iswindows())
         @test_throws ErrorException test_slcan_nodevice()
         @test test_slcan_normal_fd()
         @test test_slcan_timeout()
+        @test test_slcan_do_end()
     end
 end

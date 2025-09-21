@@ -82,6 +82,29 @@ struct VectorFDInterface <: Interfaces.AbstractCANInterface
 end
 
 
+function VectorInterface(f::Function, args...; kwargs...)
+    # constructor for do-block
+    bus = VectorInterface(args...; kwargs...)
+    try
+        return f(bus)
+    finally
+        Interfaces.shutdown(bus)
+    end
+end
+
+
+
+function VectorFDInterface(f::Function, args...; kwargs...)
+    # constructor for do-block
+    bus = VectorFDInterface(args...; kwargs...)
+    try
+        return f(bus)
+    finally
+        Interfaces.shutdown(bus)
+    end
+end
+
+
 function _init_vector(channel::Union{Int,AbstractVector{Int}},
     bitrate::Int, appname::String, rxqueuesize::Cuint, silent::Bool,
     stdfilter::Union{Nothing,Interfaces.AcceptanceFilter},

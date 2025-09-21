@@ -135,6 +135,20 @@ function test_vector_timeout()
     true
 end
 
+function test_vector_do_end()
+    VectorInterface(0, 500000, "NewApp") do vector
+        msg_t = CANBus.Frame(1, [1, 1, 2, 2, 3, 3, 4]; is_extended=true)
+        send(vector, msg_t)
+    end
+
+    VectorFDInterface(0, 500000, 2000000, "NewApp") do vectorfd
+        msg_t = CANBus.Frame(1, [1, 1, 2, 2, 3, 3, 4]; is_extended=true)
+        send(vectorfd, msg_t)
+    end
+
+    true
+end
+
 
 
 # This feature can not be able to test on GitHub Actions.
@@ -145,5 +159,6 @@ if !haskey(ENV, "GITHUB_ACTIONS") && Sys.iswindows()
         @test_throws ErrorException test_vector_invalidrate()
         @test test_vector_normal_fd()
         @test test_vector_timeout()
+        @test test_vector_do_end()
     end
 end

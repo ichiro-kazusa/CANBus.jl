@@ -48,6 +48,29 @@ struct SocketCANFDInterface <: Interfaces.AbstractCANInterface
 end
 
 
+function SocketCANInterface(f::Function, args...; kwargs...)
+    # constructor for do-block
+    bus = SocketCANInterface(args...; kwargs...)
+    try
+        return f(bus)
+    finally
+        Interfaces.shutdown(bus)
+    end
+end
+
+
+
+function SocketCANFDInterface(f::Function, args...; kwargs...)
+    # constructor for do-block
+    bus = SocketCANFDInterface(args...; kwargs...)
+    try
+        return f(bus)
+    finally
+        Interfaces.shutdown(bus)
+    end
+end
+
+
 function _init_can(channel::String,
     filters::Union{Nothing,Vector{Interfaces.AcceptanceFilter}},
     fd::Bool)::Cint

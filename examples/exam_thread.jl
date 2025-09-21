@@ -3,24 +3,24 @@ using CANBus
 
 """receive thread"""
 function recvthread(chn::Channel{Bool})
-    bus = SlcanFDInterface("COM3", 1000000, 2000000)
     thid = Threads.threadid()
 
-    while true
-        msg = recv(bus)
-        if msg !== nothing
-            println("thread $thid: ", msg)
+    SlcanFDInterface("COM3", 1000000, 2000000) do bus
+        while true
+            msg = recv(bus)
+            if msg !== nothing
+                println("thread $thid: ", msg)
+            end
+
+            termflag = isready(chn) ? take!(chn) : false
+            if termflag
+                break
+            end
+
+            sleep(0.001)
         end
 
-        termflag = isready(chn) ? take!(chn) : false
-        if termflag
-            break
-        end
-
-        sleep(0.001)
     end
-
-    shutdown(bus)
     println("thread $thid ends...")
 
 end

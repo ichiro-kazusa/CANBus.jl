@@ -29,6 +29,7 @@ pkg> add CANBus
 
 I'm going to:
 * Support Bit-Timing configuration.
+* Support do-end statement.
 * Add blocking-recv function. -> done
 * Test Vector & Kvaser interfaces with physical hardware. -> done
 * Add timestamp to frames. -> done
@@ -38,7 +39,6 @@ I'm going to:
 ### Further ahead
 
 * Try to support PCAN-Basic API for Windows.
-* Support do~end statement.
 * Careful error-handling.
 * Support other interfaces.
 * Performance optimization.

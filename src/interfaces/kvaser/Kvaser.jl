@@ -69,6 +69,29 @@ function KvaserFDInterface(channel::Int, bitrate::Int, datarate::Int;
 end
 
 
+function KvaserInterface(f::Function, args...; kwargs...)
+    # constructor for do-block
+    bus = KvaserInterface(args...; kwargs...)
+    try
+        return f(bus)
+    finally
+        Interfaces.shutdown(bus)
+    end
+end
+
+
+
+function KvaserFDInterface(f::Function, args...; kwargs...)
+    # constructor for do-block
+    bus = KvaserFDInterface(args...; kwargs...)
+    try
+        return f(bus)
+    finally
+        Interfaces.shutdown(bus)
+    end
+end
+
+
 function _init_kvaser(channel::Int, bitrate::Int, silent::Bool,
     stdfilter::Union{Nothing,Interfaces.AcceptanceFilter},
     extfilter::Union{Nothing,Interfaces.AcceptanceFilter},

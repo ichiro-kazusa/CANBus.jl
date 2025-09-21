@@ -66,6 +66,30 @@ mutable struct SlcanFDInterface <: Interfaces.AbstractCANInterface
 end
 
 
+
+function SlcanInterface(f::Function, args...; kwargs...)
+    # constructor for do-block
+    bus = SlcanInterface(args...; kwargs...)
+    try
+        return f(bus)
+    finally
+        Interfaces.shutdown(bus)
+    end
+end
+
+
+
+function SlcanFDInterface(f::Function, args...; kwargs...)
+    # constructor for do-block
+    bus = SlcanFDInterface(args...; kwargs...)
+    try
+        return f(bus)
+    finally
+        Interfaces.shutdown(bus)
+    end
+end
+
+
 function _init_slcan(channel::String, bitrate::Int,
     serialbaud::Int, silent::Bool,
     fd::Bool, datarate::Int)::SerialHAL.HandleType
