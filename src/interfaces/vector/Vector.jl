@@ -2,7 +2,7 @@ module VectorInterfaces
 
 import ..Interfaces
 import ...Frames
-import ...WinWrap
+import ...core: WinWrap, BitTiming
 
 include("xlapi.jl")
 import .Vxlapi
@@ -18,6 +18,7 @@ Setup Vector interface.
 * bitrate: bitrate as bit/s in integer.
 * apppname: Application Name string in Vector Hardware Manager.
 * silent(optional): listen only flag in bool.
+* sample_point(optional): sample point in percent. Default is 70 (%).
 * stdfilter(optional): standard ID filter in AcceptanceFilter struct.
 * extfilter(optional): extended ID filter in AcceptanceFilter struct.
 """
@@ -30,7 +31,7 @@ struct VectorInterface <: Interfaces.AbstractCANInterface
 
     function VectorInterface(channel::Union{Int,AbstractVector{Int}},
         bitrate::Int, appname::String, rxqueuesize::Cuint=Cuint(16384);
-        silent::Bool=false,
+        silent::Bool=false, sample_point::Real=70,
         stdfilter::Union{Nothing,Interfaces.AcceptanceFilter}=nothing,
         extfilter::Union{Nothing,Interfaces.AcceptanceFilter}=nothing)
 
@@ -38,7 +39,7 @@ struct VectorInterface <: Interfaces.AbstractCANInterface
         # init Vector CAN
         portHandle, channelMask, time_offset, notification_hnd = _init_vector(channel, bitrate, appname,
             rxqueuesize, silent, stdfilter, extfilter,
-            false, false, 0)
+            false, false, 0, sample_point)
 
         new(portHandle, channelMask, time_offset, notification_hnd)
     end
@@ -55,6 +56,7 @@ Setup Vector interface for CAN FD.
 * apppname: Application Name string in Vector Hardware Manager.
 * non_iso(optional): use non-iso version of CAN FD
 * silent(optional): listen only flag in bool.
+* sample_point(optional): sample point in percent. Default is 70 (%).
 * stdfilter(optional): standard ID filter in AcceptanceFilter struct.
 * extfilter(optional): extended ID filter in AcceptanceFilter struct.
 """
@@ -67,7 +69,7 @@ struct VectorFDInterface <: Interfaces.AbstractCANInterface
 
     function VectorFDInterface(channel::Union{Int,AbstractVector{Int}},
         bitrate::Int, datarate::Int, appname::String, rxqueuesize::Cuint=Cuint(262144);
-        non_iso::Bool=false, silent::Bool=false,
+        non_iso::Bool=false, silent::Bool=false, sample_point::Real=70,
         stdfilter::Union{Nothing,Interfaces.AcceptanceFilter}=nothing,
         extfilter::Union{Nothing,Interfaces.AcceptanceFilter}=nothing)
 
@@ -75,7 +77,7 @@ struct VectorFDInterface <: Interfaces.AbstractCANInterface
         # init Vector CAN
         portHandle, channelMask, time_offset, notification_hnd = _init_vector(channel, bitrate, appname,
             rxqueuesize, silent, stdfilter, extfilter,
-            true, non_iso, datarate)
+            true, non_iso, datarate, sample_point)
 
         new(portHandle, channelMask, time_offset, notification_hnd)
     end
@@ -109,7 +111,8 @@ function _init_vector(channel::Union{Int,AbstractVector{Int}},
     bitrate::Int, appname::String, rxqueuesize::Cuint, silent::Bool,
     stdfilter::Union{Nothing,Interfaces.AcceptanceFilter},
     extfilter::Union{Nothing,Interfaces.AcceptanceFilter},
-    fd::Bool, non_iso::Bool, datarate::Int)::Tuple{Vxlapi.XLportHandle,Vxlapi.XLaccess,Float64,Vxlapi.XLhandle}
+    fd::Bool, non_iso::Bool, datarate::Int,
+    sample_point::Real)::Tuple{Vxlapi.XLportHandle,Vxlapi.XLaccess,Float64,Vxlapi.XLhandle}
 
     # open driver
     status = Vxlapi.xlOpenDriver()
@@ -141,11 +144,16 @@ function _init_vector(channel::Union{Int,AbstractVector{Int}},
     # set bitrate
     local status::Vxlapi.XLstatus
     if fd
-        fdconf = Vxlapi.XLcanFdConf(UInt32(bitrate), UInt32(datarate), non_iso)
-        pfdconf = Ref(fdconf)
-        status = Vxlapi.xlCanFdSetConfiguration(pportHandle[], channelMask, pfdconf)
+        _, tseg1_a, tseg2_a, sjw_a = BitTiming.calc_bittiming(80_000_000, bitrate, sample_point, 254, 254)
+        _, tseg1_d, tseg2_d, sjw_d = BitTiming.calc_bittiming(80_000_000, datarate, sample_point, 126, 126)
+        fdconf = Vxlapi.XLcanFdConf(bitrate, sjw_a, tseg1_a, tseg2_a,
+            datarate, sjw_d, tseg1_d, tseg2_d, 0,
+            non_iso ? Vxlapi.CANFD_CONFOPT_NO_ISO : Cuchar(0), (0, 0), 0)
+        status = Vxlapi.xlCanFdSetConfiguration(pportHandle[], channelMask, Ref(fdconf))
     else
-        status = Vxlapi.xlCanSetChannelBitrate(pportHandle[], channelMask, Culong(bitrate))
+        _, tseg1, tseg2, sjw = BitTiming.calc_bittiming(8_000_000, bitrate, sample_point, 16, 8)
+        chipparams = Vxlapi.XLchipParams(bitrate, sjw, tseg1, tseg2, 1)
+        status = Vxlapi.xlCanSetChannelParams(pportHandle[], channelMask, Ref(chipparams))
     end
     if status != Vxlapi.XL_SUCCESS
         error("Vector: failed to set bitrate. $status")
@@ -167,7 +175,7 @@ function _init_vector(channel::Union{Int,AbstractVector{Int}},
     end
     time_offset = time() # assume device clock is 0.
 
-    # retrieve notirication object for timeout waiting
+    # retrieve notification object for timeout waiting
     r_hnd = Ref{Vxlapi.XLhandle}()
     st = Vxlapi.xlSetNotification(pportHandle[], r_hnd, Cint(1))
     if st != Vxlapi.XL_SUCCESS

@@ -1,10 +1,14 @@
 module CANBus
 
- # internal use
+module core
+# internal use
 include("core/SerialHAL.jl")
 import .SerialHAL
 include("core/WinWrap.jl")
 import .WinWrap
+include("core/BitTiming.jl")
+import .BitTiming
+end # module core
 
 
 # public api: data structure

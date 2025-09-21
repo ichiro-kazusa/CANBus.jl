@@ -64,6 +64,14 @@ function xlCanSetChannelBitrate(portHandle::XLportHandle, accessMask::XLaccess, 
         portHandle, accessMask, bitrate)
 end
 
+function xlCanSetChannelParams(portHandle::XLportHandle,
+    accessMask::XLaccess, pChipParams::Ref{XLchipParams})::XLstatus
+
+    ccall((:xlCanSetChannelParams, vxlapi), XLstatus,
+        (XLportHandle, XLaccess, Ptr{XLchipParams}),
+        portHandle, accessMask, pChipParams)
+end
+
 function xlCanFdSetConfiguration(portHandle::XLportHandle,
     accessMask::XLaccess, pCanFdConf::Ref{XLcanFdConf})::XLstatus
 

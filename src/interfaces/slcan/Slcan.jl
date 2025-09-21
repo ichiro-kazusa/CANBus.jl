@@ -1,7 +1,7 @@
 module SlcanInterfaces
 
 using LibSerialPort
-import ...SerialHAL
+import ...core.SerialHAL
 import ..Interfaces
 import ...Frames
 

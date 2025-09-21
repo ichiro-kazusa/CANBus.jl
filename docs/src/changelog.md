@@ -1,7 +1,11 @@
 # Changelog
 
-### v0.0.6
+### v0.1.0
 
+first beta release.
+
+* Support do-end statement
+* tested on physical hardware (Vector, Kvaser)
 * bug fix: Notification object infinitely reproduce in Vector timeout.
 
 ### v0.0.5
@@ -17,7 +21,7 @@
 
 ### v0.0.1-v0.0.3
 
-initial regist. first alpha release.
+first alpha release.
 
 * Supports Kvaser, SocketCAN, Vector interfaces
 * Supports CAN, Ext.ID.
