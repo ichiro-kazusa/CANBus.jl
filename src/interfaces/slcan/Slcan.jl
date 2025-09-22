@@ -19,7 +19,7 @@ This version is tested on CANable 2.0.
 !!! note
 
     `slcan` with FD firmware (b158aa7) is seemd to be always on FD mode,
-    thus there is no **pure CAN** mode. Therefore, this interface exceptionally receives
+    thus there is **no pure CAN mode**. Therefore, this interface exceptionally receives
     `FDFrame` when someone sends that.
 
 * port: port name string e.g. `COM3` on Windows,  `/dev/ttyACM0` on Linux.
@@ -70,9 +70,8 @@ mutable struct SlcanFDInterface <: Interfaces.AbstractCANInterface
 end
 
 
-
+#= constructor for do statement =#
 function SlcanInterface(f::Function, args...; kwargs...)
-    # constructor for do-block
     bus = SlcanInterface(args...; kwargs...)
     try
         return f(bus)
@@ -82,9 +81,8 @@ function SlcanInterface(f::Function, args...; kwargs...)
 end
 
 
-
+#= constructor for do statement =#
 function SlcanFDInterface(f::Function, args...; kwargs...)
-    # constructor for do-block
     bus = SlcanFDInterface(args...; kwargs...)
     try
         return f(bus)

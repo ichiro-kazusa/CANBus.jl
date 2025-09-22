@@ -9,6 +9,7 @@ abstract type AbstractFrame end
 
 # validation functions
 
+#= check id range =#
 function _check_id(id::Integer, is_extended::Bool)
     if is_extended
         return 0x0 <= id <= 0x1FFFFFFF
@@ -17,7 +18,7 @@ function _check_id(id::Integer, is_extended::Bool)
     end
 end
 
-
+#= check dlc =#
 const capable_dlc_over8 = [12, 16, 20, 24, 32, 48, 64]
 function _check_len(len::Integer, is_fd::Bool)
     if is_fd
@@ -153,6 +154,12 @@ function CANalyze.Frames.CANFdFrame(frame::FDFrame)
 end
 
 
+
+"""
+    Base.:(==)(msg1::T, msg2::T) where {T<:CANBus.Frames.AbstractFrame}
+
+Compare two `Frame`s or `FDFrame`s except timestamp field.
+"""
 function Base.:(==)(msg1::T, msg2::T) where {T<:AbstractFrame}
     res::Bool = true
     for n in fieldnames(T)
@@ -165,6 +172,11 @@ function Base.:(==)(msg1::T, msg2::T) where {T<:AbstractFrame}
 end
 
 
+"""
+    Base.length(msg::T) where {T<:CANBus.Frames.AbstractFrame}
+
+Return length of data field.
+"""
 function Base.length(msg::T) where {T<:AbstractFrame}
     length(msg.data)
 end

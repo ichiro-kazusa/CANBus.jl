@@ -88,8 +88,8 @@ struct VectorFDInterface <: Interfaces.AbstractCANInterface
 end
 
 
+#= constructor for do-block =#
 function VectorInterface(f::Function, args...; kwargs...)
-    # constructor for do-block
     bus = VectorInterface(args...; kwargs...)
     try
         return f(bus)
@@ -100,8 +100,8 @@ end
 
 
 
+#= constructor for do-block =#
 function VectorFDInterface(f::Function, args...; kwargs...)
-    # constructor for do-block
     bus = VectorFDInterface(args...; kwargs...)
     try
         return f(bus)

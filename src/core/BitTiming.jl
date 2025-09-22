@@ -1,6 +1,7 @@
 """Internal module for BitTiming calculation and setting."""
 module BitTiming
 
+
 #=
     calc_fdbittiming(bitrate::Float64, samplepoint_percent::Float64,
         tseg1_max::Int, tseg2_max::Int)::NTuple{3,Int64}
@@ -13,7 +14,7 @@ Calculate CAN FD bit timing parameters.
 * tseg1_max: maximum TSEG1 value
 * tseg2_max: maximum TSEG2 value
 
-returns (prescaler, TSEG1, TSEG2) tuple.
+returns (prescaler, TSEG1, TSEG2, SJW) tuple.
 =#
 function calc_bittiming(clock::Int64, bitrate::Real, samplepoint_percent::Real,
     tseg1_max::Int, tseg2_max::Int)::NTuple{4,Int64}
@@ -54,7 +55,6 @@ function calc_bittiming(clock::Int64, bitrate::Real, samplepoint_percent::Real,
 
     error("BitTiming: cannot find valid bit timing parameters.")
 end
-
 
 
 end # module BitTiming

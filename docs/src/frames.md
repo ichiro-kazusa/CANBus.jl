@@ -21,6 +21,16 @@ CANBus.Frames.Frame
 CANBus.Frames.FDFrame
 ```
 
+## References
+
+```@docs
+Base.:(==)(msg1::T, msg2::T) where {T<:CANBus.Frames.AbstractFrame}
+```
+
+```@docs
+Base.length(msg::T) where {T<:CANBus.Frames.AbstractFrame}
+```
+
 ## Compatibility with `CANalyze.jl` package
 
 `Frame` and `FDFrame` has intercompatibility with `CANalyze.CANFrame` and `CANAlyze.CANFdFrame` respectively.

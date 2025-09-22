@@ -34,7 +34,7 @@ Common behavior of concrete implements:
 * When receive successed, returns `Frame` or `FDFrame`.
 * When receive queue is empty, returns nothing.
 * When fails to receive in other reasons, throws error.
-* Classic CAN interfaces return only `Frame` object.
+* Classic CAN interfaces return only `Frame` object (except `slcan`).
 * CAN FD interfaces return either `Frame` or `FDFrame` object.
 """
 function recv()

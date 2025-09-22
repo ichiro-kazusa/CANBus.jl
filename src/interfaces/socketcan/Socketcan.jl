@@ -52,8 +52,8 @@ struct SocketCANFDInterface <: Interfaces.AbstractCANInterface
 end
 
 
+#= constructor for do-block =#
 function SocketCANInterface(f::Function, args...; kwargs...)
-    # constructor for do-block
     bus = SocketCANInterface(args...; kwargs...)
     try
         return f(bus)
@@ -64,8 +64,8 @@ end
 
 
 
+#= constructor for do-block =#
 function SocketCANFDInterface(f::Function, args...; kwargs...)
-    # constructor for do-block
     bus = SocketCANFDInterface(args...; kwargs...)
     try
         return f(bus)

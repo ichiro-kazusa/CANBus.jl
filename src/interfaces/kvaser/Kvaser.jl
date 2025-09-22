@@ -76,8 +76,8 @@ function KvaserFDInterface(channel::Int, bitrate::Int, datarate::Int;
 end
 
 
+#= constructor for do statement =#
 function KvaserInterface(f::Function, args...; kwargs...)
-    # constructor for do-block
     bus = KvaserInterface(args...; kwargs...)
     try
         return f(bus)
@@ -87,9 +87,8 @@ function KvaserInterface(f::Function, args...; kwargs...)
 end
 
 
-
+#= constructor for do statement =#
 function KvaserFDInterface(f::Function, args...; kwargs...)
-    # constructor for do-block
     bus = KvaserFDInterface(args...; kwargs...)
     try
         return f(bus)
