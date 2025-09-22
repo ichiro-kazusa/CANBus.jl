@@ -17,8 +17,10 @@ Setup Vector interface.
 * channel: channel number in integer.
 * bitrate: bitrate as bit/s in integer.
 * apppname: Application Name string in Vector Hardware Manager.
-* silent(optional): listen only flag in bool.
+
+kwargs:
 * sample_point(optional): sample point in percent. Default is 70 (%).
+* silent(optional): listen only flag in bool. default=false.
 * stdfilter(optional): standard ID filter in AcceptanceFilter struct.
 * extfilter(optional): extended ID filter in AcceptanceFilter struct.
 """
@@ -31,7 +33,7 @@ struct VectorInterface <: Interfaces.AbstractCANInterface
 
     function VectorInterface(channel::Union{Int,AbstractVector{Int}},
         bitrate::Int, appname::String, rxqueuesize::Cuint=Cuint(16384);
-        silent::Bool=false, sample_point::Real=70,
+        sample_point::Real=70, silent::Bool=false,
         stdfilter::Union{Nothing,Interfaces.AcceptanceFilter}=nothing,
         extfilter::Union{Nothing,Interfaces.AcceptanceFilter}=nothing)
 
@@ -54,9 +56,12 @@ Setup Vector interface for CAN FD.
 * bitrate: bitrate as bit/s in integer.
 * datarate: datarate as bit/s in integer.
 * apppname: Application Name string in Vector Hardware Manager.
-* non_iso(optional): use non-iso version of CAN FD
-* silent(optional): listen only flag in bool.
+
+kwargs:
+* non_iso(optional): use non-iso version of CAN FD. default=false.
 * sample_point(optional): sample point in percent. Default is 70 (%).
+* silent(optional): listen only flag in bool. default=false.
+* flush_rxbuf: flush rx buffer on initialize. default=true.
 * stdfilter(optional): standard ID filter in AcceptanceFilter struct.
 * extfilter(optional): extended ID filter in AcceptanceFilter struct.
 """
@@ -69,7 +74,7 @@ struct VectorFDInterface <: Interfaces.AbstractCANInterface
 
     function VectorFDInterface(channel::Union{Int,AbstractVector{Int}},
         bitrate::Int, datarate::Int, appname::String, rxqueuesize::Cuint=Cuint(262144);
-        non_iso::Bool=false, silent::Bool=false, sample_point::Real=70,
+        non_iso::Bool=false, sample_point::Real=70, silent::Bool=false,
         stdfilter::Union{Nothing,Interfaces.AcceptanceFilter}=nothing,
         extfilter::Union{Nothing,Interfaces.AcceptanceFilter}=nothing)
 
@@ -182,6 +187,12 @@ function _init_vector(channel::Union{Int,AbstractVector{Int}},
         error("Vector: poll notifier set failed. $st")
     end
 
+    # flush rx buffer
+    st = Vxlapi.xlFlushReceiveQueue(pportHandle[])
+    if st != Vxlapi.XL_SUCCESS
+        error("Vector: rx buffer flush failed. $st")
+    end
+
     return pportHandle[], channelMask, time_offset, r_hnd[]
 end
 
@@ -248,7 +259,9 @@ end
 function Interfaces.recv(interface::VectorInterface; timeout_s::Real=0)::Union{Nothing,Frames.Frame}
 
     # poll
-    _poll(interface, timeout_s)
+    if timeout_s != 0
+        _poll(interface, timeout_s)
+    end
 
     # prepare to receive
     pEventCount = Ref(Cuint(1))
@@ -373,7 +386,8 @@ end
 
 function _poll(interface::T, timeout_s::Real) where {T<:Union{VectorInterface,VectorFDInterface}}
     # block until frame comes or timeout
-    WinWrap.WaitForSingleObject(interface.notification_hnd, Culong(timeout_s * 1e3))
+    timeout_ms = timeout_s < 0 ? 0xFFFFFFFF : Culong(timeout_s * 1e3)
+    WinWrap.WaitForSingleObject(interface.notification_hnd, timeout_ms)
 end
 
 

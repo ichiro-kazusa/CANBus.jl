@@ -152,5 +152,9 @@ function xlSetNotification(portHandle::XLportHandle,
         portHandle, p_handle, queueLevel)
 end
 
+function xlFlushReceiveQueue(portHandle::XLportHandle)::XLstatus
+    ccall((:xlFlushReceiveQueue, vxlapi), XLstatus,
+        (XLportHandle,), portHandle)
+end
 
 end # Vxlapi
