@@ -61,7 +61,6 @@ kwargs:
 * non_iso(optional): use non-iso version of CAN FD. default=false.
 * sample_point(optional): sample point in percent. Default is 70 (%).
 * silent(optional): listen only flag in bool. default=false.
-* flush_rxbuf: flush rx buffer on initialize. default=true.
 * stdfilter(optional): standard ID filter in AcceptanceFilter struct.
 * extfilter(optional): extended ID filter in AcceptanceFilter struct.
 """
