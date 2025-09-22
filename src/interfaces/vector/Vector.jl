@@ -286,7 +286,9 @@ end
 function Interfaces.recv(interface::VectorFDInterface; timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame}
 
     # poll
-    _poll(interface, timeout_s)
+    if timeout_s != 0
+        _poll(interface, timeout_s)
+    end
 
     # receive    
     canrxevt = Vxlapi.XLcanRxEvent(0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -371,9 +373,7 @@ end
 
 function _poll(interface::T, timeout_s::Real) where {T<:Union{VectorInterface,VectorFDInterface}}
     # block until frame comes or timeout
-    if timeout_s != 0
-        WinWrap.WaitForSingleObject(interface.notification_hnd, Culong(timeout_s * 1e3))
-    end
+    WinWrap.WaitForSingleObject(interface.notification_hnd, Culong(timeout_s * 1e3))
 end
 
 

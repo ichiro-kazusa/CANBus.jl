@@ -180,8 +180,9 @@ end
 function Interfaces.recv(interface::T; timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame} where {T<:Union{SocketCANInterface,SocketCANFDInterface}}
 
     # polling (Do not use ccall(:poll). It may blocks julia's process.)
-    poll_fd(Libc.RawFD(interface.socket), timeout_s; readable=true)
-
+    if timeout_s != 0
+        poll_fd(Libc.RawFD(interface.socket), timeout_s; readable=true)
+    end
 
     # prepare to receive
     r_frame = Ref{SocketCAN.canfd_frame}()

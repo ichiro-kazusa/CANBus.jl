@@ -205,8 +205,10 @@ function _recv_kvaser_internal(interface::T,
     timeout_s::Real)::Union{Nothing,Frames.AnyFrame} where {T<:Union{KvaserInterface,KvaserFDInterface}}
 
     # poll
-    timeout_ms = timeout_s < 0 ? Culong(0xFFFFFFFF) : Culong(timeout_s * 1e3)
-    Canlib.canReadSync(interface.handle, timeout_ms)
+    if timeout_s != 0
+        timeout_ms = timeout_s < 0 ? Culong(0xFFFFFFFF) : Culong(timeout_s * 1e3)
+        Canlib.canReadSync(interface.handle, timeout_ms)
+    end
 
     # receive
     pid = Ref(Clong(0))
