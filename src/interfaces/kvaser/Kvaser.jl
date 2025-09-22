@@ -152,6 +152,9 @@ function _init_kvaser(channel::Int, bitrate::Int, silent::Bool,
     Canlib.kvReadTimer(hnd, ptime)
     time_offset = time() - ptime[] * 1.e-6 # arrange in sec
 
+    # flush receive queue
+    Canlib.canFlushReceiveQueue(hnd)
+
     return hnd, time_offset
 end
 

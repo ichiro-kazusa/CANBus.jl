@@ -38,7 +38,7 @@ function canGetBusParams(hnd::Cint, pfreq::Ref{Clong},
     ccall((:canGetBusParams, canlib), canStatus,
         (Cint, Ptr{Clong}, Ptr{Cuint}, Ptr{Cuint}, Ptr{Cuint}, Ptr{Cuint}, Ptr{Cuint}),
         hnd, pfreq, ptseg1, ptseg2, psjw, pnoSamp, psyncmode)
-    
+
 end
 
 function canSetBusParamsFd(handle::Cint, freq_brs::Clong,
@@ -112,6 +112,11 @@ function canReadSync(handle::Cint, timeout_ms::Culong)
 
     Threads.@threadcall((:canReadSync, canlib), canStatus,
         (Cint, Culong), handle, timeout_ms)
+end
+
+function canFlushReceiveQueue(handle::Cint)::canStatus
+    ccall((:canFlushReceiveQueue, canlib), canStatus,
+        (Cint,), handle)
 end
 
 end # Canlib
