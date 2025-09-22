@@ -1,4 +1,5 @@
 using CANBus
+import CANalyze
 using Documenter
 
 DocMeta.setdocmeta!(CANBus, :DocTestSetup, :(using CANBus); recursive=true)

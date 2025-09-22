@@ -50,3 +50,21 @@ msg = CANalyze.Messages.Message(0x0e, 4, "msg1", signal)
 
 d = CANalyze.Decode.decode(msg, CANalyze.Frames.CANFrame(frm))
 ```
+
+### Converting APIs
+
+```@docs
+CANBus.Frames.Frame(::CANalyze.CANFrame)
+```
+
+```@docs
+CANalyze.Frames.CANFrame(::Frame)
+```
+
+```@docs
+CANBus.Frames.FDFrame(::CANalyze.CANFdFrame; ::Bool)
+```
+
+```@docs
+CANalyze.Frames.CANFdFrame(::FDFrame)
+```

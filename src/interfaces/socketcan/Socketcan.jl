@@ -13,6 +13,8 @@ using FileWatching
 
 Setup SocketCAN interface.
 * channel: channel name string, e.g. "can0"
+
+kwargs:
 * filters(optional): list of filters. experimental.
 """
 struct SocketCANInterface <: Interfaces.AbstractCANInterface
@@ -33,6 +35,8 @@ end
 
 Setup SocketCAN for CAN FD.
 * channel: channel name string, e.g. "can0"
+
+kwargs:
 * filters(optional): list of filters. experimental.
 """
 struct SocketCANFDInterface <: Interfaces.AbstractCANInterface

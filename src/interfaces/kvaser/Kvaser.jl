@@ -15,7 +15,10 @@ import .Canlib
 Setup Kvaser interface
 * channel: channel number in integer.
 * bitrate: bitrate as bit/s in integer.
+
+kwargs:
 * silent(optional): listen only flag in bool.
+* sample_point(optional): sample point in percent. Default is 70 (%).
 * stdfilter(optional): standard ID filter in AcceptanceFilter struct.
 * extfilter(optional): extended ID filter in AcceptanceFilter struct.
 """
@@ -46,8 +49,11 @@ Setup Kvaser interface for CAN FD.
 * channel: channel number in integer.
 * bitrate: bitrate as bit/s in integer.
 * datarate: datarate as bit/s in integer.
+
+kwargs:
 * non_iso(optional): use non-iso version of CAN FD
 * silent(optional): listen only flag in bool.
+* sample_point(optional): sample point in percent. Default is 70 (%).
 * stdfilter(optional): standard ID filter in AcceptanceFilter struct.
 * extfilter(optional): extended ID filter in AcceptanceFilter struct.
 """

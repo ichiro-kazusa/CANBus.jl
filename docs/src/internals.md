@@ -1,6 +1,14 @@
 # Internals
 
-## Low level APIs for handle driver
+## General internal modules
+
+### BitTiming
+
+```@docs
+CANBus.core.BitTiming
+```
+
+## Low level APIs
 
 ### Kvaser
 
@@ -11,7 +19,7 @@ CANBus.Interfaces.KvaserInterfaces.Canlib
 ### SerialHAL
 
 ```@docs
-CANBus.SerialHAL
+CANBus.core.SerialHAL
 ```
 
 ### SocketCAN
@@ -24,4 +32,10 @@ CANBus.Interfaces.SocketCANInterfaces.SocketCAN
 
 ```@docs
 CANBus.Interfaces.VectorInterfaces.Vxlapi
+```
+
+### WinWrap
+
+```@docs
+CANBus.core.WinWrap
 ```

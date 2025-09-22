@@ -3,8 +3,8 @@
 [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://ichiro-kazusa.github.io/CANBus.jl/stable/)
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://ichiro-kazusa.github.io/CANBus.jl/dev/)
 [![Build Status](https://github.com/ichiro-kazusa/CANBus.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/ichiro-kazusa/CANBus.jl/actions/workflows/CI.yml?query=branch%3Amain)
-[![Coverage](https://codecov.io/gh/ichiro-kazusa/CANBus.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/ichiro-kazusa/CANBus.jl)
 [![Aqua QA](https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg)](https://github.com/JuliaTesting/Aqua.jl)
+<!-- [![Coverage](https://codecov.io/gh/ichiro-kazusa/CANBus.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/ichiro-kazusa/CANBus.jl) -->
 
 
 `CANBus.jl` is a Controller Area Network (CAN Bus) communication package for julia language.
@@ -13,12 +13,18 @@
 
 To decode messages, use tsavelmann's [`CANalyze.jl`](https://github.com/tsabelmann/CANalyze.jl/tree/main).
 
-At this time, this is an alpha version software. 
+At this time, this is an beta version software. 
 * Fewer supported devices.
-* Several interfaces are tested only on virtual bus.
-* Package behavior changes frequently.
+* Basic tests has been conducted, but further testing is needed under broader conditions.
+* Only basic error handling is performed.
 
 For more details, read [documentation](https://ichiro-kazusa.github.io/CANBus.jl/stable/).
+
+## Features
+
+* Setup device and Transmit/Receive CAN messages in unified easy way.
+* Pure julia implementation, directly calls native or C apis, does not depend on other languages.
+* CAN FD support.
 
 ## Installation
 Install via julia package mode, 
@@ -33,15 +39,6 @@ pkg> add CANBus
 * slcan - tested on CANable 2.0
 * SocketCAN
 * Vector - requires [XL Driver Library](https://www.vector.com/int/en/download/xl-driver-library/)
-
-### Features List
-
-|Interface|CAN|Ext.ID|Filter|CANFD|Platform|
-|----|----|----|----|----|----|
-|Kvaser|✓|✓|✓|✓|Win64|
-|slcan|✓|✓|NO|✓|Win64, Linux|
-|SocketCAN|✓|✓|✓|✓|Linux|
-|Vector|✓|✓|✓|✓|Win64|
 
 ## Example usage
 

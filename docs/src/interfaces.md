@@ -65,3 +65,13 @@ CANBus.Interfaces.VectorInterfaces.VectorInterface
 ```@docs
 CANBus.Interfaces.VectorInterfaces.VectorFDInterface
 ```
+
+## `do` block support
+
+Every interface supports automatic shutdown by `do` - `end` block like below:
+
+```jl
+SocketCANInterface("can0") do iface
+    res = recv(iface)
+end # shutdown(iface)
+```

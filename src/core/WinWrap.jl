@@ -1,3 +1,5 @@
+
+"""Wrappers for Windows system call."""
 module WinWrap
 
 const winkernel = "kernel32"

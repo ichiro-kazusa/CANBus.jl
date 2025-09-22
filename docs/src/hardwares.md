@@ -23,25 +23,6 @@ kvaser0 = KvaserFDInterface(0, 500000, 2000000)  # channel 0, 500kbps, 2Mbps
 
 `send`, `recv`, `shutdown` functions can be use.
 
-## slcan
-
-`SlcanInterface` supports Win64/Linux platform. Tested on [CANable 2.0](https://canable.io/) firmware.
-
-To setup interface, 
-
-```jl
-using CANBus
-
-slcan0 = SlcanInterface("COM3", 1000000)  # for Linux, e.g. "/dev/ttyACM0"
-```
-
-For CAN FD,
-```jl
-slcan0 = SocketCANFDInterface("COM3", 1000000, 2000000) # bitrate 1Mbps, datarate 2Mbps
-```
-
-CAN FD on `slcan`, datarate must be chosen from `2000000`, `5000000`.
-
 
 ## slcan
 

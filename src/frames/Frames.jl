@@ -29,7 +29,7 @@ end
 
 
 """
-    CANBus.Frame(id::Integer, data::AbstractVector;
+    Frame(id::Integer, data::AbstractVector;
         timestamp::Float64=0, is_extended::Bool=false, 
         is_remote_frame::Bool=false, is_error_frame::Bool=false)
 
@@ -71,11 +71,20 @@ struct Frame <: AbstractFrame
 end
 
 
+"""
+    Frame(frm::CANalyze.CANFrame)
+
+This constructor converts `CANalyze.CANFrame` to `CANBus.Frame`.
+"""
 function Frame(frm::CANalyze.CANFrame)
     Frame(frm.frame_id, frm.data; is_extended=frm.is_extended)
 end
 
+"""
+    CANalyze.Frames.CANFrame(frame::Frame)
 
+This constructor converts `CANBus.Frame` to `CANalyze.CANFrame`.
+"""
 function CANalyze.Frames.CANFrame(frame::Frame)
     CANalyze.CANFrame(frame.id, frame.data; is_extended=frame.is_extended)
 end
@@ -83,7 +92,7 @@ end
 
 
 """
-    CANBus.FDFrame(id::Integer, data::AbstractVector;
+    FDFrame(id::Integer, data::AbstractVector;
         timestamp::Float64=0, is_extended::Bool=false,
         bitrate_switch::Bool=true, error_state::Bool=false, is_error_frame::Bool=false)
 
@@ -124,12 +133,21 @@ struct FDFrame <: AbstractFrame
 end
 
 
+"""
+    FDFrame(frm::CANalyze.CANFdFrame; bitrate_switch::Bool=true)
 
+This constructor converts `CANalyze.CANFdFrame` to `CANBus.FDFrame`.
+"""
 function FDFrame(frm::CANalyze.CANFdFrame; bitrate_switch::Bool=true)
     FDFrame(frm.frame_id, frm.data; is_extended=frm.is_extended, bitrate_switch=bitrate_switch)
 end
 
 
+"""
+    CANalyze.Frames.CANFdFrame(frame::FDFrame)
+
+This constructor converts `CANBus.FDFrame` to `CANalyze.CANFdFrame`.
+"""
 function CANalyze.Frames.CANFdFrame(frame::FDFrame)
     CANalyze.CANFdFrame(frame.id, frame.data; is_extended=frame.is_extended)
 end

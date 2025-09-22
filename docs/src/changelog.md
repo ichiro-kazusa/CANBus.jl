@@ -4,8 +4,9 @@
 
 first beta release.
 
-* Support do-end statement
-* tested on physical hardware (Vector, Kvaser)
+* Support do-end statement.
+* Add automatic bittiming calculation from samplepoint.
+* tested on physical hardware (Vector, Kvaser).
 * bug fix: Notification object infinitely reproduce in Vector timeout.
 
 ### v0.0.5

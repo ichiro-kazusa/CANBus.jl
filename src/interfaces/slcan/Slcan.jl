@@ -24,7 +24,9 @@ This version is tested on CANable 2.0.
 
 * port: port name string e.g. `COM3` on Windows,  `/dev/ttyACM0` on Linux.
 * bitrate: bit rate in bit/s
-* silent(optional): listen only flag in bool.
+
+kwargs:
+* silent(optional): listen only flag in bool. default is `false`.
 """
 mutable struct SlcanInterface <: Interfaces.AbstractCANInterface
     sp::SerialHAL.HandleType
@@ -50,7 +52,9 @@ This interface supports send CAN FD frame.
 * port: port name string.
 * bitrate: bit rate in bit/s
 * datarate: data rate in bit/s
-* silent(optional): listen only flag in bool.
+
+kwargs:
+* silent(optional): listen only flag in bool. default is `false`.
 """
 mutable struct SlcanFDInterface <: Interfaces.AbstractCANInterface
     sp::SerialHAL.HandleType
