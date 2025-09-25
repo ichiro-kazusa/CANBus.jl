@@ -333,7 +333,7 @@ function Interfaces.recv(interface::VectorFDInterface; timeout_s::Real=0)::Union
                     is_error_frame=iserr, timestamp=timestamp)
                 return msg
             else
-                msg = Frames.Frame(id, collect(pcanrxevt[].tagdata.data[1:len]);
+                msg = Frames.Frame(id, collect(pcanrxevt[].tagData.data[1:len]);
                     is_extended=isext, is_remote_frame=isrtr,
                     is_error_frame=iserr, timestamp=timestamp)
                 return msg
