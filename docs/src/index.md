@@ -28,6 +28,7 @@ pkg> add CANBus
 ### Upcoming plans until v1.0.0
 
 * Careful error-handling.
+* Add Bus state check function
 * Try to support PCAN-Basic API for Windows.
 * Support other interfaces.
 * Performance optimization.

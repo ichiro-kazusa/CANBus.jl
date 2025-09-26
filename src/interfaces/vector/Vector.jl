@@ -24,99 +24,38 @@ kwargs:
 * stdfilter(optional): standard ID filter in AcceptanceFilter struct.
 * extfilter(optional): extended ID filter in AcceptanceFilter struct.
 """
-struct VectorInterface <: Interfaces.AbstractCANInterface
+struct VectorDriver{T} <: Interfaces.AbstractDriver
     portHandle::Vxlapi.XLportHandle
     channelMask::Vxlapi.XLaccess
     time_offset::Float64
     notification_hnd::Vxlapi.XLhandle
-
-
-    function VectorInterface(channel::Union{Int,AbstractVector{Int}},
-        bitrate::Int, appname::String, rxqueuesize::Cuint=Cuint(16384);
-        sample_point::Real=70, silent::Bool=false,
-        stdfilter::Union{Nothing,Interfaces.AcceptanceFilter}=nothing,
-        extfilter::Union{Nothing,Interfaces.AcceptanceFilter}=nothing)
-
-
-        # init Vector CAN
-        portHandle, channelMask, time_offset, notification_hnd = _init_vector(channel, bitrate, appname,
-            rxqueuesize, silent, stdfilter, extfilter,
-            false, false, 0, sample_point)
-
-        new(portHandle, channelMask, time_offset, notification_hnd)
-    end
-end
-
-
-"""
-    VectorFDInterface(channel::Int, bitrate::Int, datarate::Int, appname::String)
-
-Setup Vector interface for CAN FD.
-* channel: channel number in integer.
-* bitrate: bitrate as bit/s in integer.
-* datarate: datarate as bit/s in integer.
-* apppname: Application Name string in Vector Hardware Manager.
-
-kwargs:
-* non_iso(optional): use non-iso version of CAN FD. default=false.
-* sample_point(optional): sample point in percent. Default is 70 (%).
-* silent(optional): listen only flag in bool. default=false.
-* stdfilter(optional): standard ID filter in AcceptanceFilter struct.
-* extfilter(optional): extended ID filter in AcceptanceFilter struct.
-"""
-struct VectorFDInterface <: Interfaces.AbstractCANInterface
-    portHandle::Vxlapi.XLportHandle
-    channelMask::Vxlapi.XLaccess
-    time_offset::Float64
-    notification_hnd::Vxlapi.XLhandle
-
-
-    function VectorFDInterface(channel::Union{Int,AbstractVector{Int}},
-        bitrate::Int, datarate::Int, appname::String, rxqueuesize::Cuint=Cuint(262144);
-        non_iso::Bool=false, sample_point::Real=70, silent::Bool=false,
-        stdfilter::Union{Nothing,Interfaces.AcceptanceFilter}=nothing,
-        extfilter::Union{Nothing,Interfaces.AcceptanceFilter}=nothing)
-
-
-        # init Vector CAN
-        portHandle, channelMask, time_offset, notification_hnd = _init_vector(channel, bitrate, appname,
-            rxqueuesize, silent, stdfilter, extfilter,
-            true, non_iso, datarate, sample_point)
-
-        new(portHandle, channelMask, time_offset, notification_hnd)
-    end
-end
-
-
-#= constructor for do-block =#
-function VectorInterface(f::Function, args...; kwargs...)
-    bus = VectorInterface(args...; kwargs...)
-    try
-        return f(bus)
-    finally
-        Interfaces.shutdown(bus)
-    end
 end
 
 
 
-#= constructor for do-block =#
-function VectorFDInterface(f::Function, args...; kwargs...)
-    bus = VectorFDInterface(args...; kwargs...)
-    try
-        return f(bus)
-    finally
-        Interfaces.shutdown(bus)
-    end
+function Base.open(::Val{Interfaces.VECTOR}, cfg::Interfaces.InterfaceConfig)
+
+    is_fd = cfg.bustype == Interfaces.CAN_FD || cfg.bustype == Interfaces.CAN_FD_NONISO
+    is_noniso = cfg.bustype == Interfaces.CAN_FD_NONISO
+    rxqueuesize = cfg.bustype == Interfaces.CAN_20 ? Cuint(32768) : Cuint(524288)
+
+    ret = _init_vector(cfg.channel, cfg.bitrate, cfg.vendor_specific[:appname],
+        rxqueuesize, cfg.silent, cfg.stdfilter, cfg.extfilter,
+        is_fd, is_noniso, cfg.datarate, cfg.sample_point, cfg.sample_point_fd)
+
+    portHandle, channelMask, time_offset, notification_hnd = ret
+
+    VectorDriver{Val{cfg.bustype}}(portHandle, channelMask, time_offset, notification_hnd)
 end
+
 
 
 function _init_vector(channel::Union{Int,AbstractVector{Int}},
     bitrate::Int, appname::String, rxqueuesize::Cuint, silent::Bool,
     stdfilter::Union{Nothing,Interfaces.AcceptanceFilter},
     extfilter::Union{Nothing,Interfaces.AcceptanceFilter},
-    fd::Bool, non_iso::Bool, datarate::Int,
-    sample_point::Real)::Tuple{Vxlapi.XLportHandle,Vxlapi.XLaccess,Float64,Vxlapi.XLhandle}
+    fd::Bool, non_iso::Bool, datarate::Union{Nothing,Int},
+    sample_point::Real, sample_point_fd::Real)::Tuple{Vxlapi.XLportHandle,Vxlapi.XLaccess,Float64,Vxlapi.XLhandle}
 
     # open driver
     status = Vxlapi.xlOpenDriver()
@@ -149,7 +88,7 @@ function _init_vector(channel::Union{Int,AbstractVector{Int}},
     local status::Vxlapi.XLstatus
     if fd
         _, tseg1_a, tseg2_a, sjw_a = BitTiming.calc_bittiming(80_000_000, bitrate, sample_point, 254, 254)
-        _, tseg1_d, tseg2_d, sjw_d = BitTiming.calc_bittiming(80_000_000, datarate, sample_point, 126, 126)
+        _, tseg1_d, tseg2_d, sjw_d = BitTiming.calc_bittiming(80_000_000, datarate, sample_point_fd, 126, 126)
         fdconf = Vxlapi.XLcanFdConf(bitrate, sjw_a, tseg1_a, tseg2_a,
             datarate, sjw_d, tseg1_d, tseg2_d, 0,
             non_iso ? Vxlapi.CANFD_CONFOPT_NO_ISO : Cuchar(0), (0, 0), 0)
@@ -196,7 +135,7 @@ function _init_vector(channel::Union{Int,AbstractVector{Int}},
 end
 
 
-function Interfaces.send(interface::VectorInterface, msg::Frames.Frame)
+function Interfaces.send(interface::VectorDriver{T}, msg::Frames.Frame) where {T<:Val{Interfaces.CAN_20}}
     # construct XLEvent
     messageCount = Cuint(1)
     dlc = size(msg.data, 1)
@@ -225,7 +164,7 @@ function Interfaces.send(interface::VectorInterface, msg::Frames.Frame)
 end
 
 
-function Interfaces.send(interface::VectorFDInterface, msg::T) where {T<:Union{Frames.Frame,Frames.FDFrame}}
+function Interfaces.send(interface::VectorDriver{T1}, msg::T2) where {T1<:Interfaces.VAL_ANY_FD,T2<:Frames.AnyFrame}
     canid = msg.is_extended ? msg.id | Vxlapi.XL_CAN_EXT_MSG_ID : msg.id
     len = length(msg)
     dlc = len <= 8 ? len : Vxlapi.CANFD_LEN2DLC[len]
@@ -233,7 +172,7 @@ function Interfaces.send(interface::VectorFDInterface, msg::T) where {T<:Union{F
     data_pad[1:len] .= msg.data
 
     flags = Cuint(0)
-    if T == Frames.FDFrame
+    if T2 == Frames.FDFrame
         flags |= Vxlapi.XL_CAN_TXMSG_FLAG_EDL
         flags |= msg.bitrate_switch ? Vxlapi.XL_CAN_TXMSG_FLAG_BRS : Cuint(0)
     else # classic frame
@@ -255,10 +194,17 @@ function Interfaces.send(interface::VectorFDInterface, msg::T) where {T<:Union{F
 end
 
 
-function Interfaces.recv(interface::VectorInterface; timeout_s::Real=0)::Union{Nothing,Frames.Frame}
+function Interfaces.recv(interface::VectorDriver{T};
+    timeout_s::Real=0)::Union{Nothing,Frames.Frame} where {T<:Val{Interfaces.CAN_20}}
 
-    # poll
     if timeout_s != 0
+        # non-block recv before poll (according to driver manual)
+        ret = Interfaces.recv(interface; timeout_s=0)
+        if ret !== nothing
+            return ret
+        end
+
+        # poll
         _poll(interface, timeout_s)
     end
 
@@ -295,10 +241,17 @@ function Interfaces.recv(interface::VectorInterface; timeout_s::Real=0)::Union{N
 end
 
 
-function Interfaces.recv(interface::VectorFDInterface; timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame}
+function Interfaces.recv(interface::VectorDriver{T};
+    timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame} where {T<:Interfaces.VAL_ANY_FD}
 
-    # poll
     if timeout_s != 0
+        # non-block recv before poll (according to driver manual)
+        ret = Interfaces.recv(interface; timeout_s=0)
+        if ret !== nothing
+            return ret
+        end
+
+        # poll
         _poll(interface, timeout_s)
     end
 
@@ -344,7 +297,7 @@ function Interfaces.recv(interface::VectorFDInterface; timeout_s::Real=0)::Union
 end
 
 
-function Interfaces.shutdown(interface::T) where {T<:Union{VectorInterface,VectorFDInterface}}
+function Interfaces.shutdown(interface::VectorDriver)
     status = Vxlapi.xlDeactivateChannel(interface.portHandle, interface.channelMask)
     status = Vxlapi.xlClosePort(interface.portHandle)
     status = Vxlapi.xlCloseDriver()
@@ -383,10 +336,11 @@ function _get_channel_mask(channel::Union{Int,AbstractVector{Int}}, appname::Str
 end
 
 
-function _poll(interface::T, timeout_s::Real) where {T<:Union{VectorInterface,VectorFDInterface}}
+function _poll(interface::VectorDriver, timeout_s::Real)
     # block until frame comes or timeout
     timeout_ms = timeout_s < 0 ? 0xFFFFFFFF : Culong(timeout_s * 1e3)
-    WinWrap.WaitForSingleObject(interface.notification_hnd, timeout_ms)
+    st = WinWrap.WaitForSingleObject(interface.notification_hnd, timeout_ms)
+    println("Wait: $st")
 end
 
 
