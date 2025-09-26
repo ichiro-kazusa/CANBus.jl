@@ -22,86 +22,32 @@ kwargs:
 * stdfilter(optional): standard ID filter in AcceptanceFilter struct.
 * extfilter(optional): extended ID filter in AcceptanceFilter struct.
 """
-struct KvaserInterface <: Interfaces.AbstractCANInterface
+struct KvaserDriver{T} <: Interfaces.AbstractDriver
     handle::Cint
     time_offset::Float64
 end
 
 
-function KvaserInterface(channel::Int, bitrate::Int;
-    silent::Bool=false, sample_point::Real=70,
-    stdfilter::Union{Nothing,Interfaces.AcceptanceFilter}=nothing,
-    extfilter::Union{Nothing,Interfaces.AcceptanceFilter}=nothing)
+function Base.open(::Val{Interfaces.KVASER}, cfg::Interfaces.InterfaceConfig)
 
-    # initialize Kvaser CAN
-    hnd, time_offset = _init_kvaser(channel, bitrate, silent, stdfilter, extfilter,
-        false, false, 1, sample_point)
+    is_fd = cfg.bustype == Interfaces.CAN_FD || cfg.bustype == Interfaces.CAN_FD_NONISO
+    is_noniso = cfg.bustype == Interfaces.CAN_FD_NONISO
 
-    KvaserInterface(hnd, time_offset)
+    hnd, time_offset = _init_kvaser(cfg.channel, cfg.bitrate,
+        cfg.silent, cfg.stdfilter, cfg.extfilter,
+        is_fd, is_noniso, cfg.datarate, cfg.sample_point, cfg.sample_point_fd)
+
+    KvaserDriver{Val{cfg.bustype}}(hnd, time_offset)
 end
 
 
-"""
-    KvaserFDInterface(channel::Int, bitrate::Int, datarate::Int;
-        non_iso::Bool, silent::Bool, stdfilter::AcceptanceFilter, extfilter::AcceptanceFilter)
-
-Setup Kvaser interface for CAN FD.
-* channel: channel number in integer.
-* bitrate: bitrate as bit/s in integer.
-* datarate: datarate as bit/s in integer.
-
-kwargs:
-* non_iso(optional): use non-iso version of CAN FD
-* silent(optional): listen only flag in bool.
-* sample_point(optional): sample point in percent. Default is 70 (%).
-* stdfilter(optional): standard ID filter in AcceptanceFilter struct.
-* extfilter(optional): extended ID filter in AcceptanceFilter struct.
-"""
-struct KvaserFDInterface <: Interfaces.AbstractCANInterface
-    handle::Cint
-    time_offset::Float64
-end
-
-
-function KvaserFDInterface(channel::Int, bitrate::Int, datarate::Int;
-    non_iso::Bool=false, silent::Bool=false, sample_point::Real=70,
-    stdfilter::Union{Nothing,Interfaces.AcceptanceFilter}=nothing,
-    extfilter::Union{Nothing,Interfaces.AcceptanceFilter}=nothing)
-
-    # initialize Kvaser CAN FD
-    hnd, time_offset = _init_kvaser(channel, bitrate, silent, stdfilter, extfilter,
-        true, non_iso, datarate, sample_point)
-
-    KvaserFDInterface(hnd, time_offset)
-end
-
-
-#= constructor for do statement =#
-function KvaserInterface(f::Function, args...; kwargs...)
-    bus = KvaserInterface(args...; kwargs...)
-    try
-        return f(bus)
-    finally
-        Interfaces.shutdown(bus)
-    end
-end
-
-
-#= constructor for do statement =#
-function KvaserFDInterface(f::Function, args...; kwargs...)
-    bus = KvaserFDInterface(args...; kwargs...)
-    try
-        return f(bus)
-    finally
-        Interfaces.shutdown(bus)
-    end
-end
 
 
 function _init_kvaser(channel::Int, bitrate::Int, silent::Bool,
     stdfilter::Union{Nothing,Interfaces.AcceptanceFilter},
     extfilter::Union{Nothing,Interfaces.AcceptanceFilter},
-    fd::Bool, non_iso::Bool, datarate::Int, sample_point::Real)::Tuple{Cint,Float64}
+    fd::Bool, non_iso::Bool, datarate::Int,
+    sample_point::Real, sample_point_fd::Real)::Tuple{Cint,Float64}
 
     # initialize library
     Canlib.canInitializeLibrary()
@@ -115,12 +61,15 @@ function _init_kvaser(channel::Int, bitrate::Int, silent::Bool,
     end
 
     # set bitrate
+    local status2 = Canlib.canOK
     _, tseg1_a, tseg2_a, sjw_a = BitTiming.calc_bittiming(80_000_000, bitrate, sample_point, 255, 255)
-    _, tseg1_d, tseg2_d, sjw_d = BitTiming.calc_bittiming(80_000_000, datarate, sample_point, 255, 255)
     status1 = Canlib.canSetBusParams(hnd, Clong(bitrate),
         Cuint(tseg1_a), Cuint(tseg2_a), Cuint(sjw_a), Cuint(1), Cuint(0))
-    status2 = !fd ? Canlib.canOK : Canlib.canSetBusParamsFd(hnd,
-        Clong(datarate), Cuint(tseg1_d), Cuint(tseg2_d), Cuint(sjw_d))
+    if fd
+        _, tseg1_d, tseg2_d, sjw_d = BitTiming.calc_bittiming(80_000_000, datarate, sample_point, 255, 255)
+        status2 = Canlib.canSetBusParamsFd(hnd,
+            Clong(datarate), Cuint(tseg1_d), Cuint(tseg2_d), Cuint(sjw_d))
+    end
     if status1 < 0 || status2 < 0
         error("Kvaser: bitrate set failed. $status1, $status2")
     end
@@ -164,8 +113,7 @@ function _init_kvaser(channel::Int, bitrate::Int, silent::Bool,
 end
 
 
-function Interfaces.send(interface::T,
-    msg::Frames.Frame)::Nothing where {T<:Union{KvaserInterface,KvaserFDInterface}}
+function Interfaces.send(interface::KvaserDriver, msg::Frames.Frame)::Nothing
 
     pmsg_t = Ref(msg.data, 1)
     len = Cuint(length(msg))
@@ -180,8 +128,8 @@ function Interfaces.send(interface::T,
 end
 
 
-function Interfaces.send(interface::KvaserFDInterface,
-    msg::Frames.FDFrame)::Nothing
+function Interfaces.send(interface::KvaserDriver{T},
+    msg::Frames.FDFrame)::Nothing where {T<:Interfaces.VAL_ANY_FD}
 
     pmesg = Ref(msg.data, 1)
     flag = Canlib.canFDMSG_FDF # CAN FD message
@@ -197,20 +145,20 @@ function Interfaces.send(interface::KvaserFDInterface,
 end
 
 
-function Interfaces.recv(interface::KvaserInterface;
-    timeout_s::Real=0)::Union{Nothing,Frames.Frame}
+function Interfaces.recv(interface::KvaserDriver{T};
+    timeout_s::Real=0)::Union{Nothing,Frames.Frame} where {T<:Val{Interfaces.CAN_20}}
     _recv_kvaser_internal(interface, timeout_s)
 end
 
 
-function Interfaces.recv(interface::KvaserFDInterface;
-    timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame}
+function Interfaces.recv(interface::KvaserDriver{T};
+    timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame} where {T<:Interfaces.VAL_ANY_FD}
     _recv_kvaser_internal(interface, timeout_s)
 end
 
 
-function _recv_kvaser_internal(interface::T,
-    timeout_s::Real)::Union{Nothing,Frames.AnyFrame} where {T<:Union{KvaserInterface,KvaserFDInterface}}
+function _recv_kvaser_internal(interface::KvaserDriver{T},
+    timeout_s::Real)::Union{Nothing,Frames.AnyFrame} where T
 
     # poll
     if timeout_s != 0
@@ -220,7 +168,7 @@ function _recv_kvaser_internal(interface::T,
 
     # receive
     pid = Ref(Clong(0))
-    msg = zeros(Cuchar, T == KvaserFDInterface ? 64 : 8)
+    msg = zeros(Cuchar, T <: Interfaces.VAL_ANY_FD ? 64 : 8)
     pmsg = Ref(msg, 1)
     plen = Ref(Cuint(0))
     pflag = Ref(Cuint(0))
@@ -255,7 +203,7 @@ function _recv_kvaser_internal(interface::T,
 end
 
 
-function Interfaces.shutdown(interface::T) where {T<:Union{KvaserInterface,KvaserFDInterface}}
+function Interfaces.shutdown(interface::KvaserDriver)
     status = Canlib.canBusOff(interface.handle)
     status = Canlib.canClose(interface.handle)
     return nothing
