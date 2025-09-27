@@ -1,9 +1,10 @@
-module SlcanInterfaces
+module SlcanDrivers
 
-using LibSerialPort
-import ...core.SerialHAL
-import ..Interfaces
+import ..Drivers
+import ...Interfaces
 import ...Frames
+import ....core: SerialHAL
+
 
 include("slcandef.jl")
 import .slcandef
@@ -28,67 +29,21 @@ This version is tested on CANable 2.0.
 kwargs:
 * silent(optional): listen only flag in bool. default is `false`.
 """
-mutable struct SlcanInterface <: Interfaces.AbstractCANInterface
+mutable struct SlcanDriver{T} <: Drivers.AbstractDriver
     sp::SerialHAL.HandleType
     buffer::String
-
-    function SlcanInterface(channel::String, bitrate::Int;
-        serialbaud::Int=115200, silent::Bool=false)
-
-        sp = _init_slcan(channel, bitrate, serialbaud, silent, false, 0)
-
-        new(sp, "")
-    end
 end
 
 
-"""
-    slcan0 = SlcanFDInterface(port::String, bitrate::Integer, datarate::Integer)
 
-slcan is a CAN over serial protocol by CANable.
-This version is tested on CANable 2.0.
-This interface supports send CAN FD frame.
+const serialbaud = 115200
 
-* port: port name string.
-* bitrate: bit rate in bit/s
-* datarate: data rate in bit/s
+function Drivers.drv_open(::Val{Interfaces.SLCAN}, cfg::Interfaces.InterfaceConfig)
+    sp = _init_slcan(cfg.channel, cfg.bitrate, serialbaud, cfg.silent,
+        Interfaces.isfd(cfg), cfg.datarate)
 
-kwargs:
-* silent(optional): listen only flag in bool. default is `false`.
-"""
-mutable struct SlcanFDInterface <: Interfaces.AbstractCANInterface
-    sp::SerialHAL.HandleType
-    buffer::String
+    SlcanDriver{Val{cfg.bustype}}(sp, "")
 
-    function SlcanFDInterface(channel::String, bitrate::Int, datarate::Int;
-        serialbaud::Int=115200, silent::Bool=false)
-
-        sp = _init_slcan(channel, bitrate, serialbaud, silent, true, datarate)
-
-        new(sp, "")
-    end
-end
-
-
-#= constructor for do statement =#
-function SlcanInterface(f::Function, args...; kwargs...)
-    bus = SlcanInterface(args...; kwargs...)
-    try
-        return f(bus)
-    finally
-        Interfaces.shutdown(bus)
-    end
-end
-
-
-#= constructor for do statement =#
-function SlcanFDInterface(f::Function, args...; kwargs...)
-    bus = SlcanFDInterface(args...; kwargs...)
-    try
-        return f(bus)
-    finally
-        Interfaces.shutdown(bus)
-    end
 end
 
 
@@ -111,7 +66,7 @@ function _init_slcan(channel::String, bitrate::Int,
         end
     end
 
-    if !(channel in get_port_list())
+    if !(channel in SerialHAL.LibSerialPort.get_port_list())
         error("Slcan: $channel is not found.")
     end
 
@@ -142,7 +97,7 @@ function _init_slcan(channel::String, bitrate::Int,
 end
 
 
-function Interfaces.send(interface::T, msg::Frames.Frame) where {T<:Union{SlcanInterface,SlcanFDInterface}}
+function Drivers.drv_send(driver::T, msg::Frames.Frame) where {T<:SlcanDriver}
 
     sendstr::String = ""
     len = string(length(msg))
@@ -165,12 +120,12 @@ function Interfaces.send(interface::T, msg::Frames.Frame) where {T<:Union{SlcanI
     end
 
     sendstr *= DELIMITER
-    SerialHAL.write(interface.sp, sendstr)
+    SerialHAL.write(driver.sp, sendstr)
 
 end
 
 
-function Interfaces.send(interface::SlcanFDInterface, msg::Frames.FDFrame)
+function Drivers.drv_send(driver::SlcanDriver{T}, msg::Frames.FDFrame) where {T<:Interfaces.VAL_ANY_FD}
 
     sendstr::String = ""
     if msg.is_extended
@@ -187,34 +142,35 @@ function Interfaces.send(interface::SlcanFDInterface, msg::Frames.FDFrame)
     data = join(map(x -> lpad(string(x, base=16), 2, "0"), msg.data))
     sendstr *= (dlc * data * DELIMITER)
 
-    SerialHAL.write(interface.sp, sendstr)
+    SerialHAL.write(driver.sp, sendstr)
 
 end
 
 
-function Interfaces.recv(interface::T; timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame} where {T<:Union{SlcanInterface,SlcanFDInterface}}
+function Drivers.drv_recv(driver::T; timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame} where {T<:SlcanDriver}
+
+    # non-blocking read before poll
+    res = SerialHAL.nonblocking_read(driver.sp)
+    driver.buffer *= String(res)
 
     # poll
-    if timeout_s != 0
+    if timeout_s != 0 && length(driver.buffer) == 0
         # timeout_s < 0(inf) -> pass 0ms(inf)
         timeout_ms = timeout_s < 0 ? 0 : Cint(timeout_s * 1e3)
-        buf = SerialHAL.blocking_read(interface.sp.ref, 1, timeout_ms)        
-        interface.buffer *= String(buf)
+        buf = SerialHAL.blocking_read(driver.sp.ref, 1, timeout_ms)
+        driver.buffer *= String(buf)
     end
 
-    # read rx buffer & push it to program buffer
-    res = SerialHAL.nonblocking_read(interface.sp)
-    interface.buffer *= String(res)
-
-    idx = findfirst(c -> c == '\n' || c == '\r', interface.buffer) # delimiter index
+    # start buffer parsing
+    idx = findfirst(c -> c == '\n' || c == '\r', driver.buffer) # delimiter index
 
     if idx === nothing
         return nothing # queue is empty or incomplete
     else
         # split token
         timestamp = time() # slcan has no device timestamp, therefore system time is used.
-        token = interface.buffer[1:idx-1] # split before delimiter
-        interface.buffer = lstrip(interface.buffer[idx:end],
+        token = driver.buffer[1:idx-1] # split before delimiter
+        driver.buffer = lstrip(driver.buffer[idx:end],
             ['\n', '\r']) # strip leading delimiter
 
         if isuppercase(token[1]) # extended
@@ -257,9 +213,9 @@ function Interfaces.recv(interface::T; timeout_s::Real=0)::Union{Nothing,Frames.
 end
 
 
-function Interfaces.shutdown(interface::T) where {T<:Union{SlcanInterface,SlcanFDInterface}}
-    SerialHAL.write(interface.sp, "C" * DELIMITER) # close channel
-    SerialHAL.close(interface.sp)
+function Drivers.drv_close(driver::T) where {T<:SlcanDriver}
+    SerialHAL.write(driver.sp, "C" * DELIMITER) # close channel
+    SerialHAL.close(driver.sp)
     return nothing
 end
 

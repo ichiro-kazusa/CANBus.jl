@@ -1,8 +1,9 @@
-module KvaserInterfaces
+module KvaserDrivers
 
-import ..Interfaces
+import ..Drivers
+import ...Interfaces
 import ...Frames
-import ...core: BitTiming
+import ....core: BitTiming
 
 include("canlib.jl")
 import .Canlib
@@ -22,13 +23,13 @@ kwargs:
 * stdfilter(optional): standard ID filter in AcceptanceFilter struct.
 * extfilter(optional): extended ID filter in AcceptanceFilter struct.
 """
-struct KvaserDriver{T} <: Interfaces.AbstractDriver
+struct KvaserDriver{T} <: Drivers.AbstractDriver
     handle::Cint
     time_offset::Float64
 end
 
 
-function Base.open(::Val{Interfaces.KVASER}, cfg::Interfaces.InterfaceConfig)
+function Drivers.drv_open(::Val{Interfaces.KVASER}, cfg::Interfaces.InterfaceConfig)
 
     is_fd = cfg.bustype == Interfaces.CAN_FD || cfg.bustype == Interfaces.CAN_FD_NONISO
     is_noniso = cfg.bustype == Interfaces.CAN_FD_NONISO
@@ -66,7 +67,7 @@ function _init_kvaser(channel::Int, bitrate::Int, silent::Bool,
     status1 = Canlib.canSetBusParams(hnd, Clong(bitrate),
         Cuint(tseg1_a), Cuint(tseg2_a), Cuint(sjw_a), Cuint(1), Cuint(0))
     if fd
-        _, tseg1_d, tseg2_d, sjw_d = BitTiming.calc_bittiming(80_000_000, datarate, sample_point, 255, 255)
+        _, tseg1_d, tseg2_d, sjw_d = BitTiming.calc_bittiming(80_000_000, datarate, sample_point_fd, 255, 255)
         status2 = Canlib.canSetBusParamsFd(hnd,
             Clong(datarate), Cuint(tseg1_d), Cuint(tseg2_d), Cuint(sjw_d))
     end
@@ -113,13 +114,13 @@ function _init_kvaser(channel::Int, bitrate::Int, silent::Bool,
 end
 
 
-function Interfaces.send(interface::KvaserDriver, msg::Frames.Frame)::Nothing
+function Drivers.drv_send(driver::KvaserDriver, msg::Frames.Frame)::Nothing
 
     pmsg_t = Ref(msg.data, 1)
     len = Cuint(length(msg))
     id = Clong(msg.id)
     flag = msg.is_extended ? Canlib.canMSG_EXT : Canlib.canMSG_STD
-    status = Canlib.canWrite(interface.handle, id, pmsg_t, len, flag)
+    status = Canlib.canWrite(driver.handle, id, pmsg_t, len, flag)
 
     if status != Canlib.canOK
         error("Kvaser: Failed to transmit. $status")
@@ -128,14 +129,14 @@ function Interfaces.send(interface::KvaserDriver, msg::Frames.Frame)::Nothing
 end
 
 
-function Interfaces.send(interface::KvaserDriver{T},
+function Drivers.drv_send(driver::KvaserDriver{T},
     msg::Frames.FDFrame)::Nothing where {T<:Interfaces.VAL_ANY_FD}
 
     pmesg = Ref(msg.data, 1)
     flag = Canlib.canFDMSG_FDF # CAN FD message
     flag |= msg.is_extended ? Canlib.canMSG_EXT : Canlib.canMSG_STD # STD or EXT id
     flag |= msg.bitrate_switch ? Canlib.canFDMSG_BRS : Cuint(0) # use BRS
-    status = Canlib.canWrite(interface.handle,
+    status = Canlib.canWrite(driver.handle,
         Clong(msg.id), pmesg, Cuint(length(msg)), flag)
 
     if status != Canlib.canOK
@@ -145,25 +146,25 @@ function Interfaces.send(interface::KvaserDriver{T},
 end
 
 
-function Interfaces.recv(interface::KvaserDriver{T};
+function Drivers.drv_recv(driver::KvaserDriver{T};
     timeout_s::Real=0)::Union{Nothing,Frames.Frame} where {T<:Val{Interfaces.CAN_20}}
-    _recv_kvaser_internal(interface, timeout_s)
+    _recv_kvaser_internal(driver, timeout_s)
 end
 
 
-function Interfaces.recv(interface::KvaserDriver{T};
+function Drivers.drv_recv(driver::KvaserDriver{T};
     timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame} where {T<:Interfaces.VAL_ANY_FD}
-    _recv_kvaser_internal(interface, timeout_s)
+    _recv_kvaser_internal(driver, timeout_s)
 end
 
 
-function _recv_kvaser_internal(interface::KvaserDriver{T},
+function _recv_kvaser_internal(driver::KvaserDriver{T},
     timeout_s::Real)::Union{Nothing,Frames.AnyFrame} where T
 
     # poll
     if timeout_s != 0
         timeout_ms = timeout_s < 0 ? Culong(0xFFFFFFFF) : Culong(timeout_s * 1e3)
-        Canlib.canReadSync(interface.handle, timeout_ms)
+        Canlib.canReadSync(driver.handle, timeout_ms)
     end
 
     # receive
@@ -173,12 +174,12 @@ function _recv_kvaser_internal(interface::KvaserDriver{T},
     plen = Ref(Cuint(0))
     pflag = Ref(Cuint(0))
     ptime = Ref(Culong(0))
-    status = Canlib.canRead(interface.handle, pid, pmsg, plen, pflag, ptime)
+    status = Canlib.canRead(driver.handle, pid, pmsg, plen, pflag, ptime)
 
     if status == Canlib.canOK
         is_ext = (pflag[] & Canlib.canMSG_EXT) != 0
         is_err = (pflag[] & Canlib.canMSG_ERROR_FRAME) != 0
-        timestamp = interface.time_offset + ptime[] * 1.e-6 # arrange in sec
+        timestamp = driver.time_offset + ptime[] * 1.e-6 # arrange in sec
 
         if (pflag[] & Canlib.canFDMSG_FDF) != 0 # FD Message
             brs = (pflag[] & Canlib.canFDMSG_BRS) != 0
@@ -203,10 +204,10 @@ function _recv_kvaser_internal(interface::KvaserDriver{T},
 end
 
 
-function Interfaces.shutdown(interface::KvaserDriver)
-    status = Canlib.canBusOff(interface.handle)
-    status = Canlib.canClose(interface.handle)
+function Drivers.drv_close(driver::KvaserDriver)
+    status = Canlib.canBusOff(driver.handle)
+    status = Canlib.canClose(driver.handle)
     return nothing
 end
 
-end # KvaserInterfaces
+end # KvaserDrivers
