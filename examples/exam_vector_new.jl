@@ -1,17 +1,20 @@
 using CANBus
 
 function main()
-    # bustype = CAN_20
-    bustype = CAN_FD
-    vendor = KVASER
+    bustype = CAN_20
+    # bustype = CAN_FD
+    # vendor = KVASER
+    vendor = SOCKETCAN
+    ch0 = "vcan0"
+    ch1 = "vcan1"
 
-    ifcfg1 = InterfaceConfig(vendor, 0, bustype, 500000)
+    ifcfg1 = InterfaceConfig(vendor, ch0, bustype, 500000)
     ifcfg1.datarate = 2000000
     ifcfg1.vendor_specific = Dict([:appname => "NewApp"])
 
     iface1 = Interface(ifcfg1)
 
-    ifcfg2 = InterfaceConfig(vendor, 1, bustype, 500000)
+    ifcfg2 = InterfaceConfig(vendor, ch1, bustype, 500000)
     ifcfg2.datarate = 2000000
     ifcfg2.vendor_specific = Dict([:appname => "NewApp"])
 

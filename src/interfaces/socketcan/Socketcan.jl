@@ -17,61 +17,17 @@ Setup SocketCAN interface.
 kwargs:
 * filters(optional): list of filters. experimental.
 """
-struct SocketCANInterface <: Interfaces.AbstractCANInterface
+struct SocketCANDriver{T} <: Interfaces.AbstractDriver
     socket::Cint
-
-    function SocketCANInterface(channel::String;
-        filters::Union{Nothing,Vector{Interfaces.AcceptanceFilter}}=nothing)
-
-        s = _init_can(channel, filters, false)
-
-        new(s)
-    end
 end
 
 
-"""
-    SocketCANFDInterface(channel::String; filters::Vector{AcceptanceFilter})
+function Base.open(::Val{Interfaces.SOCKETCAN}, cfg::Interfaces.InterfaceConfig)
+    is_fd = cfg.bustype == Interfaces.CAN_FD || cfg.bustype == Interfaces.CAN_FD_NONISO
 
-Setup SocketCAN for CAN FD.
-* channel: channel name string, e.g. "can0"
+    s = _init_can(cfg.channel, nothing, is_fd)
 
-kwargs:
-* filters(optional): list of filters. experimental.
-"""
-struct SocketCANFDInterface <: Interfaces.AbstractCANInterface
-    socket::Cint
-
-    function SocketCANFDInterface(channel::String;
-        filters::Union{Nothing,Vector{Interfaces.AcceptanceFilter}}=nothing)
-
-        s = _init_can(channel, filters, true)
-
-        new(s)
-    end
-end
-
-
-#= constructor for do-block =#
-function SocketCANInterface(f::Function, args...; kwargs...)
-    bus = SocketCANInterface(args...; kwargs...)
-    try
-        return f(bus)
-    finally
-        Interfaces.shutdown(bus)
-    end
-end
-
-
-
-#= constructor for do-block =#
-function SocketCANFDInterface(f::Function, args...; kwargs...)
-    bus = SocketCANFDInterface(args...; kwargs...)
-    try
-        return f(bus)
-    finally
-        Interfaces.shutdown(bus)
-    end
+    SocketCANDriver{Val{cfg.bustype}}(s)
 end
 
 
@@ -142,8 +98,8 @@ function _init_can(channel::String,
 end
 
 
-function Interfaces.send(interface::T,
-    msg::Frames.Frame)::Nothing where {T<:Union{SocketCANInterface,SocketCANFDInterface}}
+function Interfaces.send(interface::SocketCANDriver,
+    msg::Frames.Frame)::Nothing
 
     id = msg.is_extended ? msg.id | SocketCAN.CAN_EFF_FLAG : msg.id
     id |= msg.is_error_frame ? SocketCAN.CAN_RTR_FLAG : UInt32(0)
@@ -161,8 +117,8 @@ function Interfaces.send(interface::T,
 end
 
 
-function Interfaces.send(interface::SocketCANFDInterface,
-    msg::Frames.FDFrame)::Nothing
+function Interfaces.send(interface::SocketCANDriver{T},
+    msg::Frames.FDFrame)::Nothing where {T<:Interfaces.VAL_ANY_FD}
 
     id = msg.is_extended ? msg.id | SocketCAN.CAN_EFF_FLAG : msg.id
     len = size(msg.data, 1)
@@ -181,7 +137,7 @@ function Interfaces.send(interface::SocketCANFDInterface,
 end
 
 
-function Interfaces.recv(interface::T; timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame} where {T<:Union{SocketCANInterface,SocketCANFDInterface}}
+function Interfaces.recv(interface::T; timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame} where {T<:SocketCANDriver}
 
     # polling (Do not use ccall(:poll). It may blocks julia's process.)
     if timeout_s != 0
@@ -262,7 +218,7 @@ function Interfaces.recv(interface::T; timeout_s::Real=0)::Union{Nothing,Frames.
     end
 end
 
-function Interfaces.shutdown(interface::T) where {T<:Union{SocketCANInterface,SocketCANFDInterface}}
+function Interfaces.shutdown(interface::T) where {T<:SocketCANDriver}
     SocketCAN.close(interface.socket)
     return nothing
 end
