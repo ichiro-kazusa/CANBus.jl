@@ -6,10 +6,14 @@ function main()
     # vendor = KVASER
     # vendor = VECTOR
     vendor = SLCAN
-    # ch0 = 0#"vcan0"
-    # ch1 = 1#"vcan1"
-    ch0 = "COM3"
-    ch1 = "COM4"
+    # vendor = SOCKETCAN
+    # ch0 = "vcan0"
+    # ch1 = "vcan1"
+    # # ch0 = "COM3"
+    # ch1 = "COM4"
+    ch0 = "/dev/ttyACM0"
+    ch1 = "/dev/ttyACM1"
+
 
     ifcfg1 = InterfaceConfig(vendor, ch0, bustype, 500000)
     ifcfg1.datarate = 2000000

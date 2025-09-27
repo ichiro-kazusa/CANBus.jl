@@ -1,6 +1,7 @@
 module SocketCANInterfaces
 
-import ..Interfaces
+import ..Drivers
+import ...Interfaces
 import ...Frames
 
 include("socketcanapi.jl")
@@ -17,12 +18,12 @@ Setup SocketCAN interface.
 kwargs:
 * filters(optional): list of filters. experimental.
 """
-struct SocketCANDriver{T} <: Interfaces.AbstractDriver
+struct SocketCANDriver{T} <: Drivers.AbstractDriver
     socket::Cint
 end
 
 
-function Base.open(::Val{Interfaces.SOCKETCAN}, cfg::Interfaces.InterfaceConfig)
+function Drivers.drv_open(::Val{Interfaces.SOCKETCAN}, cfg::Interfaces.InterfaceConfig)
     is_fd = cfg.bustype == Interfaces.CAN_FD || cfg.bustype == Interfaces.CAN_FD_NONISO
 
     s = _init_can(cfg.channel, nothing, is_fd)
@@ -98,7 +99,7 @@ function _init_can(channel::String,
 end
 
 
-function Interfaces.send(interface::SocketCANDriver,
+function Drivers.drv_send(driver::SocketCANDriver,
     msg::Frames.Frame)::Nothing
 
     id = msg.is_extended ? msg.id | SocketCAN.CAN_EFF_FLAG : msg.id
@@ -108,7 +109,7 @@ function Interfaces.send(interface::SocketCANDriver,
     data[1:dlc] .= msg.data
     msg = SocketCAN.can_frame(id, dlc, 0, 0, 0, (data...,))
     pmsg = Ref(msg)
-    written = SocketCAN.write(interface.socket, pmsg, Cuint(sizeof(SocketCAN.can_frame)))
+    written = SocketCAN.write(driver.socket, pmsg, Cuint(sizeof(SocketCAN.can_frame)))
 
     if written != Cuint(sizeof(SocketCAN.can_frame))
         error("SocketCAN: Failed to transmit.")
@@ -117,7 +118,7 @@ function Interfaces.send(interface::SocketCANDriver,
 end
 
 
-function Interfaces.send(interface::SocketCANDriver{T},
+function Drivers.drv_send(driver::SocketCANDriver{T},
     msg::Frames.FDFrame)::Nothing where {T<:Interfaces.VAL_ANY_FD}
 
     id = msg.is_extended ? msg.id | SocketCAN.CAN_EFF_FLAG : msg.id
@@ -128,7 +129,7 @@ function Interfaces.send(interface::SocketCANDriver{T},
             SocketCAN.CANFD_FDF
     msg = SocketCAN.canfd_frame(id, len, flags, 0, 0, (data...,))
     pmsg = Ref(msg)
-    written = SocketCAN.write(interface.socket, pmsg, Cuint(sizeof(SocketCAN.canfd_frame)))
+    written = SocketCAN.write(driver.socket, pmsg, Cuint(sizeof(SocketCAN.canfd_frame)))
 
     if written != Cuint(sizeof(SocketCAN.canfd_frame))
         error("SocketCAN: Failed to transmit.")
@@ -137,11 +138,11 @@ function Interfaces.send(interface::SocketCANDriver{T},
 end
 
 
-function Interfaces.recv(interface::T; timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame} where {T<:SocketCANDriver}
+function Drivers.drv_recv(driver::T; timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame} where {T<:SocketCANDriver}
 
     # polling (Do not use ccall(:poll). It may blocks julia's process.)
     if timeout_s != 0
-        poll_fd(Libc.RawFD(interface.socket), timeout_s; readable=true)
+        poll_fd(Libc.RawFD(driver.socket), timeout_s; readable=true)
     end
 
     # prepare to receive
@@ -169,7 +170,7 @@ function Interfaces.recv(interface::T; timeout_s::Real=0)::Union{Nothing,Frames.
         )
         r_msg = Ref(msg)
 
-        nbytes = SocketCAN.recvmsg(interface.socket, r_msg, Cint(0))
+        nbytes = SocketCAN.recvmsg(driver.socket, r_msg, Cint(0))
 
         if nbytes < 0
             ern = Libc.errno()
@@ -218,8 +219,8 @@ function Interfaces.recv(interface::T; timeout_s::Real=0)::Union{Nothing,Frames.
     end
 end
 
-function Interfaces.shutdown(interface::T) where {T<:SocketCANDriver}
-    SocketCAN.close(interface.socket)
+function Drivers.drv_close(driver::T) where {T<:SocketCANDriver}
+    SocketCAN.close(driver.socket)
     return nothing
 end
 
