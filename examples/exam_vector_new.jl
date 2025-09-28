@@ -5,8 +5,8 @@ function main()
     # bustype = CAN_FD
 
     # device = VECTOR
-    # device = KVASER
-    device = SLCAN
+    device = KVASER
+    # device = SLCAN
     # device = SOCKETCAN
 
     if device in (VECTOR, KVASER)

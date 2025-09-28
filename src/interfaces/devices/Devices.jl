@@ -18,13 +18,13 @@ abstract type AbstractDevice{T<:AbstractBusType} end
 
 
 #= prototype functions =#
-drv_open(::Val, ::Interfaces.InterfaceConfig) = error("Not Implemented")
+dev_open(::Val, ::Interfaces.InterfaceConfig) = error("Not Implemented")
 
-drv_send(::AbstractDevice, ::Frames.AnyFrame) = error("Not Implemented")
+dev_send(::AbstractDevice, ::Frames.AnyFrame) = error("Not Implemented")
 
-drv_recv(::AbstractDevice; timeout_s::Real) = error("Not Implemented")
+dev_recv(::AbstractDevice; timeout_s::Real) = error("Not Implemented")
 
-drv_close(::AbstractDevice) = error("Not Implemented")
+dev_close(::AbstractDevice) = error("Not Implemented")
 
 
 

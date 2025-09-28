@@ -35,7 +35,7 @@ mutable struct SlcanDevice{T<:Devices.AbstractBusType} <: Devices.AbstractDevice
 end
 
 
-function Devices.drv_open(::Val{Interfaces.SLCAN}, cfg::Interfaces.InterfaceConfig)
+function Devices.dev_open(::Val{Interfaces.SLCAN}, cfg::Interfaces.InterfaceConfig)
     sp = _init_slcan(cfg.channel, cfg.bitrate, cfg.slcan_serialbaud, cfg.silent,
         Interfaces.helper_isfd(cfg), cfg.datarate)
 
@@ -96,7 +96,7 @@ function _init_slcan(channel::String, bitrate::Int,
 end
 
 
-function Devices.drv_send(driver::SlcanDevice{T}, msg::Frames.Frame) where {T<:Devices.AbstractBusType}
+function Devices.dev_send(driver::SlcanDevice{T}, msg::Frames.Frame) where {T<:Devices.AbstractBusType}
 
     sendstr::String = ""
     len = string(length(msg))
@@ -124,7 +124,7 @@ function Devices.drv_send(driver::SlcanDevice{T}, msg::Frames.Frame) where {T<:D
 end
 
 
-function Devices.drv_send(driver::SlcanDevice{Devices.BUS_FD}, msg::Frames.FDFrame)
+function Devices.dev_send(driver::SlcanDevice{Devices.BUS_FD}, msg::Frames.FDFrame)
 
     sendstr::String = ""
     if msg.is_extended
@@ -146,7 +146,7 @@ function Devices.drv_send(driver::SlcanDevice{Devices.BUS_FD}, msg::Frames.FDFra
 end
 
 
-function Devices.drv_recv(driver::SlcanDevice; timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame}
+function Devices.dev_recv(driver::SlcanDevice; timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame}
 
     # non-blocking read before poll
     res = SerialHAL.nonblocking_read(driver.sp)
@@ -212,7 +212,7 @@ function Devices.drv_recv(driver::SlcanDevice; timeout_s::Real=0)::Union{Nothing
 end
 
 
-function Devices.drv_close(driver::SlcanDevice)
+function Devices.dev_close(driver::SlcanDevice)
     SerialHAL.write(driver.sp, "C" * DELIMITER) # close channel
     SerialHAL.close(driver.sp)
     return nothing

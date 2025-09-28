@@ -23,7 +23,7 @@ struct SocketCANDevice{T<:Devices.AbstractBusType} <: Devices.AbstractDevice{T}
 end
 
 
-function Devices.drv_open(::Val{Interfaces.SOCKETCAN}, cfg::Interfaces.InterfaceConfig)
+function Devices.dev_open(::Val{Interfaces.SOCKETCAN}, cfg::Interfaces.InterfaceConfig)
     is_fd = Interfaces.helper_isfd(cfg)
 
     s = _init_can(cfg.channel, nothing, is_fd)
@@ -101,7 +101,7 @@ function _init_can(channel::String,
 end
 
 
-function Devices.drv_send(driver::SocketCANDevice,
+function Devices.dev_send(driver::SocketCANDevice,
     msg::Frames.Frame)::Nothing
 
     id = msg.is_extended ? msg.id | SocketCAN.CAN_EFF_FLAG : msg.id
@@ -120,7 +120,7 @@ function Devices.drv_send(driver::SocketCANDevice,
 end
 
 
-function Devices.drv_send(driver::SocketCANDevice{T},
+function Devices.dev_send(driver::SocketCANDevice{T},
     msg::Frames.FDFrame)::Nothing where {T<:Devices.BUS_FD}
 
     id = msg.is_extended ? msg.id | SocketCAN.CAN_EFF_FLAG : msg.id
@@ -140,7 +140,7 @@ function Devices.drv_send(driver::SocketCANDevice{T},
 end
 
 
-function Devices.drv_recv(driver::SocketCANDevice; timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame}
+function Devices.dev_recv(driver::SocketCANDevice; timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame}
 
     # polling (Do not use ccall(:poll). It may blocks julia's process.)
     if timeout_s != 0
@@ -221,7 +221,7 @@ function Devices.drv_recv(driver::SocketCANDevice; timeout_s::Real=0)::Union{Not
     end
 end
 
-function Devices.drv_close(driver::T) where {T<:SocketCANDevice}
+function Devices.dev_close(driver::T) where {T<:SocketCANDevice}
     SocketCAN.close(driver.socket)
     return nothing
 end

@@ -19,7 +19,7 @@ end
 """
 function Interface(cfg::InterfaceConfig)
     # construct
-    d = Devices.drv_open(Val(cfg.device), cfg)
+    d = Devices.dev_open(Val(cfg.device), cfg)
     Interface(d)
 end
 
@@ -56,7 +56,7 @@ It behaves:
 * CAN FD interfaces can send both `Frame` and `FDFrame`
 """
 function send(iface::Interface, frm::Frames.AnyFrame)
-    Devices.drv_send(iface.driver, frm)
+    Devices.dev_send(iface.driver, frm)
 end
 
 
@@ -76,7 +76,7 @@ It behaves:
 * CAN FD interfaces return either `Frame` or `FDFrame` object.
 """
 function recv(iface::Interface; timeout_s::Real=0)
-    Devices.drv_recv(iface.driver; timeout_s)
+    Devices.dev_recv(iface.driver; timeout_s)
 end
 
 
@@ -87,7 +87,7 @@ function for shutdown interface.
 Always returns nothing.
 """
 function shutdown(iface::Interface)
-    Devices.drv_close(iface.driver)
+    Devices.dev_close(iface.driver)
 end
 
 

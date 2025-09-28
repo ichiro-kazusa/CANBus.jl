@@ -29,7 +29,7 @@ struct KvaserDevice{T<:Devices.AbstractBusType} <: Devices.AbstractDevice{T}
 end
 
 
-function Devices.drv_open(::Val{Interfaces.KVASER}, cfg::Interfaces.InterfaceConfig)
+function Devices.dev_open(::Val{Interfaces.KVASER}, cfg::Interfaces.InterfaceConfig)
 
     is_fd = Interfaces.helper_isfd(cfg)
     is_noniso = cfg.bustype == Interfaces.CAN_FD_NONISO
@@ -116,7 +116,7 @@ function _init_kvaser(channel::Int, bitrate::Int, silent::Bool,
 end
 
 
-function Devices.drv_send(driver::KvaserDevice{T},
+function Devices.dev_send(driver::KvaserDevice{T},
     msg::Frames.Frame)::Nothing where {T<:Devices.AbstractBusType}
 
     pmsg_t = Ref(msg.data, 1)
@@ -132,7 +132,7 @@ function Devices.drv_send(driver::KvaserDevice{T},
 end
 
 
-function Devices.drv_send(driver::KvaserDevice{T},
+function Devices.dev_send(driver::KvaserDevice{T},
     msg::Frames.FDFrame)::Nothing where {T<:Devices.BUS_FD}
 
     pmesg = Ref(msg.data, 1)
@@ -149,13 +149,13 @@ function Devices.drv_send(driver::KvaserDevice{T},
 end
 
 
-function Devices.drv_recv(driver::KvaserDevice{T};
+function Devices.dev_recv(driver::KvaserDevice{T};
     timeout_s::Real=0)::Union{Nothing,Frames.Frame} where {T<:Devices.BUS_20}
     _recv_kvaser_internal(driver, timeout_s)
 end
 
 
-function Devices.drv_recv(driver::KvaserDevice{T};
+function Devices.dev_recv(driver::KvaserDevice{T};
     timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame} where {T<:Devices.BUS_FD}
     _recv_kvaser_internal(driver, timeout_s)
 end
@@ -207,7 +207,7 @@ function _recv_kvaser_internal(driver::KvaserDevice{T},
 end
 
 
-function Devices.drv_close(driver::KvaserDevice{T}) where {T<:Devices.AbstractBusType}
+function Devices.dev_close(driver::KvaserDevice{T}) where {T<:Devices.AbstractBusType}
     status = Canlib.canBusOff(driver.handle)
     status = Canlib.canClose(driver.handle)
     return nothing

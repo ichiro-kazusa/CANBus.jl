@@ -32,7 +32,7 @@ end
 
 
 
-function Devices.drv_open(::Val{Interfaces.VECTOR}, cfg::Interfaces.InterfaceConfig)
+function Devices.dev_open(::Val{Interfaces.VECTOR}, cfg::Interfaces.InterfaceConfig)
 
     is_fd = Interfaces.helper_isfd(cfg)
     is_noniso = cfg.bustype == Interfaces.CAN_FD_NONISO
@@ -136,7 +136,7 @@ function _init_vector(channel::Union{Int,AbstractVector{Int}},
 end
 
 
-function Devices.drv_send(driver::VectorDevice{T}, msg::Frames.Frame) where {T<:Devices.BUS_20}
+function Devices.dev_send(driver::VectorDevice{T}, msg::Frames.Frame) where {T<:Devices.BUS_20}
     # construct XLEvent
     messageCount = Cuint(1)
     dlc = size(msg.data, 1)
@@ -165,7 +165,7 @@ function Devices.drv_send(driver::VectorDevice{T}, msg::Frames.Frame) where {T<:
 end
 
 
-function Devices.drv_send(driver::VectorDevice{T1}, msg::T2) where {T1<:Devices.BUS_FD,T2<:Frames.AnyFrame}
+function Devices.dev_send(driver::VectorDevice{T1}, msg::T2) where {T1<:Devices.BUS_FD,T2<:Frames.AnyFrame}
     canid = msg.is_extended ? msg.id | Vxlapi.XL_CAN_EXT_MSG_ID : msg.id
     len = length(msg)
     dlc = len <= 8 ? len : Vxlapi.CANFD_LEN2DLC[len]
@@ -195,12 +195,12 @@ function Devices.drv_send(driver::VectorDevice{T1}, msg::T2) where {T1<:Devices.
 end
 
 
-function Devices.drv_recv(driver::VectorDevice{T};
+function Devices.dev_recv(driver::VectorDevice{T};
     timeout_s::Real=0)::Union{Nothing,Frames.Frame} where {T<:Devices.BUS_20}
 
     if timeout_s != 0
         # non-block recv before poll (according to driver manual)
-        ret = Devices.drv_recv(driver; timeout_s=0)
+        ret = Devices.dev_recv(driver; timeout_s=0)
         if ret !== nothing
             return ret
         end
@@ -242,12 +242,12 @@ function Devices.drv_recv(driver::VectorDevice{T};
 end
 
 
-function Devices.drv_recv(driver::VectorDevice{T};
+function Devices.dev_recv(driver::VectorDevice{T};
     timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame} where {T<:Devices.BUS_FD}
 
     if timeout_s != 0
         # non-block recv before poll (according to driver manual)
-        ret = Devices.drv_recv(driver; timeout_s=0)
+        ret = Devices.dev_recv(driver; timeout_s=0)
         if ret !== nothing
             return ret
         end
@@ -298,7 +298,7 @@ function Devices.drv_recv(driver::VectorDevice{T};
 end
 
 
-function Devices.drv_close(driver::VectorDevice{T}) where {T<:Devices.AbstractBusType}
+function Devices.dev_close(driver::VectorDevice{T}) where {T<:Devices.AbstractBusType}
     status = Vxlapi.xlDeactivateChannel(driver.portHandle, driver.channelMask)
     status = Vxlapi.xlClosePort(driver.portHandle)
     status = Vxlapi.xlCloseDriver()
