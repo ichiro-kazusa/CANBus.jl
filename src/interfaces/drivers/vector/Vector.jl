@@ -2,7 +2,7 @@ module VectorDrivers
 
 import ..Drivers
 import ...Interfaces
-import ...Frames
+import ....Frames
 import ....core: WinWrap, BitTiming
 
 include("xlapi.jl")

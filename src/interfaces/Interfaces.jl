@@ -1,7 +1,5 @@
 module Interfaces
 
-import ..Frames
-
 
 @enum DeviceType::UInt8 begin
     VECTOR
@@ -70,9 +68,9 @@ end
 
 
 #= import internal Driver module =#
+import ..Frames
 include("drivers/Drivers.jl")
 import .Drivers
-
 
 
 struct Interface{T1<:Drivers.AbstractDriver}
@@ -108,6 +106,7 @@ It behaves:
 function send(iface::Interface, frm::Frames.AnyFrame)
     Drivers.drv_send(iface.driver, frm)
 end
+
 
 """
     recv(interface::T<:AbstractCANInterface; timeout_s::Real=0)

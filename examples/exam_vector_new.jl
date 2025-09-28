@@ -3,17 +3,18 @@ using CANBus
 function main()
     # bustype = CAN_20
     bustype = CAN_FD
-    # vendor = KVASER
+    vendor = KVASER
     # vendor = VECTOR
-    vendor = SLCAN
+    # vendor = SLCAN
     # vendor = SOCKETCAN
     # ch0 = "vcan0"
     # ch1 = "vcan1"
-    # # ch0 = "COM3"
+    # ch0 = "COM3"
     # ch1 = "COM4"
-    ch0 = "/dev/ttyACM0"
-    ch1 = "/dev/ttyACM1"
-
+    # ch0 = "/dev/ttyACM0"
+    # ch1 = "/dev/ttyACM1"
+    ch0 = 0
+    ch1 = 1
 
     ifcfg1 = InterfaceConfig(vendor, ch0, bustype, 500000)
     ifcfg1.datarate = 2000000

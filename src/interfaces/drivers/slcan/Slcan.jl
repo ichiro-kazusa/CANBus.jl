@@ -2,7 +2,7 @@ module SlcanDrivers
 
 import ..Drivers
 import ...Interfaces
-import ...Frames
+import ....Frames
 import ....core: SerialHAL
 
 

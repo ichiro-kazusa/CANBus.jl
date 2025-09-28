@@ -2,7 +2,7 @@ module SocketCANInterfaces
 
 import ..Drivers
 import ...Interfaces
-import ...Frames
+import ....Frames
 
 include("socketcanapi.jl")
 import .SocketCAN

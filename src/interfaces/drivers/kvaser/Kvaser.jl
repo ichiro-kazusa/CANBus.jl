@@ -2,7 +2,7 @@ module KvaserDrivers
 
 import ..Drivers
 import ...Interfaces
-import ...Frames
+import ....Frames
 import ....core: BitTiming
 
 include("canlib.jl")

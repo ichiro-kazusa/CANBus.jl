@@ -1,22 +1,23 @@
 module Drivers
 
+import ..Interface
+import ...Frames
+
 abstract type AbstractDriver end
 
 
-
 # プロトタイプ関数群。あとで、直接呼ぶとエラーを返すように修正する
-function drv_open()
+function drv_open(::Val, ::InterfaceConfig)
 end
 
-function drv_send()
+function drv_send(::AbstractDriver, ::Frames.AnyFrame)
 end
 
-function drv_recv()
+function drv_recv(::AbstractDriver; kwargs...)
 end
 
-function drv_close()
+function drv_close(::AbstractDriver)
 end
-
 
 
 include("vector/Vector.jl")
