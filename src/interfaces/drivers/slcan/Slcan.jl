@@ -35,12 +35,9 @@ mutable struct SlcanDriver{T<:Drivers.AbstractBusType} <: Drivers.AbstractDriver
 end
 
 
-
-const serialbaud = 115200
-
 function Drivers.drv_open(::Val{Interfaces.SLCAN}, cfg::Interfaces.InterfaceConfig)
-    sp = _init_slcan(cfg.channel, cfg.bitrate, serialbaud, cfg.silent,
-        Interfaces.isfd(cfg), cfg.datarate)
+    sp = _init_slcan(cfg.channel, cfg.bitrate, cfg.slcan_serialbaud, cfg.silent,
+        Interfaces.helper_isfd(cfg), cfg.datarate)
 
     bustype = Drivers.bustype_helper(cfg)
 

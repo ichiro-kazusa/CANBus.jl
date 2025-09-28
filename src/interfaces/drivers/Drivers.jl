@@ -17,7 +17,7 @@ end
 abstract type AbstractDriver{T<:AbstractBusType} end
 
 
-# プロトタイプ関数群。あとで、直接呼ぶとエラーを返すように修正する
+#= prototype functions =#
 drv_open(::Val, ::Interfaces.InterfaceConfig) = throw(ErrorException("Not Implemented"))
 
 drv_send(::AbstractDriver, ::Frames.AnyFrame) = throw(ErrorException("Not Implemented"))

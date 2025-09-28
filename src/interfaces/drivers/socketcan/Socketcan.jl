@@ -24,7 +24,7 @@ end
 
 
 function Drivers.drv_open(::Val{Interfaces.SOCKETCAN}, cfg::Interfaces.InterfaceConfig)
-    is_fd = Interfaces.isfd(cfg)
+    is_fd = Interfaces.helper_isfd(cfg)
 
     s = _init_can(cfg.channel, nothing, is_fd)
 

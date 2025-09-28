@@ -34,11 +34,11 @@ end
 
 function Drivers.drv_open(::Val{Interfaces.VECTOR}, cfg::Interfaces.InterfaceConfig)
 
-    is_fd = Interfaces.isfd(cfg)
+    is_fd = Interfaces.helper_isfd(cfg)
     is_noniso = cfg.bustype == Interfaces.CAN_FD_NONISO
     rxqueuesize = cfg.bustype == Interfaces.CAN_20 ? Cuint(32768) : Cuint(524288)
 
-    ret = _init_vector(cfg.channel, cfg.bitrate, cfg.vendor_specific[:appname],
+    ret = _init_vector(cfg.channel, cfg.bitrate, cfg.vector_appname,
         rxqueuesize, cfg.silent, cfg.stdfilter, cfg.extfilter,
         is_fd, is_noniso, cfg.datarate, cfg.sample_point, cfg.sample_point_fd)
 

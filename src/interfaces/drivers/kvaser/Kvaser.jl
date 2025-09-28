@@ -31,7 +31,7 @@ end
 
 function Drivers.drv_open(::Val{Interfaces.KVASER}, cfg::Interfaces.InterfaceConfig)
 
-    is_fd = cfg.bustype == Interfaces.CAN_FD || cfg.bustype == Interfaces.CAN_FD_NONISO
+    is_fd = Interfaces.helper_isfd(cfg)
     is_noniso = cfg.bustype == Interfaces.CAN_FD_NONISO
 
     hnd, time_offset = _init_kvaser(cfg.channel, cfg.bitrate,

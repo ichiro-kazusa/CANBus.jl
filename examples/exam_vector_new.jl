@@ -1,31 +1,28 @@
 using CANBus
 
 function main()
-    bustype = CAN_20
-    # bustype = CAN_FD
-    # vendor = VECTOR
-    # vendor = KVASER
-    vendor = SLCAN
-    # vendor = SOCKETCAN
+    # bustype = CAN_20
+    bustype = CAN_FD
+    device = VECTOR
+    # device = KVASER
+    # device = SLCAN
+    # device = SOCKETCAN
     # ch0 = "vcan0"
     # ch1 = "vcan1"
-    ch0 = "COM3"
-    ch1 = "COM4"
+    # ch0 = "COM3"
+    # ch1 = "COM4"
     # ch0 = "/dev/ttyACM0"
     # ch1 = "/dev/ttyACM1"
-    # ch0 = 0
-    # ch1 = 1
+    ch0 = 0
+    ch1 = 1
 
-    ifcfg1 = InterfaceConfig(vendor, ch0, bustype, 500000)
-    ifcfg1.datarate = 2000000
-    ifcfg1.vendor_specific = Dict([:appname => "NewApp"])
+    ifcfg1 = InterfaceConfig(device, ch0, bustype, 500000;
+        datarate=2000000, vector_appname="NewApp")
+
+    ifcfg2 = InterfaceConfig(device, ch1, bustype, 500000;
+        datarate=2000000, vector_appname="NewApp")
 
     iface1 = Interface(ifcfg1)
-
-    ifcfg2 = InterfaceConfig(vendor, ch1, bustype, 500000)
-    ifcfg2.datarate = 2000000
-    ifcfg2.vendor_specific = Dict([:appname => "NewApp"])
-
     Interface(ifcfg2) do iface2
 
         println(iface1)
