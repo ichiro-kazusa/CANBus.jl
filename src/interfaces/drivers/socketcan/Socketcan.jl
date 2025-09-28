@@ -140,7 +140,7 @@ function Drivers.drv_send(driver::SocketCANDriver{T},
 end
 
 
-function Drivers.drv_recv(driver::SocketCANDriver, timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame}
+function Drivers.drv_recv(driver::SocketCANDriver; timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame}
 
     # polling (Do not use ccall(:poll). It may blocks julia's process.)
     if timeout_s != 0
