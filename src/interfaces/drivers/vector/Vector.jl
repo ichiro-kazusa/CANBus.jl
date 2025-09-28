@@ -23,7 +23,7 @@ kwargs:
 * stdfilter(optional): standard ID filter in AcceptanceFilter struct.
 * extfilter(optional): extended ID filter in AcceptanceFilter struct.
 """
-struct VectorDriver{T} <: Drivers.AbstractDriver
+struct VectorDriver{T<:Drivers.AbstractBusType} <: Drivers.AbstractDriver{T}
     portHandle::Vxlapi.XLportHandle
     channelMask::Vxlapi.XLaccess
     time_offset::Float64
@@ -34,7 +34,7 @@ end
 
 function Drivers.drv_open(::Val{Interfaces.VECTOR}, cfg::Interfaces.InterfaceConfig)
 
-    is_fd = cfg.bustype == Interfaces.CAN_FD || cfg.bustype == Interfaces.CAN_FD_NONISO
+    is_fd = Interfaces.isfd(cfg)
     is_noniso = cfg.bustype == Interfaces.CAN_FD_NONISO
     rxqueuesize = cfg.bustype == Interfaces.CAN_20 ? Cuint(32768) : Cuint(524288)
 
@@ -44,7 +44,9 @@ function Drivers.drv_open(::Val{Interfaces.VECTOR}, cfg::Interfaces.InterfaceCon
 
     portHandle, channelMask, time_offset, notification_hnd = ret
 
-    VectorDriver{Val{cfg.bustype}}(portHandle, channelMask, time_offset, notification_hnd)
+    bustype = Drivers.bustype_helper(cfg)
+
+    VectorDriver{bustype}(portHandle, channelMask, time_offset, notification_hnd)
 end
 
 
@@ -134,7 +136,7 @@ function _init_vector(channel::Union{Int,AbstractVector{Int}},
 end
 
 
-function Drivers.drv_send(driver::VectorDriver{T}, msg::Frames.Frame) where {T<:Val{Interfaces.CAN_20}}
+function Drivers.drv_send(driver::VectorDriver{T}, msg::Frames.Frame) where {T<:Drivers.BUS_20}
     # construct XLEvent
     messageCount = Cuint(1)
     dlc = size(msg.data, 1)
@@ -163,7 +165,7 @@ function Drivers.drv_send(driver::VectorDriver{T}, msg::Frames.Frame) where {T<:
 end
 
 
-function Drivers.drv_send(driver::VectorDriver{T1}, msg::T2) where {T1<:Interfaces.VAL_ANY_FD,T2<:Frames.AnyFrame}
+function Drivers.drv_send(driver::VectorDriver{T1}, msg::T2) where {T1<:Drivers.BUS_FD,T2<:Frames.AnyFrame}
     canid = msg.is_extended ? msg.id | Vxlapi.XL_CAN_EXT_MSG_ID : msg.id
     len = length(msg)
     dlc = len <= 8 ? len : Vxlapi.CANFD_LEN2DLC[len]
@@ -194,7 +196,7 @@ end
 
 
 function Drivers.drv_recv(driver::VectorDriver{T};
-    timeout_s::Real=0)::Union{Nothing,Frames.Frame} where {T<:Val{Interfaces.CAN_20}}
+    timeout_s::Real=0)::Union{Nothing,Frames.Frame} where {T<:Drivers.BUS_20}
 
     if timeout_s != 0
         # non-block recv before poll (according to driver manual)
@@ -241,7 +243,7 @@ end
 
 
 function Drivers.drv_recv(driver::VectorDriver{T};
-    timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame} where {T<:Interfaces.VAL_ANY_FD}
+    timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame} where {T<:Drivers.BUS_FD}
 
     if timeout_s != 0
         # non-block recv before poll (according to driver manual)
@@ -296,7 +298,7 @@ function Drivers.drv_recv(driver::VectorDriver{T};
 end
 
 
-function Drivers.drv_close(driver::VectorDriver)
+function Drivers.drv_close(driver::VectorDriver{T}) where {T<:Drivers.AbstractBusType}
     status = Vxlapi.xlDeactivateChannel(driver.portHandle, driver.channelMask)
     status = Vxlapi.xlClosePort(driver.portHandle)
     status = Vxlapi.xlCloseDriver()
@@ -335,7 +337,7 @@ function _get_channel_mask(channel::Union{Int,AbstractVector{Int}}, appname::Str
 end
 
 
-function _poll(driver::VectorDriver, timeout_s::Real)
+function _poll(driver::VectorDriver{T}, timeout_s::Real) where {T<:Drivers.AbstractBusType}
     # block until frame comes or timeout
     timeout_ms = timeout_s < 0 ? 0xFFFFFFFF : Culong(timeout_s * 1e3)
     st = WinWrap.WaitForSingleObject(driver.notification_hnd, timeout_ms)

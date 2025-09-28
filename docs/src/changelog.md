@@ -8,6 +8,7 @@ first beta release.
 * Add automatic bittiming calculation from samplepoint.
 * Tested on physical hardware (Vector, Kvaser).
 * bug fix: Timeout notification object is infinitely reproduced in Vector.
+* bug fix: Timeout behavior when rx buffer is not empty in Vector, Slcan
 
 ### v0.0.5
 

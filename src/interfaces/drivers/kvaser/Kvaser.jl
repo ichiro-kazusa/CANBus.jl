@@ -23,7 +23,7 @@ kwargs:
 * stdfilter(optional): standard ID filter in AcceptanceFilter struct.
 * extfilter(optional): extended ID filter in AcceptanceFilter struct.
 """
-struct KvaserDriver{T} <: Drivers.AbstractDriver
+struct KvaserDriver{T<:Drivers.AbstractBusType} <: Drivers.AbstractDriver{T}
     handle::Cint
     time_offset::Float64
 end
@@ -38,7 +38,9 @@ function Drivers.drv_open(::Val{Interfaces.KVASER}, cfg::Interfaces.InterfaceCon
         cfg.silent, cfg.stdfilter, cfg.extfilter,
         is_fd, is_noniso, cfg.datarate, cfg.sample_point, cfg.sample_point_fd)
 
-    KvaserDriver{Val{cfg.bustype}}(hnd, time_offset)
+    bustype = Drivers.bustype_helper(cfg)
+
+    KvaserDriver{bustype}(hnd, time_offset)
 end
 
 
@@ -114,7 +116,8 @@ function _init_kvaser(channel::Int, bitrate::Int, silent::Bool,
 end
 
 
-function Drivers.drv_send(driver::KvaserDriver, msg::Frames.Frame)::Nothing
+function Drivers.drv_send(driver::KvaserDriver{T},
+    msg::Frames.Frame)::Nothing where {T<:Drivers.AbstractBusType}
 
     pmsg_t = Ref(msg.data, 1)
     len = Cuint(length(msg))
@@ -130,7 +133,7 @@ end
 
 
 function Drivers.drv_send(driver::KvaserDriver{T},
-    msg::Frames.FDFrame)::Nothing where {T<:Interfaces.VAL_ANY_FD}
+    msg::Frames.FDFrame)::Nothing where {T<:Drivers.BUS_FD}
 
     pmesg = Ref(msg.data, 1)
     flag = Canlib.canFDMSG_FDF # CAN FD message
@@ -147,19 +150,19 @@ end
 
 
 function Drivers.drv_recv(driver::KvaserDriver{T};
-    timeout_s::Real=0)::Union{Nothing,Frames.Frame} where {T<:Val{Interfaces.CAN_20}}
+    timeout_s::Real=0)::Union{Nothing,Frames.Frame} where {T<:Drivers.BUS_20}
     _recv_kvaser_internal(driver, timeout_s)
 end
 
 
 function Drivers.drv_recv(driver::KvaserDriver{T};
-    timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame} where {T<:Interfaces.VAL_ANY_FD}
+    timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame} where {T<:Drivers.BUS_FD}
     _recv_kvaser_internal(driver, timeout_s)
 end
 
 
 function _recv_kvaser_internal(driver::KvaserDriver{T},
-    timeout_s::Real)::Union{Nothing,Frames.AnyFrame} where T
+    timeout_s::Real)::Union{Nothing,Frames.AnyFrame} where {T<:Drivers.AbstractBusType}
 
     # poll
     if timeout_s != 0
@@ -169,7 +172,7 @@ function _recv_kvaser_internal(driver::KvaserDriver{T},
 
     # receive
     pid = Ref(Clong(0))
-    msg = zeros(Cuchar, T <: Interfaces.VAL_ANY_FD ? 64 : 8)
+    msg = zeros(Cuchar, T <: Drivers.BUS_FD ? 64 : 8)
     pmsg = Ref(msg, 1)
     plen = Ref(Cuint(0))
     pflag = Ref(Cuint(0))
@@ -204,7 +207,7 @@ function _recv_kvaser_internal(driver::KvaserDriver{T},
 end
 
 
-function Drivers.drv_close(driver::KvaserDriver)
+function Drivers.drv_close(driver::KvaserDriver{T}) where {T<:Drivers.AbstractBusType}
     status = Canlib.canBusOff(driver.handle)
     status = Canlib.canClose(driver.handle)
     return nothing

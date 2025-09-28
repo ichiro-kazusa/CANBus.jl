@@ -29,7 +29,7 @@ This version is tested on CANable 2.0.
 kwargs:
 * silent(optional): listen only flag in bool. default is `false`.
 """
-mutable struct SlcanDriver{T} <: Drivers.AbstractDriver
+mutable struct SlcanDriver{T<:Drivers.AbstractBusType} <: Drivers.AbstractDriver{T}
     sp::SerialHAL.HandleType
     buffer::String
 end
@@ -42,7 +42,9 @@ function Drivers.drv_open(::Val{Interfaces.SLCAN}, cfg::Interfaces.InterfaceConf
     sp = _init_slcan(cfg.channel, cfg.bitrate, serialbaud, cfg.silent,
         Interfaces.isfd(cfg), cfg.datarate)
 
-    SlcanDriver{Val{cfg.bustype}}(sp, "")
+    bustype = Drivers.bustype_helper(cfg)
+
+    SlcanDriver{bustype}(sp, "")
 
 end
 
@@ -97,7 +99,7 @@ function _init_slcan(channel::String, bitrate::Int,
 end
 
 
-function Drivers.drv_send(driver::T, msg::Frames.Frame) where {T<:SlcanDriver}
+function Drivers.drv_send(driver::SlcanDriver{T}, msg::Frames.Frame) where {T<:Drivers.AbstractBusType}
 
     sendstr::String = ""
     len = string(length(msg))
@@ -125,7 +127,7 @@ function Drivers.drv_send(driver::T, msg::Frames.Frame) where {T<:SlcanDriver}
 end
 
 
-function Drivers.drv_send(driver::SlcanDriver{T}, msg::Frames.FDFrame) where {T<:Interfaces.VAL_ANY_FD}
+function Drivers.drv_send(driver::SlcanDriver{Drivers.BUS_FD}, msg::Frames.FDFrame)
 
     sendstr::String = ""
     if msg.is_extended
@@ -147,7 +149,7 @@ function Drivers.drv_send(driver::SlcanDriver{T}, msg::Frames.FDFrame) where {T<
 end
 
 
-function Drivers.drv_recv(driver::T; timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame} where {T<:SlcanDriver}
+function Drivers.drv_recv(driver::SlcanDriver; timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame}
 
     # non-blocking read before poll
     res = SerialHAL.nonblocking_read(driver.sp)
@@ -213,7 +215,7 @@ function Drivers.drv_recv(driver::T; timeout_s::Real=0)::Union{Nothing,Frames.An
 end
 
 
-function Drivers.drv_close(driver::T) where {T<:SlcanDriver}
+function Drivers.drv_close(driver::SlcanDriver)
     SerialHAL.write(driver.sp, "C" * DELIMITER) # close channel
     SerialHAL.close(driver.sp)
     return nothing

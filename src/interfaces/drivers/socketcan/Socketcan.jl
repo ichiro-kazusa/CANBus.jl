@@ -18,17 +18,19 @@ Setup SocketCAN interface.
 kwargs:
 * filters(optional): list of filters. experimental.
 """
-struct SocketCANDriver{T} <: Drivers.AbstractDriver
+struct SocketCANDriver{T<:Drivers.AbstractBusType} <: Drivers.AbstractDriver{T}
     socket::Cint
 end
 
 
 function Drivers.drv_open(::Val{Interfaces.SOCKETCAN}, cfg::Interfaces.InterfaceConfig)
-    is_fd = cfg.bustype == Interfaces.CAN_FD || cfg.bustype == Interfaces.CAN_FD_NONISO
+    is_fd = Interfaces.isfd(cfg)
 
     s = _init_can(cfg.channel, nothing, is_fd)
 
-    SocketCANDriver{Val{cfg.bustype}}(s)
+    bustype = Drivers.bustype_helper(cfg)
+
+    SocketCANDriver{bustype}(s)
 end
 
 
@@ -119,7 +121,7 @@ end
 
 
 function Drivers.drv_send(driver::SocketCANDriver{T},
-    msg::Frames.FDFrame)::Nothing where {T<:Interfaces.VAL_ANY_FD}
+    msg::Frames.FDFrame)::Nothing where {T<:Drivers.BUS_FD}
 
     id = msg.is_extended ? msg.id | SocketCAN.CAN_EFF_FLAG : msg.id
     len = size(msg.data, 1)
@@ -138,7 +140,7 @@ function Drivers.drv_send(driver::SocketCANDriver{T},
 end
 
 
-function Drivers.drv_recv(driver::T; timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame} where {T<:SocketCANDriver}
+function Drivers.drv_recv(driver::SocketCANDriver, timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame}
 
     # polling (Do not use ccall(:poll). It may blocks julia's process.)
     if timeout_s != 0
