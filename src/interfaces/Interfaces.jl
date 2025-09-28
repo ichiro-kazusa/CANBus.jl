@@ -82,13 +82,31 @@ end
     iface = Interface(ifacecfg::InterfaceConfig)
 
 """
-function Interfaces.Interface(cfg::InterfaceConfig)
+function Interface(cfg::InterfaceConfig)
     # argument check (except vendor_specific)
     # TODO: write this
 
     # construct
     d = Drivers.drv_open(Val(cfg.device), cfg)
     Interface(d)
+end
+
+
+"""
+    Interface(ifacecfg::InterfaceConfig) do iface
+        # do something
+    end
+
+construnctor for `do` statement.
+"""
+function Interface(f::Function, args...; kwargs...)
+    iface = Interface(args...; kwargs...)
+
+    try
+        return f(iface)
+    finally
+        shutdown(iface)
+    end
 end
 
 
