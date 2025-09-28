@@ -3,18 +3,25 @@ using CANBus
 function main()
     # bustype = CAN_20
     bustype = CAN_FD
-    device = VECTOR
+
+    # device = VECTOR
     # device = KVASER
-    # device = SLCAN
+    device = SLCAN
     # device = SOCKETCAN
-    # ch0 = "vcan0"
-    # ch1 = "vcan1"
-    # ch0 = "COM3"
-    # ch1 = "COM4"
-    # ch0 = "/dev/ttyACM0"
-    # ch1 = "/dev/ttyACM1"
-    ch0 = 0
-    ch1 = 1
+
+    if device in (VECTOR, KVASER)
+        ch0 = 0
+        ch1 = 1
+    elseif device == SOCKETCAN
+        ch0 = "vcan0"
+        ch1 = "vcan1"
+    elseif Sys.iswindows() # slcan
+        ch0 = "COM3"
+        ch1 = "COM4"
+    else # slcan linux
+        ch0 = "/dev/ttyACM0"
+        ch1 = "/dev/ttyACM1"
+    end
 
     ifcfg1 = InterfaceConfig(device, ch0, bustype, 500000;
         datarate=2000000, vector_appname="NewApp")

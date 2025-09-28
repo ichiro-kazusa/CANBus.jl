@@ -18,13 +18,13 @@ abstract type AbstractDriver{T<:AbstractBusType} end
 
 
 #= prototype functions =#
-drv_open(::Val, ::Interfaces.InterfaceConfig) = throw(ErrorException("Not Implemented"))
+drv_open(::Val, ::Interfaces.InterfaceConfig) = error("Not Implemented")
 
-drv_send(::AbstractDriver, ::Frames.AnyFrame) = throw(ErrorException("Not Implemented"))
+drv_send(::AbstractDriver, ::Frames.AnyFrame) = error("Not Implemented")
 
-drv_recv(::AbstractDriver; kwargs...) = throw(ErrorException("Not Implemented"))
+drv_recv(::AbstractDriver; timeout_s::Real) = error("Not Implemented")
 
-drv_close(::AbstractDriver) = throw(ErrorException("Not Implemented"))
+drv_close(::AbstractDriver) = error("Not Implemented")
 
 
 

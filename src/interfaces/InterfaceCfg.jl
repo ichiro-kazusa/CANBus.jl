@@ -44,7 +44,6 @@ struct InterfaceConfig
     bitrate::Int
     datarate::Union{Nothing,Int}
     silent::Bool
-    loopback::Bool
     sample_point::Real
     sample_point_fd::Real
     stdfilter::Union{Nothing,AcceptanceFilter,Vector{AcceptanceFilter}}
@@ -56,21 +55,21 @@ end
 
 """
 
-| Device     | silent | loopback | sample_point/_fd | std/extfilter   | vector_appname |
-| ---------- | ------ | -------- | ---------------- | --------------- | -------------- |
-| KVASER     |   ✓   |   ign    |   ✓             |   ✓            |   ign           |
-| SLCAN      |   ✓   |   ign    |   ign            |   ign           |   ign          |
-| SOCKETCAN  |   ign  |   ign    |   ign            |   ✓            |   ign          |
-| VECTOR     |   ✓   |   ign    |   ✓             |   ✓            |   〇           |
+| Device     | silent | sample_point/_fd | std/extfilter   | vector_appname |
+| ---------- | ------ | ---------------- | --------------- | -------------- |
+| KVASER     |   ✓   |   ✓             |   ✓            |   ign           |
+| SLCAN      |   ✓   |   ign            |   ign           |   ign          |
+| SOCKETCAN  |   ign  |   ign            |   ✓            |   ign          |
+| VECTOR     |   ✓   |   ✓             |   ✓            |   ◯           |
 
-〇:required
+◯:required
 ✓:supported
 ign:ignored
 
 """
 function InterfaceConfig(device::DeviceType, channel::Union{String,Int},
     bustype::BusType, bitrate::Int;
-    datarate=nothing, silent=false, loopback=false,
+    datarate=nothing, silent=false,
     sample_point=70, sample_point_fd=70,
     stdfilter=nothing, extfilter=nothing,
     vector_appname="CANalyzer", slcan_serialbaud=115200)
@@ -90,7 +89,7 @@ function InterfaceConfig(device::DeviceType, channel::Union{String,Int},
 
     # construct
     InterfaceConfig(device, channel, bustype, bitrate, datarate,
-        silent, loopback, sample_point, sample_point_fd,
+        silent, sample_point, sample_point_fd,
         stdfilter, extfilter,
         vector_appname, slcan_serialbaud)
 end
