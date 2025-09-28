@@ -2,13 +2,13 @@ module Interfaces
 
 include("InterfaceCfg.jl")
 
-#= import internal Driver module =#
+#= import internal Device module =#
 import ..Frames
-include("drivers/Drivers.jl")
-import .Drivers
+include("devices/Devices.jl")
+import .Devices
 
 
-struct Interface{T1<:Drivers.AbstractDriver}
+struct Interface{T1<:Devices.AbstractDevice}
     driver::T1
 end
 
@@ -19,7 +19,7 @@ end
 """
 function Interface(cfg::InterfaceConfig)
     # construct
-    d = Drivers.drv_open(Val(cfg.device), cfg)
+    d = Devices.drv_open(Val(cfg.device), cfg)
     Interface(d)
 end
 
@@ -56,7 +56,7 @@ It behaves:
 * CAN FD interfaces can send both `Frame` and `FDFrame`
 """
 function send(iface::Interface, frm::Frames.AnyFrame)
-    Drivers.drv_send(iface.driver, frm)
+    Devices.drv_send(iface.driver, frm)
 end
 
 
@@ -76,7 +76,7 @@ It behaves:
 * CAN FD interfaces return either `Frame` or `FDFrame` object.
 """
 function recv(iface::Interface; timeout_s::Real=0)
-    Drivers.drv_recv(iface.driver; timeout_s)
+    Devices.drv_recv(iface.driver; timeout_s)
 end
 
 
@@ -87,7 +87,7 @@ function for shutdown interface.
 Always returns nothing.
 """
 function shutdown(iface::Interface)
-    Drivers.drv_close(iface.driver)
+    Devices.drv_close(iface.driver)
 end
 
 

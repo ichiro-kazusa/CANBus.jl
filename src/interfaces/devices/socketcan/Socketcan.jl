@@ -1,6 +1,6 @@
 module SocketCANInterfaces
 
-import ..Drivers
+import ..Devices
 import ...Interfaces
 import ....Frames
 
@@ -18,19 +18,19 @@ Setup SocketCAN interface.
 kwargs:
 * filters(optional): list of filters. experimental.
 """
-struct SocketCANDriver{T<:Drivers.AbstractBusType} <: Drivers.AbstractDriver{T}
+struct SocketCANDevice{T<:Devices.AbstractBusType} <: Devices.AbstractDevice{T}
     socket::Cint
 end
 
 
-function Drivers.drv_open(::Val{Interfaces.SOCKETCAN}, cfg::Interfaces.InterfaceConfig)
+function Devices.drv_open(::Val{Interfaces.SOCKETCAN}, cfg::Interfaces.InterfaceConfig)
     is_fd = Interfaces.helper_isfd(cfg)
 
     s = _init_can(cfg.channel, nothing, is_fd)
 
-    bustype = Drivers.bustype_helper(cfg)
+    bustype = Devices.bustype_helper(cfg)
 
-    SocketCANDriver{bustype}(s)
+    SocketCANDevice{bustype}(s)
 end
 
 
@@ -101,7 +101,7 @@ function _init_can(channel::String,
 end
 
 
-function Drivers.drv_send(driver::SocketCANDriver,
+function Devices.drv_send(driver::SocketCANDevice,
     msg::Frames.Frame)::Nothing
 
     id = msg.is_extended ? msg.id | SocketCAN.CAN_EFF_FLAG : msg.id
@@ -120,8 +120,8 @@ function Drivers.drv_send(driver::SocketCANDriver,
 end
 
 
-function Drivers.drv_send(driver::SocketCANDriver{T},
-    msg::Frames.FDFrame)::Nothing where {T<:Drivers.BUS_FD}
+function Devices.drv_send(driver::SocketCANDevice{T},
+    msg::Frames.FDFrame)::Nothing where {T<:Devices.BUS_FD}
 
     id = msg.is_extended ? msg.id | SocketCAN.CAN_EFF_FLAG : msg.id
     len = size(msg.data, 1)
@@ -140,7 +140,7 @@ function Drivers.drv_send(driver::SocketCANDriver{T},
 end
 
 
-function Drivers.drv_recv(driver::SocketCANDriver; timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame}
+function Devices.drv_recv(driver::SocketCANDevice; timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame}
 
     # polling (Do not use ccall(:poll). It may blocks julia's process.)
     if timeout_s != 0
@@ -221,7 +221,7 @@ function Drivers.drv_recv(driver::SocketCANDriver; timeout_s::Real=0)::Union{Not
     end
 end
 
-function Drivers.drv_close(driver::T) where {T<:SocketCANDriver}
+function Devices.drv_close(driver::T) where {T<:SocketCANDevice}
     SocketCAN.close(driver.socket)
     return nothing
 end

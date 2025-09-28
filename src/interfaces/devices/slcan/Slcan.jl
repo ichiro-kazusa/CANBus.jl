@@ -1,6 +1,6 @@
-module SlcanDrivers
+module SlcanDevices
 
-import ..Drivers
+import ..Devices
 import ...Interfaces
 import ....Frames
 import ....core: SerialHAL
@@ -29,19 +29,19 @@ This version is tested on CANable 2.0.
 kwargs:
 * silent(optional): listen only flag in bool. default is `false`.
 """
-mutable struct SlcanDriver{T<:Drivers.AbstractBusType} <: Drivers.AbstractDriver{T}
+mutable struct SlcanDevice{T<:Devices.AbstractBusType} <: Devices.AbstractDevice{T}
     sp::SerialHAL.HandleType
     buffer::String
 end
 
 
-function Drivers.drv_open(::Val{Interfaces.SLCAN}, cfg::Interfaces.InterfaceConfig)
+function Devices.drv_open(::Val{Interfaces.SLCAN}, cfg::Interfaces.InterfaceConfig)
     sp = _init_slcan(cfg.channel, cfg.bitrate, cfg.slcan_serialbaud, cfg.silent,
         Interfaces.helper_isfd(cfg), cfg.datarate)
 
-    bustype = Drivers.bustype_helper(cfg)
+    bustype = Devices.bustype_helper(cfg)
 
-    SlcanDriver{bustype}(sp, "")
+    SlcanDevice{bustype}(sp, "")
 
 end
 
@@ -96,7 +96,7 @@ function _init_slcan(channel::String, bitrate::Int,
 end
 
 
-function Drivers.drv_send(driver::SlcanDriver{T}, msg::Frames.Frame) where {T<:Drivers.AbstractBusType}
+function Devices.drv_send(driver::SlcanDevice{T}, msg::Frames.Frame) where {T<:Devices.AbstractBusType}
 
     sendstr::String = ""
     len = string(length(msg))
@@ -124,7 +124,7 @@ function Drivers.drv_send(driver::SlcanDriver{T}, msg::Frames.Frame) where {T<:D
 end
 
 
-function Drivers.drv_send(driver::SlcanDriver{Drivers.BUS_FD}, msg::Frames.FDFrame)
+function Devices.drv_send(driver::SlcanDevice{Devices.BUS_FD}, msg::Frames.FDFrame)
 
     sendstr::String = ""
     if msg.is_extended
@@ -146,7 +146,7 @@ function Drivers.drv_send(driver::SlcanDriver{Drivers.BUS_FD}, msg::Frames.FDFra
 end
 
 
-function Drivers.drv_recv(driver::SlcanDriver; timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame}
+function Devices.drv_recv(driver::SlcanDevice; timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame}
 
     # non-blocking read before poll
     res = SerialHAL.nonblocking_read(driver.sp)
@@ -212,7 +212,7 @@ function Drivers.drv_recv(driver::SlcanDriver; timeout_s::Real=0)::Union{Nothing
 end
 
 
-function Drivers.drv_close(driver::SlcanDriver)
+function Devices.drv_close(driver::SlcanDevice)
     SerialHAL.write(driver.sp, "C" * DELIMITER) # close channel
     SerialHAL.close(driver.sp)
     return nothing

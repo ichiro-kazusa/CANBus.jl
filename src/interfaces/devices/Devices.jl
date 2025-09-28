@@ -1,4 +1,4 @@
-module Drivers
+module Devices
 
 import ..Interfaces
 import ...Frames
@@ -14,17 +14,17 @@ function bustype_helper(cfg::Interfaces.InterfaceConfig)
     BUS_FD : BUS_20
 end
 
-abstract type AbstractDriver{T<:AbstractBusType} end
+abstract type AbstractDevice{T<:AbstractBusType} end
 
 
 #= prototype functions =#
 drv_open(::Val, ::Interfaces.InterfaceConfig) = error("Not Implemented")
 
-drv_send(::AbstractDriver, ::Frames.AnyFrame) = error("Not Implemented")
+drv_send(::AbstractDevice, ::Frames.AnyFrame) = error("Not Implemented")
 
-drv_recv(::AbstractDriver; timeout_s::Real) = error("Not Implemented")
+drv_recv(::AbstractDevice; timeout_s::Real) = error("Not Implemented")
 
-drv_close(::AbstractDriver) = error("Not Implemented")
+drv_close(::AbstractDevice) = error("Not Implemented")
 
 
 
@@ -33,4 +33,4 @@ include("kvaser/Kvaser.jl")
 include("socketcan/Socketcan.jl")
 include("slcan/Slcan.jl")
 
-end # Drivers
+end # Devices

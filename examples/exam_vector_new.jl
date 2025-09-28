@@ -1,8 +1,8 @@
 using CANBus
 
 function main()
-    # bustype = CAN_20
-    bustype = CAN_FD
+    bustype = CAN_20
+    # bustype = CAN_FD
 
     # device = VECTOR
     # device = KVASER
