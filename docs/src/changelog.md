@@ -1,14 +1,14 @@
 # Changelog
 
-### v0.1.0
+### v0.0.6
 
-first beta release.
-
-* Support do-end statement.
-* Add automatic bittiming calculation from samplepoint.
+* **Breaks Compatibility**: New generic `Interface` setup API.
+    * Old vendor-specific APIs are no longer available.
+* Support `do`-`end` statement for `Interface`.
+* Add automatic bit-timing calculation from samplepoint.
 * Tested on physical hardware (Vector, Kvaser).
 * bug fix: Timeout notification object is infinitely reproduced in Vector.
-* bug fix: Timeout behavior when rx buffer is not empty in Vector, Slcan
+* bug fix: Infinite waiting when rx buffer is not empty in Vector, Slcan
 
 ### v0.0.5
 

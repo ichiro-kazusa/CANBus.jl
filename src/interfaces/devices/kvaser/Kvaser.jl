@@ -1,3 +1,4 @@
+""" Internal Device handler for Kvaser """
 module KvaserDevices
 
 import ..Devices

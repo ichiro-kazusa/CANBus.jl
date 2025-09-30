@@ -16,6 +16,7 @@ end
 """
     iface = Interface(ifacecfg::InterfaceConfig)
 
+Setup CAN Bus Interfaces. 
 """
 function Interface(cfg::InterfaceConfig)
     # construct
@@ -26,12 +27,11 @@ end
 
 """
     Interface(ifacecfg::InterfaceConfig) do iface
-        # do something like
-        # example:
-        # recv(iface)
+        # do something like:
+        # ret = recv(iface)
     end
 
-construnctor for `do` statement.
+Construnctor for `do` statement.
 """
 function Interface(f::Function, args...; kwargs...)
     iface = Interface(args...; kwargs...)

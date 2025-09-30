@@ -25,7 +25,7 @@ pkg> add CANBus
 
 ## TODO
 
-### Upcoming plans until v1.0.0
+### Upcoming plans until v0.1.0
 
 * Careful error-handling.
 * Add Bus state check function

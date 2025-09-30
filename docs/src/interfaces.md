@@ -1,9 +1,9 @@
 # Interfaces
 
-## Base type
+## Interface
 
 ```@docs
-CANBus.Interfaces.AbstractCANInterface
+CANBus.Interfaces.Interface
 ```
 
 ```@docs
@@ -24,54 +24,16 @@ CANBus.Interfaces.shutdown
 CANBus.Interfaces.AcceptanceFilter
 ```
 
-## Kvaser
+### InterfaceConfig struct
 
 ```@docs
-CANBus.Interfaces.KvaserInterfaces.KvaserInterface
+CANBus.Interfaces.InterfaceConfig(device::CANBus.Interfaces.DeviceType, channel::Union{String,Int}, bustype::CANBus.Interfaces.BusType, bitrate::Int; kwargs...)
 ```
 
 ```@docs
-CANBus.Interfaces.KvaserInterfaces.KvaserFDInterface
-```
-
-## slcan
-
-`slcan` does not support hardware filter.
-
-```@docs
-CANBus.Interfaces.SlcanInterfaces.SlcanInterface
+CANBus.Interfaces.InterfaceConfigCAN(device::CANBus.Interfaces.DeviceType, channel::Union{String,Int}, bustype::CANBus.Interfaces.BusType, bitrate::Int; kwargs...)
 ```
 
 ```@docs
-CANBus.Interfaces.SlcanInterfaces.SlcanFDInterface
-```
-
-## SocketCAN
-
-```@docs
-CANBus.Interfaces.SocketCANInterfaces.SocketCANInterface
-```
-
-```@docs
-CANBus.Interfaces.SocketCANInterfaces.SocketCANFDInterface
-```
-
-## Vector
-
-```@docs
-CANBus.Interfaces.VectorInterfaces.VectorInterface
-```
-
-```@docs
-CANBus.Interfaces.VectorInterfaces.VectorFDInterface
-```
-
-## `do` block support
-
-Every interface supports automatic shutdown by `do` - `end` block like below:
-
-```jl
-SocketCANInterface("can0") do iface
-    res = recv(iface)
-end # shutdown(iface)
+CANBus.Interfaces.InterfaceConfigFD(device::CANBus.Interfaces.DeviceType, channel::Union{String,Int}, bustype::CANBus.Interfaces.BusType, bitrate::Int, datarate::Int; kwargs...)
 ```

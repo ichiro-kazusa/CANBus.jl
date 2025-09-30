@@ -1,11 +1,11 @@
 using CANBus
 
 function main()
-    bustype = CAN_20
-    # bustype = CAN_FD
+    # bustype = CAN_20
+    bustype = CAN_FD
 
-    # device = VECTOR
-    device = KVASER
+    device = VECTOR
+    # device = KVASER
     # device = SLCAN
     # device = SOCKETCAN
 
@@ -30,7 +30,7 @@ function main()
         datarate=2000000, vector_appname="NewApp")
 
     iface1 = Interface(ifcfg1)
-    Interface(ifcfg2) do iface2
+    Interface(ifcfg2) do iface2 # do-end example
 
         println(iface1)
 
@@ -41,10 +41,12 @@ function main()
 
         sleep(0.1)
 
-        ret = recv(iface2; timeout_s=-1)
-        println(ret)
-        ret = recv(iface2; timeout_s=-1)
-        println(ret)
+        # error("")
+        ret1 = recv(iface2; timeout_s=-1)
+        ret2 = recv(iface2; timeout_s=-1)
+
+        println(ret1)
+        println(ret2)
 
     end
     shutdown(iface1)

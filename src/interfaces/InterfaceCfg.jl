@@ -54,6 +54,15 @@ end
 
 
 """
+Always required:
+* device: Device name. e.g. VECTOR, SOCKETCAN...
+* channel: Device specific channel name.
+* bustype: (CAN_20, CAN_FD, CAN_FD_NONISO)
+
+Required when bustype is CAN_FD or CAN_FD_NONISO:
+* datarate
+
+Other options:
 
 | Device     | silent | sample_point/_fd | std/extfilter   | vector_appname |
 | ---------- | ------ | ---------------- | --------------- | -------------- |
@@ -62,28 +71,32 @@ end
 | SOCKETCAN  |   ign  |   ign            |   ✓            |   ign          |
 | VECTOR     |   ✓   |   ✓             |   ✓            |   ◯           |
 
-◯:required
-✓:supported
-ign:ignored
+◯:required,
+✓:supported,
+ign:ignored.
 
+See Hardwares section to see vendor specific notations.
 """
 function InterfaceConfig(device::DeviceType, channel::Union{String,Int},
     bustype::BusType, bitrate::Int;
     datarate=nothing, silent=false,
     sample_point=70, sample_point_fd=70,
     stdfilter=nothing, extfilter=nothing,
-    vector_appname="CANalyzer", slcan_serialbaud=115200)
+    vector_appname="CANalyzer", slcan_serialbaud=2_000_000)
 
     # check validity
     if !(0 < bitrate <= 1_000_000)
         error("invalid bitrate")
     end
-    if !(50 < sample_point < 100) || !(50 < sample_point_fd < 100)
+    if !(50 < sample_point < 100)
         error("invalid samplepoint")
     end
     if bustype in (CAN_FD, CAN_FD_NONISO)
         if datarate === nothing || datarate <= 0
             error("invalid datarate")
+        end
+        if !(50 < sample_point_fd < 100)
+            error("invalid fd samplepoint")
         end
     end
 
@@ -124,6 +137,6 @@ function InterfaceConfigFD(device::DeviceType, channel::Union{String,Int},
 end
 
 
-#= helper function that cfg for FD? =#
+#= internal helper function that cfg for FD? =#
 helper_isfd(cfg::InterfaceConfig) = cfg.bustype in (CAN_FD, CAN_FD_NONISO)
 

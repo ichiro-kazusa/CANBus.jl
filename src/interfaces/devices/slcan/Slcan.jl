@@ -1,3 +1,4 @@
+""" Internal Device handler for slcan """
 module SlcanDevices
 
 import ..Devices
@@ -50,7 +51,9 @@ function _init_slcan(channel::String, bitrate::Int,
     serialbaud::Int, silent::Bool,
     fd::Bool, datarate::Int)::SerialHAL.HandleType
 
-
+    # cleanup unused serial port
+    GC.gc()
+    
     # check arguments
     # bitrate
     if !haskey(slcandef.BITRATE_DICT, bitrate)

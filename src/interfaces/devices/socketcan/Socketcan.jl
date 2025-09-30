@@ -1,4 +1,5 @@
-module SocketCANInterfaces
+""" Internal Device handler for SocketCAN """
+module SocketCANDevices
 
 import ..Devices
 import ...Interfaces
@@ -227,4 +228,4 @@ function Devices.dev_close(driver::T) where {T<:SocketCANDevice}
 end
 
 
-end # SocketCANInterfaces
+end # SocketCANDevices
