@@ -10,6 +10,13 @@ import .SocketCAN
 
 using FileWatching
 
+
+#= mutable struct for handle finalizer =#
+mutable struct SocketHolder
+    socket::Cint
+end
+
+
 """
     SocketCANInterface(channel::String; filters::Vector{AcceptanceFilter})
 
@@ -20,7 +27,7 @@ kwargs:
 * filters(optional): list of filters. experimental.
 """
 struct SocketCANDevice{T<:Devices.AbstractBusType} <: Devices.AbstractDevice{T}
-    socket::Cint
+    socketholder::SocketHolder
 end
 
 
@@ -31,7 +38,16 @@ function Devices.dev_open(::Val{Interfaces.SOCKETCAN}, cfg::Interfaces.Interface
 
     bustype = Devices.bustype_helper(cfg)
 
-    SocketCANDevice{bustype}(s)
+    sd = SocketCANDevice{bustype}(SocketHolder(s))
+    finalizer(_cleanup, sd.socketholder)
+
+    return sd
+end
+
+
+#= cleanup function for socket finalizer =#
+function _cleanup(holder::SocketHolder)
+    SocketCAN.close(holder.socket)
 end
 
 
@@ -102,7 +118,7 @@ function _init_can(channel::String,
 end
 
 
-function Devices.dev_send(driver::SocketCANDevice,
+function Devices.dev_send(device::SocketCANDevice,
     msg::Frames.Frame)::Nothing
 
     id = msg.is_extended ? msg.id | SocketCAN.CAN_EFF_FLAG : msg.id
@@ -112,7 +128,8 @@ function Devices.dev_send(driver::SocketCANDevice,
     data[1:dlc] .= msg.data
     msg = SocketCAN.can_frame(id, dlc, 0, 0, 0, (data...,))
     pmsg = Ref(msg)
-    written = SocketCAN.write(driver.socket, pmsg, Cuint(sizeof(SocketCAN.can_frame)))
+    written = SocketCAN.write(device.socketholder.socket,
+        pmsg, Cuint(sizeof(SocketCAN.can_frame)))
 
     if written != Cuint(sizeof(SocketCAN.can_frame))
         error("SocketCAN: Failed to transmit.")
@@ -121,7 +138,7 @@ function Devices.dev_send(driver::SocketCANDevice,
 end
 
 
-function Devices.dev_send(driver::SocketCANDevice{T},
+function Devices.dev_send(device::SocketCANDevice{T},
     msg::Frames.FDFrame)::Nothing where {T<:Devices.BUS_FD}
 
     id = msg.is_extended ? msg.id | SocketCAN.CAN_EFF_FLAG : msg.id
@@ -132,7 +149,8 @@ function Devices.dev_send(driver::SocketCANDevice{T},
             SocketCAN.CANFD_FDF
     msg = SocketCAN.canfd_frame(id, len, flags, 0, 0, (data...,))
     pmsg = Ref(msg)
-    written = SocketCAN.write(driver.socket, pmsg, Cuint(sizeof(SocketCAN.canfd_frame)))
+    written = SocketCAN.write(device.socketholder.socket,
+        pmsg, Cuint(sizeof(SocketCAN.canfd_frame)))
 
     if written != Cuint(sizeof(SocketCAN.canfd_frame))
         error("SocketCAN: Failed to transmit.")
@@ -141,11 +159,11 @@ function Devices.dev_send(driver::SocketCANDevice{T},
 end
 
 
-function Devices.dev_recv(driver::SocketCANDevice; timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame}
+function Devices.dev_recv(device::SocketCANDevice; timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame}
 
     # polling (Do not use ccall(:poll). It may blocks julia's process.)
     if timeout_s != 0
-        poll_fd(Libc.RawFD(driver.socket), timeout_s; readable=true)
+        poll_fd(Libc.RawFD(device.socketholder.socket), timeout_s; readable=true)
     end
 
     # prepare to receive
@@ -173,7 +191,7 @@ function Devices.dev_recv(driver::SocketCANDevice; timeout_s::Real=0)::Union{Not
         )
         r_msg = Ref(msg)
 
-        nbytes = SocketCAN.recvmsg(driver.socket, r_msg, Cint(0))
+        nbytes = SocketCAN.recvmsg(device.socketholder.socket, r_msg, Cint(0))
 
         if nbytes < 0
             ern = Libc.errno()
@@ -222,8 +240,9 @@ function Devices.dev_recv(driver::SocketCANDevice; timeout_s::Real=0)::Union{Not
     end
 end
 
-function Devices.dev_close(driver::T) where {T<:SocketCANDevice}
-    SocketCAN.close(driver.socket)
+
+function Devices.dev_close(device::T) where {T<:SocketCANDevice}
+    SocketCAN.close(device.socketholder.socket)
     return nothing
 end
 
