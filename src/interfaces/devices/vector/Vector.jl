@@ -25,12 +25,11 @@ kwargs:
 * extfilter(optional): extended ID filter in AcceptanceFilter struct.
 """
 struct VectorDevice{T<:Devices.AbstractBusType} <: Devices.AbstractDevice{T}
-    portHandle::Vxlapi.XLportHandle
+    pportHandle::Ref{Vxlapi.XLportHandle}
     channelMask::Vxlapi.XLaccess
     time_offset::Float64
     notification_hnd::Vxlapi.XLhandle
 end
-
 
 
 function Devices.dev_open(::Val{Interfaces.VECTOR}, cfg::Interfaces.InterfaceConfig)
@@ -43,13 +42,22 @@ function Devices.dev_open(::Val{Interfaces.VECTOR}, cfg::Interfaces.InterfaceCon
         rxqueuesize, cfg.silent, cfg.stdfilter, cfg.extfilter,
         is_fd, is_noniso, cfg.datarate, cfg.sample_point, cfg.sample_point_fd)
 
-    portHandle, channelMask, time_offset, notification_hnd = ret
+    pportHandle, channelMask, time_offset, notification_hnd = ret
 
     bustype = Devices.bustype_helper(cfg)
 
-    VectorDevice{bustype}(portHandle, channelMask, time_offset, notification_hnd)
+    vd = VectorDevice{bustype}(pportHandle, channelMask, time_offset, notification_hnd)
+    finalizer(_cleanup, vd.pportHandle)
+
+    return vd
 end
 
+
+#= cleanup function for handle finalizer =#
+function _cleanup(pportHandle::Ref{Vxlapi.XLportHandle})
+    Vxlapi.xlClosePort(pportHandle[])
+    Vxlapi.xlCloseDriver()
+end
 
 
 function _init_vector(channel::Union{Int,AbstractVector{Int}},
@@ -57,7 +65,7 @@ function _init_vector(channel::Union{Int,AbstractVector{Int}},
     stdfilter::Union{Nothing,Interfaces.AcceptanceFilter},
     extfilter::Union{Nothing,Interfaces.AcceptanceFilter},
     fd::Bool, non_iso::Bool, datarate::Union{Nothing,Int},
-    sample_point::Real, sample_point_fd::Real)::Tuple{Vxlapi.XLportHandle,Vxlapi.XLaccess,Float64,Vxlapi.XLhandle}
+    sample_point::Real, sample_point_fd::Real)::Tuple{Ref{Vxlapi.XLportHandle},Vxlapi.XLaccess,Float64,Vxlapi.XLhandle}
 
     # open driver
     status = Vxlapi.xlOpenDriver()
@@ -133,11 +141,11 @@ function _init_vector(channel::Union{Int,AbstractVector{Int}},
         error("Vector: rx buffer flush failed. $st")
     end
 
-    return pportHandle[], channelMask, time_offset, r_hnd[]
+    return pportHandle, channelMask, time_offset, r_hnd[]
 end
 
 
-function Devices.dev_send(driver::VectorDevice{T}, msg::Frames.Frame) where {T<:Devices.BUS_20}
+function Devices.dev_send(device::VectorDevice{T}, msg::Frames.Frame) where {T<:Devices.BUS_20}
     # construct XLEvent
     messageCount = Cuint(1)
     dlc = size(msg.data, 1)
@@ -156,7 +164,7 @@ function Devices.dev_send(driver::VectorDevice{T}, msg::Frames.Frame) where {T<:
     # send message
     pMessageCount = Ref(messageCount)
     pEventList_t = Ref(EventList_t, 1)
-    status = Vxlapi.xlCanTransmit!(driver.portHandle, driver.channelMask, pMessageCount, pEventList_t)
+    status = Vxlapi.xlCanTransmit!(device.pportHandle[], device.channelMask, pMessageCount, pEventList_t)
 
     if status != Vxlapi.XL_SUCCESS || pMessageCount[] != messageCount
         error("Vector: Failed to transmit.")
@@ -166,7 +174,7 @@ function Devices.dev_send(driver::VectorDevice{T}, msg::Frames.Frame) where {T<:
 end
 
 
-function Devices.dev_send(driver::VectorDevice{T1}, msg::T2) where {T1<:Devices.BUS_FD,T2<:Frames.AnyFrame}
+function Devices.dev_send(device::VectorDevice{T1}, msg::T2) where {T1<:Devices.BUS_FD,T2<:Frames.AnyFrame}
     canid = msg.is_extended ? msg.id | Vxlapi.XL_CAN_EXT_MSG_ID : msg.id
     len = length(msg)
     dlc = len <= 8 ? len : Vxlapi.CANFD_LEN2DLC[len]
@@ -186,7 +194,7 @@ function Devices.dev_send(driver::VectorDevice{T1}, msg::T2) where {T1<:Devices.
     pevent = Ref(event)
     pMsgCntSent = Ref(Cuint(0))
 
-    status = Vxlapi.xlCanTransmitEx!(driver.portHandle, driver.channelMask,
+    status = Vxlapi.xlCanTransmitEx!(device.pportHandle[], device.channelMask,
         Cuint(1), pMsgCntSent, pevent)
     if status != Vxlapi.XL_SUCCESS || pMsgCntSent[] != 1
         error("Vector: Failed to transmit.")
@@ -196,18 +204,18 @@ function Devices.dev_send(driver::VectorDevice{T1}, msg::T2) where {T1<:Devices.
 end
 
 
-function Devices.dev_recv(driver::VectorDevice{T};
+function Devices.dev_recv(device::VectorDevice{T};
     timeout_s::Real=0)::Union{Nothing,Frames.Frame} where {T<:Devices.BUS_20}
 
     if timeout_s != 0
         # non-block recv before poll (according to driver manual)
-        ret = Devices.dev_recv(driver; timeout_s=0)
+        ret = Devices.dev_recv(device; timeout_s=0)
         if ret !== nothing
             return ret
         end
 
         # poll
-        _poll(driver, timeout_s)
+        _poll(device, timeout_s)
     end
 
     # prepare to receive
@@ -215,12 +223,12 @@ function Devices.dev_recv(driver::VectorDevice{T};
     EventList_r = Vector{Vxlapi.XLevent}([Vxlapi.XLevent() for i in 1:pEventCount[]])
     pEventList_r = Ref(EventList_r, 1)
 
-    status = Vxlapi.xlReceive!(driver.portHandle, pEventCount, pEventList_r)
+    status = Vxlapi.xlReceive!(device.pportHandle[], pEventCount, pEventList_r)
 
     if status != Vxlapi.XL_ERR_QUEUE_IS_EMPTY
         if EventList_r[1].tag == Vxlapi.XL_RECEIVE_MSG
 
-            timestamp = driver.time_offset + EventList_r[1].timeStamp * 1.e-9 # nsec -> sec
+            timestamp = device.time_offset + EventList_r[1].timeStamp * 1.e-9 # nsec -> sec
 
             # split id to extended flag
             totalid = EventList_r[1].tagData.id
@@ -243,18 +251,18 @@ function Devices.dev_recv(driver::VectorDevice{T};
 end
 
 
-function Devices.dev_recv(driver::VectorDevice{T};
+function Devices.dev_recv(device::VectorDevice{T};
     timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame} where {T<:Devices.BUS_FD}
 
     if timeout_s != 0
         # non-block recv before poll (according to driver manual)
-        ret = Devices.dev_recv(driver; timeout_s=0)
+        ret = Devices.dev_recv(device; timeout_s=0)
         if ret !== nothing
             return ret
         end
 
         # poll
-        _poll(driver, timeout_s)
+        _poll(device, timeout_s)
     end
 
     # receive    
@@ -263,14 +271,14 @@ function Devices.dev_recv(driver::VectorDevice{T};
             (zeros(Cuchar, 5)...,), (zeros(Cuchar, Vxlapi.XL_CAN_MAX_DATA_LEN)...,)))
     pcanrxevt = Ref(canrxevt)
 
-    status = Vxlapi.xlCanReceive!(driver.portHandle, pcanrxevt)
+    status = Vxlapi.xlCanReceive!(device.pportHandle[], pcanrxevt)
 
     if status == Vxlapi.XL_ERR_QUEUE_IS_EMPTY
         return nothing
     elseif status == Vxlapi.XL_SUCCESS
         if pcanrxevt[].tag == Vxlapi.XL_CAN_EV_TAG_RX_OK
 
-            timestamp = driver.time_offset + pcanrxevt[].timeStampSync * 1.e-9
+            timestamp = device.time_offset + pcanrxevt[].timeStampSync * 1.e-9
 
             dlc = pcanrxevt[].tagData.dlc
             len = dlc <= 8 ? dlc : Vxlapi.CANFD_DLC2LEN[dlc]
@@ -299,9 +307,9 @@ function Devices.dev_recv(driver::VectorDevice{T};
 end
 
 
-function Devices.dev_close(driver::VectorDevice{T}) where {T<:Devices.AbstractBusType}
-    status = Vxlapi.xlDeactivateChannel(driver.portHandle, driver.channelMask)
-    status = Vxlapi.xlClosePort(driver.portHandle)
+function Devices.dev_close(device::VectorDevice{T}) where {T<:Devices.AbstractBusType}
+    status = Vxlapi.xlDeactivateChannel(device.pportHandle[], device.channelMask)
+    status = Vxlapi.xlClosePort(device.pportHandle[])
     status = Vxlapi.xlCloseDriver()
     return nothing
 end
@@ -338,10 +346,10 @@ function _get_channel_mask(channel::Union{Int,AbstractVector{Int}}, appname::Str
 end
 
 
-function _poll(driver::VectorDevice{T}, timeout_s::Real) where {T<:Devices.AbstractBusType}
+function _poll(device::VectorDevice{T}, timeout_s::Real) where {T<:Devices.AbstractBusType}
     # block until frame comes or timeout
     timeout_ms = timeout_s < 0 ? 0xFFFFFFFF : Culong(timeout_s * 1e3)
-    st = WinWrap.WaitForSingleObject(driver.notification_hnd, timeout_ms)
+    st = WinWrap.WaitForSingleObject(device.notification_hnd, timeout_ms)
     println("Wait: $st")
 end
 
