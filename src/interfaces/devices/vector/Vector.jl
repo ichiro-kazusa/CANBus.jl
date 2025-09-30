@@ -28,7 +28,7 @@ struct VectorDevice{T<:Devices.AbstractBusType} <: Devices.AbstractDevice{T}
     pportHandle::Ref{Vxlapi.XLportHandle}
     channelMask::Vxlapi.XLaccess
     time_offset::Float64
-    notification_hnd::Vxlapi.XLhandle
+    notification_hnd::Ref{Vxlapi.XLhandle}
 end
 
 
@@ -48,15 +48,22 @@ function Devices.dev_open(::Val{Interfaces.VECTOR}, cfg::Interfaces.InterfaceCon
 
     vd = VectorDevice{bustype}(pportHandle, channelMask, time_offset, notification_hnd)
     finalizer(_cleanup_porthandle, vd.pportHandle)
+    finalizer(_cleanup_notificationhandle, vd.notification_hnd)
 
     return vd
 end
 
 
-#= cleanup function for handle finalizer =#
+#= cleanup function for port handle finalizer =#
 function _cleanup_porthandle(pportHandle::Ref{Vxlapi.XLportHandle})
     Vxlapi.xlClosePort(pportHandle[])
     Vxlapi.xlCloseDriver()
+end
+
+
+#= cleanup function for notification handle finalizer =#
+function _cleanup_notificationhandle(notification_hnd::Ref{Vxlapi.XLhandle})
+    WinWrap.CloseHandle(notification_hnd[])
 end
 
 
@@ -65,7 +72,7 @@ function _init_vector(channel::Union{Int,AbstractVector{Int}},
     stdfilter::Union{Nothing,Interfaces.AcceptanceFilter},
     extfilter::Union{Nothing,Interfaces.AcceptanceFilter},
     fd::Bool, non_iso::Bool, datarate::Union{Nothing,Int},
-    sample_point::Real, sample_point_fd::Real)::Tuple{Ref{Vxlapi.XLportHandle},Vxlapi.XLaccess,Float64,Vxlapi.XLhandle}
+    sample_point::Real, sample_point_fd::Real)::Tuple{Ref{Vxlapi.XLportHandle},Vxlapi.XLaccess,Float64,Ref{Vxlapi.XLhandle}}
 
     # open driver
     status = Vxlapi.xlOpenDriver()
@@ -141,7 +148,7 @@ function _init_vector(channel::Union{Int,AbstractVector{Int}},
         error("Vector: rx buffer flush failed. $st")
     end
 
-    return pportHandle, channelMask, time_offset, r_hnd[]
+    return pportHandle, channelMask, time_offset, r_hnd
 end
 
 
@@ -308,6 +315,7 @@ end
 
 
 function Devices.dev_close(device::VectorDevice{T}) where {T<:Devices.AbstractBusType}
+    status = WinWrap.CloseHandle(device.notification_hnd[])
     status = Vxlapi.xlDeactivateChannel(device.pportHandle[], device.channelMask)
     status = Vxlapi.xlClosePort(device.pportHandle[])
     status = Vxlapi.xlCloseDriver()
@@ -349,7 +357,7 @@ end
 function _poll(device::VectorDevice{T}, timeout_s::Real) where {T<:Devices.AbstractBusType}
     # block until frame comes or timeout
     timeout_ms = timeout_s < 0 ? 0xFFFFFFFF : Culong(timeout_s * 1e3)
-    st = WinWrap.WaitForSingleObject(device.notification_hnd, timeout_ms)
+    st = WinWrap.WaitForSingleObject(device.notification_hnd[], timeout_ms)
     println("Wait: $st")
 end
 
