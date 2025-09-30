@@ -47,14 +47,14 @@ function Devices.dev_open(::Val{Interfaces.VECTOR}, cfg::Interfaces.InterfaceCon
     bustype = Devices.bustype_helper(cfg)
 
     vd = VectorDevice{bustype}(pportHandle, channelMask, time_offset, notification_hnd)
-    finalizer(_cleanup, vd.pportHandle)
+    finalizer(_cleanup_porthandle, vd.pportHandle)
 
     return vd
 end
 
 
 #= cleanup function for handle finalizer =#
-function _cleanup(pportHandle::Ref{Vxlapi.XLportHandle})
+function _cleanup_porthandle(pportHandle::Ref{Vxlapi.XLportHandle})
     Vxlapi.xlClosePort(pportHandle[])
     Vxlapi.xlCloseDriver()
 end

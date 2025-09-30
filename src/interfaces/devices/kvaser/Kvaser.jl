@@ -10,6 +10,12 @@ include("canlib.jl")
 import .Canlib
 
 
+#= mutable struct for handle finalizer =#
+mutable struct HandleHolder
+    handle::Cint
+end
+
+
 """
     KvaserInterface(channel::Int, bitrate::Int;
         silent::Bool, stdfilter::AcceptanceFilter, extfilter::AcceptanceFilter)
@@ -25,7 +31,7 @@ kwargs:
 * extfilter(optional): extended ID filter in AcceptanceFilter struct.
 """
 struct KvaserDevice{T<:Devices.AbstractBusType} <: Devices.AbstractDevice{T}
-    handle::Cint
+    handleholder::HandleHolder
     time_offset::Float64
 end
 
@@ -41,10 +47,18 @@ function Devices.dev_open(::Val{Interfaces.KVASER}, cfg::Interfaces.InterfaceCon
 
     bustype = Devices.bustype_helper(cfg)
 
-    KvaserDevice{bustype}(hnd, time_offset)
+    kd = KvaserDevice{bustype}(HandleHolder(hnd), time_offset)
+    finalizer(_cleanup, kd.handleholder)
+
+    return kd
 end
 
 
+#= cleanup function for handle finalizer =#
+function _cleanup(holder::HandleHolder)
+    status = Canlib.canBusOff(holder.handle)
+    status = Canlib.canClose(holder.handle)
+end
 
 
 function _init_kvaser(channel::Int, bitrate::Int, silent::Bool,
@@ -117,14 +131,14 @@ function _init_kvaser(channel::Int, bitrate::Int, silent::Bool,
 end
 
 
-function Devices.dev_send(driver::KvaserDevice{T},
+function Devices.dev_send(device::KvaserDevice{T},
     msg::Frames.Frame)::Nothing where {T<:Devices.AbstractBusType}
 
     pmsg_t = Ref(msg.data, 1)
     len = Cuint(length(msg))
     id = Clong(msg.id)
     flag = msg.is_extended ? Canlib.canMSG_EXT : Canlib.canMSG_STD
-    status = Canlib.canWrite(driver.handle, id, pmsg_t, len, flag)
+    status = Canlib.canWrite(device.handleholder.handle, id, pmsg_t, len, flag)
 
     if status != Canlib.canOK
         error("Kvaser: Failed to transmit. $status")
@@ -133,14 +147,14 @@ function Devices.dev_send(driver::KvaserDevice{T},
 end
 
 
-function Devices.dev_send(driver::KvaserDevice{T},
+function Devices.dev_send(device::KvaserDevice{T},
     msg::Frames.FDFrame)::Nothing where {T<:Devices.BUS_FD}
 
     pmesg = Ref(msg.data, 1)
     flag = Canlib.canFDMSG_FDF # CAN FD message
     flag |= msg.is_extended ? Canlib.canMSG_EXT : Canlib.canMSG_STD # STD or EXT id
     flag |= msg.bitrate_switch ? Canlib.canFDMSG_BRS : Cuint(0) # use BRS
-    status = Canlib.canWrite(driver.handle,
+    status = Canlib.canWrite(device.handleholder.handle,
         Clong(msg.id), pmesg, Cuint(length(msg)), flag)
 
     if status != Canlib.canOK
@@ -150,25 +164,25 @@ function Devices.dev_send(driver::KvaserDevice{T},
 end
 
 
-function Devices.dev_recv(driver::KvaserDevice{T};
+function Devices.dev_recv(device::KvaserDevice{T};
     timeout_s::Real=0)::Union{Nothing,Frames.Frame} where {T<:Devices.BUS_20}
-    _recv_kvaser_internal(driver, timeout_s)
+    _recv_kvaser_internal(device, timeout_s)
 end
 
 
-function Devices.dev_recv(driver::KvaserDevice{T};
+function Devices.dev_recv(device::KvaserDevice{T};
     timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame} where {T<:Devices.BUS_FD}
-    _recv_kvaser_internal(driver, timeout_s)
+    _recv_kvaser_internal(device, timeout_s)
 end
 
 
-function _recv_kvaser_internal(driver::KvaserDevice{T},
+function _recv_kvaser_internal(device::KvaserDevice{T},
     timeout_s::Real)::Union{Nothing,Frames.AnyFrame} where {T<:Devices.AbstractBusType}
 
     # poll
     if timeout_s != 0
         timeout_ms = timeout_s < 0 ? Culong(0xFFFFFFFF) : Culong(timeout_s * 1e3)
-        Canlib.canReadSync(driver.handle, timeout_ms)
+        Canlib.canReadSync(device.handleholder.handle, timeout_ms)
     end
 
     # receive
@@ -178,12 +192,12 @@ function _recv_kvaser_internal(driver::KvaserDevice{T},
     plen = Ref(Cuint(0))
     pflag = Ref(Cuint(0))
     ptime = Ref(Culong(0))
-    status = Canlib.canRead(driver.handle, pid, pmsg, plen, pflag, ptime)
+    status = Canlib.canRead(device.handleholder.handle, pid, pmsg, plen, pflag, ptime)
 
     if status == Canlib.canOK
         is_ext = (pflag[] & Canlib.canMSG_EXT) != 0
         is_err = (pflag[] & Canlib.canMSG_ERROR_FRAME) != 0
-        timestamp = driver.time_offset + ptime[] * 1.e-6 # arrange in sec
+        timestamp = device.time_offset + ptime[] * 1.e-6 # arrange in sec
 
         if (pflag[] & Canlib.canFDMSG_FDF) != 0 # FD Message
             brs = (pflag[] & Canlib.canFDMSG_BRS) != 0
@@ -208,9 +222,9 @@ function _recv_kvaser_internal(driver::KvaserDevice{T},
 end
 
 
-function Devices.dev_close(driver::KvaserDevice{T}) where {T<:Devices.AbstractBusType}
-    status = Canlib.canBusOff(driver.handle)
-    status = Canlib.canClose(driver.handle)
+function Devices.dev_close(device::KvaserDevice{T}) where {T<:Devices.AbstractBusType}
+    status = Canlib.canBusOff(device.handleholder.handle)
+    status = Canlib.canClose(device.handleholder.handle)
     return nothing
 end
 

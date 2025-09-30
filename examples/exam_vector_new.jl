@@ -4,8 +4,8 @@ function main()
     # bustype = CAN_20
     bustype = CAN_FD
 
-    device = VECTOR
-    # device = KVASER
+    # device = VECTOR
+    device = KVASER
     # device = SLCAN
     # device = SOCKETCAN
 
