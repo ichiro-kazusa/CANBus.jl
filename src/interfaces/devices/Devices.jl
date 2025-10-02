@@ -1,6 +1,6 @@
 module Devices
 
-import ..Interfaces
+import ...InterfaceCfgs
 import ...Frames
 
 
@@ -9,8 +9,8 @@ struct BUS_20 <: AbstractBusType end
 struct BUS_FD <: AbstractBusType end
 
 #= internal helper function to determine bustype =#
-function bustype_helper(cfg::Interfaces.InterfaceConfig)
-    cfg.bustype in (Interfaces.CAN_FD, Interfaces.CAN_FD_NONISO) ?
+function helper_bustype(cfg::InterfaceCfgs.InterfaceConfig)
+    cfg.bustype in (InterfaceCfgs.CAN_FD, InterfaceCfgs.CAN_FD_NONISO) ?
     BUS_FD : BUS_20
 end
 
@@ -18,7 +18,7 @@ abstract type AbstractDevice{T<:AbstractBusType} end
 
 
 #= prototype functions =#
-dev_open(::Val, ::Interfaces.InterfaceConfig) = error("Not Implemented")
+dev_open(::Val, ::InterfaceCfgs.InterfaceConfig) = error("Not Implemented")
 
 dev_send(::AbstractDevice, ::Frames.AnyFrame) = error("Not Implemented")
 

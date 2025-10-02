@@ -2,9 +2,9 @@
 module SlcanDevices
 
 import ..Devices
-import ...Interfaces
+import ....InterfaceCfgs
 import ....Frames
-import ....core: SerialHAL
+import ....misc: SerialHAL
 
 
 include("slcandef.jl")
@@ -36,9 +36,9 @@ mutable struct SlcanDevice{T<:Devices.AbstractBusType} <: Devices.AbstractDevice
 end
 
 
-function Devices.dev_open(::Val{Interfaces.SLCAN}, cfg::Interfaces.InterfaceConfig)
+function Devices.dev_open(::Val{InterfaceCfgs.SLCAN}, cfg::InterfaceCfgs.InterfaceConfig)
     sp = _init_slcan(cfg.channel, cfg.bitrate, cfg.slcan_serialbaud, cfg.silent,
-        Interfaces.helper_isfd(cfg), cfg.datarate)
+        InterfaceCfgs.helper_isfd(cfg), cfg.datarate)
 
     bustype = Devices.bustype_helper(cfg)
 

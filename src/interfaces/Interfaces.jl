@@ -1,8 +1,7 @@
 module Interfaces
 
-include("InterfaceCfg.jl")
 
-#= import internal Device module =#
+import ..InterfaceCfgs
 import ..Frames
 include("devices/Devices.jl")
 import .Devices
@@ -18,7 +17,7 @@ end
 
 Setup CAN Bus Interfaces. 
 """
-function Interface(cfg::InterfaceConfig)
+function Interface(cfg::InterfaceCfgs.InterfaceConfig)
     # construct
     d = Devices.dev_open(Val(cfg.device), cfg)
     Interface(d)

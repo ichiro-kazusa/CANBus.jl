@@ -7,8 +7,9 @@
 * Support `do`-`end` statement for `Interface`.
 * Add automatic bit-timing calculation from samplepoint.
 * Tested on physical hardware (Vector, Kvaser).
-* bug fix: Timeout notification object is infinitely reproduced in Vector.
-* bug fix: Infinite waiting when rx buffer is not empty in Vector, Slcan
+* bug fix: Timeout notification object is infinitely reproduced (Vector).
+* bug fix: Infinite waiting when rx buffer is not empty (Vector, Slcan).
+* bug fix: Handle leakage when stopping by error (all devices).
 
 ### v0.0.5
 

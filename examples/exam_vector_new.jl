@@ -4,8 +4,8 @@ function main()
     # bustype = CAN_20
     bustype = CAN_FD
 
-    # device = VECTOR
-    device = KVASER
+    device = VECTOR
+    # device = KVASER
     # device = SLCAN
     # device = SOCKETCAN
 
@@ -32,7 +32,7 @@ function main()
     iface1 = Interface(ifcfg1)
     Interface(ifcfg2) do iface2 # do-end example
 
-        println(iface1)
+        # println(iface1)
 
         frm1 = Frame(0x02, [00, 01, 02, 03, 04, 05])
         frm2 = bustype == CAN_FD ? FDFrame(0x02, collect(1:12); is_extended=true) : frm1

@@ -2,7 +2,7 @@
 module SocketCANDevices
 
 import ..Devices
-import ...Interfaces
+import ....InterfaceCfgs
 import ....Frames
 
 include("socketcanapi.jl")
@@ -31,8 +31,8 @@ struct SocketCANDevice{T<:Devices.AbstractBusType} <: Devices.AbstractDevice{T}
 end
 
 
-function Devices.dev_open(::Val{Interfaces.SOCKETCAN}, cfg::Interfaces.InterfaceConfig)
-    is_fd = Interfaces.helper_isfd(cfg)
+function Devices.dev_open(::Val{InterfaceCfgs.SOCKETCAN}, cfg::InterfaceCfgs.InterfaceConfig)
+    is_fd = InterfaceCfgs.helper_isfd(cfg)
 
     s = _init_can(cfg.channel, nothing, is_fd)
 
@@ -52,7 +52,7 @@ end
 
 
 function _init_can(channel::String,
-    filters::Union{Nothing,Vector{Interfaces.AcceptanceFilter}},
+    filters::Union{Nothing,Vector{InterfaceCfgs.AcceptanceFilter}},
     fd::Bool)::Cint
 
     # open socket

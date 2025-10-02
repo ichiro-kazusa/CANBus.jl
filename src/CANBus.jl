@@ -1,33 +1,37 @@
 module CANBus
 
-module core
 # internal use
-include("core/SerialHAL.jl")
-include("core/WinWrap.jl")
-include("core/BitTiming.jl")
-end # module core
+module misc
+include("misc/SerialHAL.jl")
+include("misc/WinWrap.jl")
+include("misc/BitTiming.jl")
+end # module misc
 
 
-# public api: data structure
-include("frames/Frames.jl")
+# public api: frame structure
+include("core/Frames.jl")
 import .Frames: Frame, FDFrame
 export Frame, FDFrame
+
+
+# public api: interface config
+include("core/InterfaceCfgs.jl")
+import .InterfaceCfgs: InterfaceConfig, AcceptanceFilter
+import .InterfaceCfgs:
+    VECTOR, KVASER, SOCKETCAN, SLCAN,
+    CAN_20, CAN_FD, CAN_FD_NONISO
+export InterfaceConfig, AcceptanceFilter
+export 
+    VECTOR, KVASER, SOCKETCAN, SLCAN,
+    CAN_20, CAN_FD, CAN_FD_NONISO
+
 
 # public api: interfaces
 include("interfaces/Interfaces.jl")
 import .Interfaces:
-    AcceptanceFilter, send, recv, shutdown,
-    Interface, InterfaceConfig
-import .Interfaces:
-    VECTOR, KVASER, SOCKETCAN, SLCAN,
-    CAN_20, CAN_FD, CAN_FD_NONISO
+    send, recv, shutdown, Interface
 
-
-export Interface, InterfaceConfig
-export send, recv, shutdown, AcceptanceFilter
-export
-    VECTOR, KVASER, SOCKETCAN, SLCAN,
-    CAN_20, CAN_FD, CAN_FD_NONISO
+export Interface, send, recv, shutdown
 
 
 end # module CANBus

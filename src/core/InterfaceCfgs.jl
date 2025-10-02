@@ -1,7 +1,4 @@
-#########################################################
-# in module Interfaces
-#########################################################
-
+module InterfaceCfgs
 
 @enum DeviceType::UInt8 begin
     VECTOR
@@ -140,3 +137,5 @@ end
 #= internal helper function that cfg for FD? =#
 helper_isfd(cfg::InterfaceConfig) = cfg.bustype in (CAN_FD, CAN_FD_NONISO)
 
+
+end # InterfaceCfgs

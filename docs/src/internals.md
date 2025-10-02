@@ -5,7 +5,7 @@
 ### BitTiming
 
 ```@docs
-CANBus.core.BitTiming
+CANBus.misc.BitTiming
 ```
 
 ## Device Handlers
@@ -74,11 +74,11 @@ CANBus.Interfaces.Devices.VectorDevices.Vxlapi
 ### SerialHAL
 
 ```@docs
-CANBus.core.SerialHAL
+CANBus.misc.SerialHAL
 ```
 
 ### WinWrap
 
 ```@docs
-CANBus.core.WinWrap
+CANBus.misc.WinWrap
 ```

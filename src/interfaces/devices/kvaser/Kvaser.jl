@@ -2,9 +2,9 @@
 module KvaserDevices
 
 import ..Devices
-import ...Interfaces
+import ....InterfaceCfgs
 import ....Frames
-import ....core: BitTiming
+import ....misc: BitTiming
 
 include("canlib.jl")
 import .Canlib
@@ -36,10 +36,10 @@ struct KvaserDevice{T<:Devices.AbstractBusType} <: Devices.AbstractDevice{T}
 end
 
 
-function Devices.dev_open(::Val{Interfaces.KVASER}, cfg::Interfaces.InterfaceConfig)
+function Devices.dev_open(::Val{InterfaceCfgs.KVASER}, cfg::InterfaceCfgs.InterfaceConfig)
 
-    is_fd = Interfaces.helper_isfd(cfg)
-    is_noniso = cfg.bustype == Interfaces.CAN_FD_NONISO
+    is_fd = InterfaceCfgs.helper_isfd(cfg)
+    is_noniso = cfg.bustype == InterfaceCfgs.CAN_FD_NONISO
 
     hnd, time_offset = _init_kvaser(cfg.channel, cfg.bitrate,
         cfg.silent, cfg.stdfilter, cfg.extfilter,
@@ -62,8 +62,8 @@ end
 
 
 function _init_kvaser(channel::Int, bitrate::Int, silent::Bool,
-    stdfilter::Union{Nothing,Interfaces.AcceptanceFilter},
-    extfilter::Union{Nothing,Interfaces.AcceptanceFilter},
+    stdfilter::Union{Nothing,InterfaceCfgs.AcceptanceFilter},
+    extfilter::Union{Nothing,InterfaceCfgs.AcceptanceFilter},
     fd::Bool, non_iso::Bool, datarate::Int,
     sample_point::Real, sample_point_fd::Real)::Tuple{Cint,Float64}
 
