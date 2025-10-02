@@ -74,6 +74,9 @@ function _init_vector(channel::Union{Int,AbstractVector{Int}},
     fd::Bool, non_iso::Bool, datarate::Union{Nothing,Int},
     sample_point::Real, sample_point_fd::Real)::Tuple{Ref{Vxlapi.XLportHandle},Vxlapi.XLaccess,Float64,Ref{Vxlapi.XLhandle}}
 
+    # cleanup unreferenced handles
+    GC.gc()
+
     # open driver
     status = Vxlapi.xlOpenDriver()
 
@@ -339,7 +342,7 @@ function _get_channel_mask(channel::Union{Int,AbstractVector{Int}}, appname::Str
         status = Vxlapi.xlGetApplConfig(appname, ch,
             pHwType, pHwIndex, pHwChannel, Vxlapi.XL_BUS_TYPE_CAN)
         if status != Vxlapi.XL_SUCCESS
-            throw(ErrorException("Vector: CH=$ch does not exist. Check channel index or application name."))
+            throw(ErrorException("Vector: CH=$ch does not exist. Check channel index or application name. $status"))
         end
         push!(hwInfo, (Cint(pHwType[]), Cint(pHwIndex[]), Cint(pHwChannel[])))
     end

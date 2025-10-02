@@ -1,3 +1,4 @@
+using Revise
 using CANBus
 
 function main()
@@ -15,7 +16,7 @@ function main()
     elseif device == SOCKETCAN
         ch0 = "vcan0"
         ch1 = "vcan1"
-    elseif Sys.iswindows() # slcan
+    elseif Sys.iswindows() # slcan for windows
         ch0 = "COM3"
         ch1 = "COM4"
     else # slcan linux
@@ -37,7 +38,7 @@ function main()
         # println(iface1)
 
         frm1 = Frame(0x02, [00, 01, 02, 03, 04, 05])
-        frm2 = bustype == CAN_FD ? FDFrame(0x02, collect(1:12); is_extended=true) : frm1
+        frm2 = bustype == CAN_20 ? frm1 : FDFrame(0x02, collect(1:12); is_extended=true)
         send(iface1, frm1)
         send(iface1, frm2)
 

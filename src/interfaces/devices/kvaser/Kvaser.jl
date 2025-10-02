@@ -67,6 +67,9 @@ function _init_kvaser(channel::Int, bitrate::Int, silent::Bool,
     fd::Bool, non_iso::Bool, datarate::Int,
     sample_point::Real, sample_point_fd::Real)::Tuple{Cint,Float64}
 
+    # cleanup unreferenced handles
+    GC.gc()
+
     # initialize library
     Canlib.canInitializeLibrary()
 

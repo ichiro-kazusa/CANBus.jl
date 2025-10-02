@@ -51,7 +51,7 @@ function _init_slcan(channel::String, bitrate::Int,
     serialbaud::Int, silent::Bool,
     fd::Bool, datarate::Int)::SerialHAL.HandleType
 
-    # cleanup zombie handle
+    # cleanup unreferenced handle
     GC.gc()
     
     # check arguments
