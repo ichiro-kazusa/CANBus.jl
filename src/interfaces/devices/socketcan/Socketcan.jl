@@ -36,7 +36,7 @@ function Devices.dev_open(::Val{InterfaceCfgs.SOCKETCAN}, cfg::InterfaceCfgs.Int
 
     s = _init_can(cfg.channel, nothing, is_fd)
 
-    bustype = Devices.bustype_helper(cfg)
+    bustype = Devices.helper_bustype(cfg)
 
     sd = SocketCANDevice{bustype}(SocketHolder(s))
     finalizer(_cleanup, sd.socketholder)

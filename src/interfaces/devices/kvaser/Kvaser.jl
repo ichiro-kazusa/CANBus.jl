@@ -45,7 +45,7 @@ function Devices.dev_open(::Val{InterfaceCfgs.KVASER}, cfg::InterfaceCfgs.Interf
         cfg.silent, cfg.stdfilter, cfg.extfilter,
         is_fd, is_noniso, cfg.datarate, cfg.sample_point, cfg.sample_point_fd)
 
-    bustype = Devices.bustype_helper(cfg)
+    bustype = Devices.helper_bustype(cfg)
 
     kd = KvaserDevice{bustype}(HandleHolder(hnd), time_offset)
     finalizer(_cleanup, kd.handleholder)

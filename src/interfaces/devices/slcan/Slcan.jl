@@ -40,7 +40,7 @@ function Devices.dev_open(::Val{InterfaceCfgs.SLCAN}, cfg::InterfaceCfgs.Interfa
     sp = _init_slcan(cfg.channel, cfg.bitrate, cfg.slcan_serialbaud, cfg.silent,
         InterfaceCfgs.helper_isfd(cfg), cfg.datarate)
 
-    bustype = Devices.bustype_helper(cfg)
+    bustype = Devices.helper_bustype(cfg)
 
     SlcanDevice{bustype}(sp, "")
 

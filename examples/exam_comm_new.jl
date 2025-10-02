@@ -4,9 +4,9 @@ function main()
     # bustype = CAN_20
     bustype = CAN_FD
 
-    device = VECTOR
+    # device = VECTOR
     # device = KVASER
-    # device = SLCAN
+    device = SLCAN
     # device = SOCKETCAN
 
     if device in (VECTOR, KVASER)
@@ -22,6 +22,8 @@ function main()
         ch0 = "/dev/ttyACM0"
         ch1 = "/dev/ttyACM1"
     end
+
+    # -------------------------------------
 
     ifcfg1 = InterfaceConfig(device, ch0, bustype, 500000;
         datarate=2000000, vector_appname="NewApp")
