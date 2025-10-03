@@ -41,8 +41,15 @@ function Devices.dev_open(::Val{InterfaceCfgs.KVASER}, cfg::InterfaceCfgs.Interf
     is_fd = InterfaceCfgs.helper_isfd(cfg)
     is_noniso = cfg.bustype == InterfaceCfgs.CAN_FD_NONISO
 
+    # preprocess stdfilter/extfilter
+    stdfilter = isa(cfg.stdfilter, Vector{InterfaceCfgs.AcceptanceFilter}) ?
+                length(cfg.stdfilter) != 0 ? cfg.stdfilter : nothing : cfg.stdfilter
+    extfilter = isa(cfg.extfilter, Vector{InterfaceCfgs.AcceptanceFilter}) ?
+                length(cfg.extfilter) != 0 ? cfg.extfilter : nothing : cfg.extfilter
+
+
     hnd, time_offset = _init_kvaser(cfg.channel, cfg.bitrate,
-        cfg.silent, cfg.stdfilter, cfg.extfilter,
+        cfg.silent, stdfilter, extfilter,
         is_fd, is_noniso, cfg.datarate, cfg.sample_point, cfg.sample_point_fd)
 
     bustype = Devices.helper_bustype(cfg)

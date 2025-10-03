@@ -36,10 +36,17 @@ function Devices.dev_open(::Val{InterfaceCfgs.VECTOR}, cfg::InterfaceCfgs.Interf
 
     is_fd = InterfaceCfgs.helper_isfd(cfg)
     is_noniso = cfg.bustype == InterfaceCfgs.CAN_FD_NONISO
-    rxqueuesize = cfg.bustype == InterfaceCfgs.CAN_20 ? Cuint(32768) : Cuint(524288)
+    rxqueuesize = is_fd ? Cuint(524288) : Cuint(32768)
+
+    # preprocess stdfilter/extfilter
+    stdfilter = isa(cfg.stdfilter, Vector{InterfaceCfgs.AcceptanceFilter}) ?
+                length(cfg.stdfilter) != 0 ? cfg.stdfilter : nothing : cfg.stdfilter
+    extfilter = isa(cfg.extfilter, Vector{InterfaceCfgs.AcceptanceFilter}) ?
+                length(cfg.extfilter) != 0 ? cfg.extfilter : nothing : cfg.extfilter
+
 
     ret = _init_vector(cfg.channel, cfg.bitrate, cfg.vector_appname,
-        rxqueuesize, cfg.silent, cfg.stdfilter, cfg.extfilter,
+        rxqueuesize, cfg.silent, stdfilter, extfilter,
         is_fd, is_noniso, cfg.datarate, cfg.sample_point, cfg.sample_point_fd)
 
     pportHandle, channelMask, time_offset, notification_hnd = ret

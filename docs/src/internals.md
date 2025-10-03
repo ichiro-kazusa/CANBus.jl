@@ -2,13 +2,41 @@
 
 ## General internal modules
 
-### BitTiming
+```mermaid
 
-```@docs
-CANBus.misc.BitTiming
+classDiagram
+    namespace core{
+        class InterfaceConfig
+        class Frames
+    }
+
+    namespace misc{
+        class VendorAPIs
+        class CommonAPIs
+    }
+
+    %% CANBus ..> Interfaces
+    %% CANBus ..> InterfaceConfig
+    %% CANBus ..> Frames
+
+    class Devices
+    <<interface>> Devices
+    Interfaces *.. Devices
+    Interfaces ..> InterfaceConfig
+    Interfaces ..> Frames
+
+    Devices <|.. "1..*"ConcreteDevices
+    ConcreteDevices ..> VendorAPIs
+    ConcreteDevices ..> CommonAPIs
+    ConcreteDevices ..> Frames
+    ConcreteDevices ..> InterfaceConfig
+   
 ```
 
-## Device Handlers
+
+
+
+## ConcreteDevices
 
 ### Kvaser
 
@@ -51,12 +79,18 @@ CANBus.Interfaces.Devices.VectorDevices
 CANBus.Interfaces.Devices.VectorDevices.VectorDevice
 ```
 
-## Low level APIs
+## VendorAPIs
 
 ### Kvaser
 
 ```@docs
 CANBus.Interfaces.Devices.KvaserDevices.Canlib
+```
+
+### slcan
+
+```@docs
+CANBus.Interfaces.Devices.SlcanDevices.slcandef
 ```
 
 ### SocketCAN
@@ -71,6 +105,8 @@ CANBus.Interfaces.Devices.SocketCANDevices.SocketCAN
 CANBus.Interfaces.Devices.VectorDevices.Vxlapi
 ```
 
+## CommonAPIs
+
 ### SerialHAL
 
 ```@docs
@@ -81,4 +117,10 @@ CANBus.misc.SerialHAL
 
 ```@docs
 CANBus.misc.WinWrap
+```
+
+### BitTiming
+
+```@docs
+CANBus.misc.BitTiming
 ```

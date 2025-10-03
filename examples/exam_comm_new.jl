@@ -9,9 +9,9 @@ function main()
     # bustype = CAN_20
     bustype = CAN_FD
 
-    # device = VECTOR
+    device = VECTOR
     # device = KVASER
-    device = SLCAN
+    # device = SLCAN
     # device = SOCKETCAN
 
     if device in (VECTOR, KVASER)
