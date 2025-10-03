@@ -1,5 +1,9 @@
-using Revise
+try
+    using Revise
+catch
+end
 using CANBus
+
 
 function main()
     # bustype = CAN_20
@@ -44,7 +48,6 @@ function main()
 
         sleep(0.1)
 
-        # error("")
         ret1 = recv(iface2; timeout_s=-1)
         ret2 = recv(iface2; timeout_s=-1)
 
