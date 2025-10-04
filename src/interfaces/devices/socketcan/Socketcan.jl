@@ -34,7 +34,13 @@ end
 function Devices.dev_open(::Val{InterfaceCfgs.SOCKETCAN}, cfg::InterfaceCfgs.InterfaceConfig)
     is_fd = InterfaceCfgs.helper_isfd(cfg)
 
-    s = _init_can(cfg.channel, nothing, is_fd)
+    # preprocess filter
+    filters = InterfaceCfgs.AcceptanceFilter[]
+    append!(filters, _preprocess_filter(cfg.stdfilter, false))
+    append!(filters, _preprocess_filter(cfg.extfilter, true))
+    filters = length(filters) == 0 ? nothing : filters
+
+    s = _init_can(cfg.channel, filters, is_fd)
 
     bustype = Devices.helper_bustype(cfg)
 
@@ -42,6 +48,25 @@ function Devices.dev_open(::Val{InterfaceCfgs.SOCKETCAN}, cfg::InterfaceCfgs.Int
     finalizer(_cleanup, sd.socketholder)
 
     return sd
+end
+
+
+#= filter preprocessor =#
+function _preprocess_filter(filter::T, isext::Bool)::Vector{InterfaceCfgs.AcceptanceFilter} where T
+    flag = isext ? SocketCAN.CAN_EFF_FLAG : UInt32(0)
+    mask = SocketCAN.CAN_EFF_FLAG | SocketCAN.CAN_RTR_FLAG
+    
+    if filter === nothing
+        return InterfaceCfgs.AcceptanceFilter[]
+    elseif T == InterfaceCfgs.AcceptanceFilter
+        return [InterfaceCfgs.AcceptanceFilter(
+            filter.code_id | flag, filter.mask | mask)]
+    elseif length(filter) == 0
+        return InterfaceCfgs.AcceptanceFilter[]
+    else
+        return [InterfaceCfgs.AcceptanceFilter(
+            f.code_id | flag, f.mask | mask) for f in filter]
+    end
 end
 
 
@@ -54,6 +79,9 @@ end
 function _init_can(channel::String,
     filters::Union{Nothing,Vector{InterfaceCfgs.AcceptanceFilter}},
     fd::Bool)::Cint
+
+    # cleanup unreferenced socket
+    GC.gc()
 
     # open socket
     s = SocketCAN.socket(SocketCAN.PF_CAN,

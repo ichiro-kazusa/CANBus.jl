@@ -1,18 +1,17 @@
-try
-    using Revise
-catch
-end
+using Revise
 using CANBus
+import CANBus.Interfaces.Devices.SocketCANDevices.SocketCAN:
+    CAN_EFF_FLAG, CAN_EFF_MASK, CAN_SFF_MASK
 
 
 function main()
     # bustype = CAN_20
     bustype = CAN_FD
 
-    device = VECTOR
+    # device = VECTOR
     # device = KVASER
     # device = SLCAN
-    # device = SOCKETCAN
+    device = SOCKETCAN
 
     if device in (VECTOR, KVASER)
         ch0 = 0
@@ -33,8 +32,10 @@ function main()
     ifcfg1 = InterfaceConfig(device, ch0, bustype, 500000;
         datarate=2000000, vector_appname="NewApp")
 
+    f = AcceptanceFilter(0x02, 0x02)
+
     ifcfg2 = InterfaceConfig(device, ch1, bustype, 500000;
-        datarate=2000000, vector_appname="NewApp")
+        datarate=2000000, vector_appname="NewApp", stdfilter=f)
 
     iface1 = Interface(ifcfg1)
     Interface(ifcfg2) do iface2 # do-end example
@@ -48,10 +49,10 @@ function main()
 
         sleep(0.1)
 
-        ret1 = recv(iface2; timeout_s=-1)
-        ret2 = recv(iface2; timeout_s=-1)
-
+        ret1 = recv(iface2; timeout_s=1)
         println(ret1)
+
+        ret2 = recv(iface2; timeout_s=1)
         println(ret2)
 
     end
