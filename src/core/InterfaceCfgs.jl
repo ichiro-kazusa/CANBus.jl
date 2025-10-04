@@ -141,13 +141,13 @@ end
 
 """
     InterfaceConfigCAN(device::DeviceType, channel::Union{String,Int},
-        bustype::BusType, bitrate::Int; kwargs...)
+        bitrate::Int; kwargs...)
 
 Helper function to construct InterfaceConfig object for CAN2.0 setup.
 kwargs is same as [InterfaceConfig](@ref CANBus.InterfaceCfgs.InterfaceConfig(device::CANBus.InterfaceCfgs.DeviceType, channel::Union{String,Int}, bustype::CANBus.InterfaceCfgs.BusType, bitrate::Int; kwargs...)) constructor.
 """
 function InterfaceConfigCAN(device::DeviceType, channel::Union{String,Int},
-    bustype::BusType, bitrate::Int; kwargs...)::InterfaceConfig
+    bitrate::Int; kwargs...)::InterfaceConfig
 
     InterfaceConfig(device, channel, CAN_20, bitrate; kwargs...)
 end
@@ -161,7 +161,7 @@ Helper function to construct InterfaceConfig object for CAN-FD (ISO type) setup.
 kwargs is same as [InterfaceConfig](@ref CANBus.InterfaceCfgs.InterfaceConfig(device::CANBus.InterfaceCfgs.DeviceType, channel::Union{String,Int}, bustype::CANBus.InterfaceCfgs.BusType, bitrate::Int; kwargs...)) constructor.
 """
 function InterfaceConfigFD(device::DeviceType, channel::Union{String,Int},
-    bustype::BusType, bitrate::Int, datarate::Int; kwargs...)::InterfaceConfig
+    bitrate::Int, datarate::Int; kwargs...)::InterfaceConfig
 
     InterfaceConfig(device, channel, CAN_FD, bitrate;
         datarate=datarate, kwargs...)

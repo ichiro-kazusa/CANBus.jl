@@ -11,11 +11,11 @@ CANBus.InterfaceCfgs.InterfaceConfig(device::CANBus.InterfaceCfgs.DeviceType, ch
 ```
 
 ```@docs
-CANBus.InterfaceCfgs.InterfaceConfigCAN(device::CANBus.InterfaceCfgs.DeviceType, channel::Union{String,Int}, bustype::CANBus.InterfaceCfgs.BusType, bitrate::Int; kwargs...)
+CANBus.InterfaceCfgs.InterfaceConfigCAN(device::CANBus.InterfaceCfgs.DeviceType, channel::Union{String,Int}, bitrate::Int; kwargs...)
 ```
 
 ```@docs
-CANBus.InterfaceCfgs.InterfaceConfigFD(device::CANBus.InterfaceCfgs.DeviceType, channel::Union{String,Int}, bustype::CANBus.InterfaceCfgs.BusType, bitrate::Int, datarate::Int; kwargs...)
+CANBus.InterfaceCfgs.InterfaceConfigFD(device::CANBus.InterfaceCfgs.DeviceType, channel::Union{String,Int}, bitrate::Int, datarate::Int; kwargs...)
 ```
 
 ## Enumerates

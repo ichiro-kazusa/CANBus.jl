@@ -16,12 +16,16 @@ export Frame, FDFrame
 
 # public api: interface config
 include("core/InterfaceCfgs.jl")
-import .InterfaceCfgs: InterfaceConfig, AcceptanceFilter
+import .InterfaceCfgs:
+    InterfaceConfig, AcceptanceFilter,
+    InterfaceConfigCAN, InterfaceConfigFD
 import .InterfaceCfgs:
     VECTOR, KVASER, SOCKETCAN, SLCAN,
     CAN_20, CAN_FD, CAN_FD_NONISO
-export InterfaceConfig, AcceptanceFilter
-export 
+export
+    InterfaceConfig, AcceptanceFilter,
+    InterfaceConfigCAN, InterfaceConfigFD
+export
     VECTOR, KVASER, SOCKETCAN, SLCAN,
     CAN_20, CAN_FD, CAN_FD_NONISO
 
