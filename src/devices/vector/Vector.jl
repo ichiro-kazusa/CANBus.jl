@@ -1,4 +1,3 @@
-""" Internal Device handler for Vector """
 module VectorDevices
 
 import ..Devices
@@ -11,18 +10,11 @@ import .Vxlapi
 
 
 """
-    VectorInterface(channel::Int, bitrate::Int, appname::String)
+    VectorDevice(pportHandle::Ref{Vxlapi.XLportHandle}, channelMask::Vxlapi.XLaccess,
+        time_offset::Float64, notification_hnd::Ref{Vxlapi.XLhandle})
 
-Setup Vector interface.
-* channel: channel number in integer.
-* bitrate: bitrate as bit/s in integer.
-* apppname: Application Name string in Vector Hardware Manager.
-
-kwargs:
-* sample_point(optional): sample point in percent. Default is 70 (%).
-* silent(optional): listen only flag in bool. default=false.
-* stdfilter(optional): standard ID filter in AcceptanceFilter struct.
-* extfilter(optional): extended ID filter in AcceptanceFilter struct.
+Struct to store Vector device port handle, channel mask,
+time offset, and notification handle.
 """
 struct VectorDevice{T<:Devices.AbstractBusType} <: Devices.AbstractDevice{T}
     pportHandle::Ref{Vxlapi.XLportHandle}
@@ -234,7 +226,7 @@ function Devices.dev_recv(device::VectorDevice{T};
 
     # poll (clear event even if timeout_s==0)
     _poll(device, timeout_s)
-    
+
     # prepare to receive
     pEventCount = Ref(Cuint(1))
     EventList_r = Vector{Vxlapi.XLevent}([Vxlapi.XLevent() for i in 1:pEventCount[]])

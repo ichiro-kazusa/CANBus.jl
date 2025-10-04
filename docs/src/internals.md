@@ -35,32 +35,37 @@ classDiagram
 
 ## Devices
 
-### Abstract type adn functions
+### Abstract type and functions
 
 ```@docs
 CANBus.Interfaces.Devices.AbstractDevice
 ```
 
+```@docs
+CANBus.Interfaces.Devices.dev_open(::Val, ::CANBus.InterfaceCfgs.InterfaceConfig)
+```
 
+```@docs
+CANBus.Interfaces.Devices.dev_send(::CANBus.Interfaces.Devices.AbstractDevice, ::CANBus.Frames.AnyFrame)
+```
+
+```@docs
+CANBus.Interfaces.Devices.dev_recv(::CANBus.Interfaces.Devices.AbstractDevice; ::Real)
+```
+
+```@docs
+CANBus.Interfaces.Devices.dev_close(::CANBus.Interfaces.Devices.AbstractDevice)
+```
 
 ## ConcreteDevices
 
 ### Kvaser
 
 ```@docs
-CANBus.Interfaces.Devices.KvaserDevices
-```
-
-```@docs
 CANBus.Interfaces.Devices.KvaserDevices.KvaserDevice
 ```
 
-
 ### slcan
-
-```@docs
-CANBus.Interfaces.Devices.SlcanDevices
-```
 
 ```@docs
 CANBus.Interfaces.Devices.SlcanDevices.SlcanDevice
@@ -69,18 +74,10 @@ CANBus.Interfaces.Devices.SlcanDevices.SlcanDevice
 ### SocketCAN
 
 ```@docs
-CANBus.Interfaces.Devices.SocketCANDevices
-```
-
-```@docs
 CANBus.Interfaces.Devices.SocketCANDevices.SocketCANDevice
 ```
 
 ### Vector
-
-```@docs
-CANBus.Interfaces.Devices.VectorDevices
-```
 
 ```@docs
 CANBus.Interfaces.Devices.VectorDevices.VectorDevice

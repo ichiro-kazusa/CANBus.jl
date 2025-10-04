@@ -1,4 +1,3 @@
-""" Internal Device handler for Kvaser """
 module KvaserDevices
 
 import ..Devices
@@ -17,18 +16,9 @@ end
 
 
 """
-    KvaserInterface(channel::Int, bitrate::Int;
-        silent::Bool, stdfilter::AcceptanceFilter, extfilter::AcceptanceFilter)
+    KvaserDevice(handleholder::HandleHolder, time_offset::Float64)
 
-Setup Kvaser interface
-* channel: channel number in integer.
-* bitrate: bitrate as bit/s in integer.
-
-kwargs:
-* silent(optional): listen only flag in bool.
-* sample_point(optional): sample point in percent. Default is 70 (%).
-* stdfilter(optional): standard ID filter in AcceptanceFilter struct.
-* extfilter(optional): extended ID filter in AcceptanceFilter struct.
+Struct for store Kvaser device handle and time offset.
 """
 struct KvaserDevice{T<:Devices.AbstractBusType} <: Devices.AbstractDevice{T}
     handleholder::HandleHolder

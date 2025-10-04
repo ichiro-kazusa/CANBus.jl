@@ -43,6 +43,11 @@ slcan0 = SocketCANFDInterface("COM3", 1000000, 2000000) # bitrate 1Mbps, datarat
 
 CAN FD on `slcan`, datarate can be chosen from `2000000`, `5000000`.
 
+!!! note
+
+    `slcan` with FD firmware (b158aa7) is seemd to be always on FD mode,
+    thus there is **no pure CAN mode**. Therefore, this interface exceptionally receives
+    `FDFrame` when someone sends that.
 
 ## SocketCAN
 

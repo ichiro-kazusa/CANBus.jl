@@ -20,12 +20,17 @@ abstract type AbstractDevice{T<:AbstractBusType} end
 
 
 #= prototype functions =#
+
+""" Abstract function for setup and open device. """
 dev_open(::Val, ::InterfaceCfgs.InterfaceConfig) = error("Not Implemented")
 
+""" Abstract function for send frame. """
 dev_send(::AbstractDevice, ::Frames.AnyFrame) = error("Not Implemented")
 
+""" Abstract function for receive frame. """
 dev_recv(::AbstractDevice; timeout_s::Real) = error("Not Implemented")
 
+""" Abstract function for close device. """
 dev_close(::AbstractDevice) = error("Not Implemented")
 
 

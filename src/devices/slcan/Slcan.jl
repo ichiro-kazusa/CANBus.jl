@@ -1,4 +1,3 @@
-""" Internal Device handler for slcan """
 module SlcanDevices
 
 import ..Devices
@@ -13,22 +12,9 @@ import .slcandef
 const DELIMITER = '\r'
 
 """
-    slcan0 = SlcanInterface(port::String, bitrate::Integer)
+    SlcanDevice(port::String, bitrate::Integer)
 
-slcan is a CAN over serial protocol by CANable.
-This version is tested on CANable 2.0.
-
-!!! note
-
-    `slcan` with FD firmware (b158aa7) is seemd to be always on FD mode,
-    thus there is **no pure CAN mode**. Therefore, this interface exceptionally receives
-    `FDFrame` when someone sends that.
-
-* port: port name string e.g. `COM3` on Windows,  `/dev/ttyACM0` on Linux.
-* bitrate: bit rate in bit/s
-
-kwargs:
-* silent(optional): listen only flag in bool. default is `false`.
+Struct to store SLCAN device handle and buffer.
 """
 mutable struct SlcanDevice{T<:Devices.AbstractBusType} <: Devices.AbstractDevice{T}
     sp::SerialHAL.HandleType

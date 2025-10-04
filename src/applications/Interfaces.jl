@@ -30,7 +30,7 @@ end
         # ret = recv(iface)
     end
 
-Construnctor for `do` statement.
+`do` statement is also supported.
 """
 function Interface(f::Function, args...; kwargs...)
     iface = Interface(args...; kwargs...)
@@ -44,12 +44,12 @@ end
 
 
 """
-    send(interface::T<:AbstractCANInterface, frame::AbstractFrame)
+    send(interface::T<:Interface, frame::AbstractFrame)
 
 function for send message.
 
 It behaves:
-* When send successed, return nothing.
+* When send successed, returns `nothing`.
 * When send failed, throws error.
 * Classic CAN interfaces can send ONLY `Frame`
 * CAN FD interfaces can send both `Frame` and `FDFrame`
@@ -60,7 +60,7 @@ end
 
 
 """
-    recv(interface::T<:AbstractCANInterface; timeout_s::Real=0)
+    recv(interface::T<:Interface; timeout_s::Real=0)
 
 function for receive message.
 
@@ -69,10 +69,10 @@ It behaves:
     * For blocking receivement, set kwarg `timeout_s` in seconds. 
     * Set `timeout_s` < 0 for infinite bloking.
 * When receive successed, returns `Frame` or `FDFrame`.
-* When receive queue is empty, returns nothing.
+* When receive queue is empty, returns `nothing`.
 * When fails to receive in other reasons, throws error.
 * Classic CAN interfaces return only `Frame` object (except `slcan`).
-* CAN FD interfaces return either `Frame` or `FDFrame` object.
+* CAN FD compliant interfaces return either `Frame` or `FDFrame` object.
 """
 function recv(iface::Interface; timeout_s::Real=0)
     Devices.dev_recv(iface.driver; timeout_s)
@@ -80,7 +80,7 @@ end
 
 
 """
-    shutdown(interface::T<:AbstractCANInterface)
+    shutdown(interface::T<:Interface)
 
 function for shutdown interface.
 Always returns nothing.

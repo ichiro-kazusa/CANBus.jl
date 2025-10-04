@@ -1,4 +1,3 @@
-""" Internal Device handler for SocketCAN """
 module SocketCANDevices
 
 import ..Devices
@@ -18,13 +17,9 @@ end
 
 
 """
-    SocketCANInterface(channel::String; filters::Vector{AcceptanceFilter})
+    SocketCANDevice(socketholder::SocketHolder)
 
-Setup SocketCAN interface.
-* channel: channel name string, e.g. "can0"
-
-kwargs:
-* filters(optional): list of filters. experimental.
+Struct for store SocketCAN device handle.
 """
 struct SocketCANDevice{T<:Devices.AbstractBusType} <: Devices.AbstractDevice{T}
     socketholder::SocketHolder
