@@ -230,11 +230,11 @@ function Devices.dev_recv(device::VectorDevice{T};
         if ret !== nothing
             return ret
         end
-
-        # poll
-        _poll(device, timeout_s)
     end
 
+    # poll (clear event even if timeout_s==0)
+    _poll(device, timeout_s)
+    
     # prepare to receive
     pEventCount = Ref(Cuint(1))
     EventList_r = Vector{Vxlapi.XLevent}([Vxlapi.XLevent() for i in 1:pEventCount[]])
@@ -277,10 +277,10 @@ function Devices.dev_recv(device::VectorDevice{T};
         if ret !== nothing
             return ret
         end
-
-        # poll
-        _poll(device, timeout_s)
     end
+
+    # poll (clear event even if timeout_s==0)
+    _poll(device, timeout_s)
 
     # receive    
     canrxevt = Vxlapi.XLcanRxEvent(0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -367,8 +367,7 @@ end
 function _poll(device::VectorDevice{T}, timeout_s::Real) where {T<:Devices.AbstractBusType}
     # block until frame comes or timeout
     timeout_ms = timeout_s < 0 ? 0xFFFFFFFF : Culong(timeout_s * 1e3)
-    st = WinWrap.WaitForSingleObject(device.notification_hnd[], timeout_ms)
-    println("Wait: $st")
+    WinWrap.WaitForSingleObject(device.notification_hnd[], timeout_ms)
 end
 
 
