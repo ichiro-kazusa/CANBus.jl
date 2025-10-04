@@ -1,38 +1,45 @@
 # Internals
 
-## General internal modules
-
 ```mermaid
 
 classDiagram
+
     namespace core{
-        class InterfaceConfig
+        class InterfaceCfgs
         class Frames
     }
 
     namespace misc{
-        class VendorAPIs
-        class CommonAPIs
+        class VendorAPIs:::classFocus
+        class CommonAPIs:::classFocus
     }
 
-    %% CANBus ..> Interfaces
-    %% CANBus ..> InterfaceConfig
-    %% CANBus ..> Frames
+    class ConcreteDevices:::classFocus
 
-    class Devices
+    class Devices:::classFocus
     <<interface>> Devices
     Interfaces *.. Devices
-    Interfaces ..> InterfaceConfig
+    Interfaces ..> InterfaceCfgs
     Interfaces ..> Frames
 
     Devices <|.. "1..*"ConcreteDevices
     ConcreteDevices ..> VendorAPIs
     ConcreteDevices ..> CommonAPIs
     ConcreteDevices ..> Frames
-    ConcreteDevices ..> InterfaceConfig
+    ConcreteDevices ..> InterfaceCfgs
+
+
+    classDef classFocus fill:#baffc6,stroke:#29862c;
    
 ```
 
+## Devices
+
+### Abstract type adn functions
+
+```@docs
+CANBus.Interfaces.Devices.AbstractDevice
+```
 
 
 

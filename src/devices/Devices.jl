@@ -14,6 +14,8 @@ function helper_bustype(cfg::InterfaceCfgs.InterfaceConfig)
     BUS_FD : BUS_20
 end
 
+
+""" Base Type of Devices """
 abstract type AbstractDevice{T<:AbstractBusType} end
 
 

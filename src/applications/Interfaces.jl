@@ -3,7 +3,7 @@ module Interfaces
 
 import ..InterfaceCfgs
 import ..Frames
-include("devices/Devices.jl")
+include("../devices/Devices.jl")
 import .Devices
 
 

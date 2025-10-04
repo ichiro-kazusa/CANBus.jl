@@ -19,7 +19,7 @@
 ### v0.0.4
 
 * slcan (CANable2.0) support
-* Redesigned `Frame` and `FDFrame` (breaks compatibility)
+* Redesigned `Frame` and `FDFrame` (**breaks compatibility**)
 * Add RTR frame and ERR frame 
 
 ### v0.0.1-v0.0.3

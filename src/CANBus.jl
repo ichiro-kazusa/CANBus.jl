@@ -27,7 +27,7 @@ export
 
 
 # public api: interfaces
-include("interfaces/Interfaces.jl")
+include("applications/Interfaces.jl")
 import .Interfaces:
     send, recv, shutdown, Interface
 

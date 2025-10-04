@@ -1,17 +1,15 @@
 using Revise
 using CANBus
-import CANBus.Interfaces.Devices.SocketCANDevices.SocketCAN:
-    CAN_EFF_FLAG, CAN_EFF_MASK, CAN_SFF_MASK
 
 
 function main()
     # bustype = CAN_20
     bustype = CAN_FD
 
-    # device = VECTOR
+    device = VECTOR
     # device = KVASER
     # device = SLCAN
-    device = SOCKETCAN
+    # device = SOCKETCAN
 
     if device in (VECTOR, KVASER)
         ch0 = 0

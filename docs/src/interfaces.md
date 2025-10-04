@@ -21,19 +21,19 @@ CANBus.Interfaces.shutdown
 ### Fiilter struct
 
 ```@docs
-CANBus.Interfaces.AcceptanceFilter
+CANBus.InterfaceCfgs.AcceptanceFilter
 ```
 
 ### InterfaceConfig struct
 
 ```@docs
-CANBus.Interfaces.InterfaceConfig(device::CANBus.Interfaces.DeviceType, channel::Union{String,Int}, bustype::CANBus.Interfaces.BusType, bitrate::Int; kwargs...)
+CANBus.InterfaceCfgs.InterfaceConfig(device::CANBus.InterfaceCfgs.DeviceType, channel::Union{String,Int}, bustype::CANBus.InterfaceCfgs.BusType, bitrate::Int; kwargs...)
 ```
 
 ```@docs
-CANBus.Interfaces.InterfaceConfigCAN(device::CANBus.Interfaces.DeviceType, channel::Union{String,Int}, bustype::CANBus.Interfaces.BusType, bitrate::Int; kwargs...)
+CANBus.InterfaceCfgs.InterfaceConfigCAN(device::CANBus.InterfaceCfgs.DeviceType, channel::Union{String,Int}, bustype::CANBus.InterfaceCfgs.BusType, bitrate::Int; kwargs...)
 ```
 
 ```@docs
-CANBus.Interfaces.InterfaceConfigFD(device::CANBus.Interfaces.DeviceType, channel::Union{String,Int}, bustype::CANBus.Interfaces.BusType, bitrate::Int, datarate::Int; kwargs...)
+CANBus.InterfaceCfgs.InterfaceConfigFD(device::CANBus.InterfaceCfgs.DeviceType, channel::Union{String,Int}, bustype::CANBus.InterfaceCfgs.BusType, bitrate::Int, datarate::Int; kwargs...)
 ```
