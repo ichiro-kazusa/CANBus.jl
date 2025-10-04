@@ -13,7 +13,7 @@
 
 To decode messages, use tsavelmann's [`CANalyze.jl`](https://github.com/tsabelmann/CANalyze.jl/tree/main).
 
-At this time, this is an beta version software. 
+At this time, this is an alpha version software. 
 * Fewer supported devices.
 * Basic tests has been conducted, but further testing is needed under broader conditions.
 * Only basic error handling is performed.
@@ -42,44 +42,45 @@ pkg> add CANBus
 
 ## Example usage
 
-### Kvaser Hardware
-
-```jl
+```julia
 using CANBus
 
 function main()
-    kvaser1 = KvaserInterface(0, 500000)
-    kvaser2 = KvaserInterface(1, 500000;
-        extfilter=AcceptanceFilter(0x01, 0x01))
+    bustype = CAN_FD
+    device = VECTOR
 
-    println(kvaser1)
-    println(kvaser2)
+    ch0 = 0
+    ch1 = 1
 
-    msg = CANBus.Frame(2, [1, 1, 2, 2, 3, 3, 4]; is_extended=true)
-    send(kvaser1, msg)
+    # -------------------------------------
 
-    msg = recv(kvaser2) # accept by filter
-    println(msg)
+    ifcfg1 = InterfaceConfig(device, ch0, bustype, 500000;
+        datarate=2000000, vector_appname="NewApp")
 
-    shutdown(kvaser1)
-    shutdown(kvaser2)
+    f = AcceptanceFilter(0x02, 0x02)
 
-    # use CAN FD
-    kvaserfd1 = KvaserFDInterface(0, 500000, 2000000)
-    kvaserfd2 = KvaserFDInterface(1, 500000, 2000000)
-    println(kvaserfd1)
-    println(kvaserfd2)
+    ifcfg2 = InterfaceConfig(device, ch1, bustype, 500000;
+        datarate=2000000, vector_appname="NewApp", stdfilter=f)
 
-    msg = CANBus.FDFrame(1, collect(1:16); bitrate_switch=false)
-    send(kvaserfd1, msg)
+    iface1 = Interface(ifcfg1)
+    Interface(ifcfg2) do iface2 # do-end example
 
-    msg = recv(kvaserfd2)
-    println(msg)
+        frm1 = Frame(0x02, [00, 01, 02, 03, 04, 05])
+        frm2 = FDFrame(0x02, collect(1:12); is_extended=true)
+        send(iface1, frm1)
+        send(iface1, frm2)
 
-    shutdown(kvaserfd1)
-    shutdown(kvaserfd2)
+        sleep(0.1)
 
-    true
+        ret1 = recv(iface2; timeout_s=1)
+        println(ret1)
+
+        ret2 = recv(iface2; timeout_s=1)
+        println(ret2)
+
+    end
+    shutdown(iface1)
+
 end
 
 main()
