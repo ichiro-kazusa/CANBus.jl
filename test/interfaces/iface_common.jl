@@ -134,9 +134,9 @@ function test_device_do_end(cfg1, cfg1_fd)
         send(iface, msg_t)
     end
 
-    Interface(cfg1_fd) do iafcefd
+    Interface(cfg1_fd) do ifacefd
         msg_t = CANBus.Frame(1, [1, 1, 2, 2, 3, 3, 4]; is_extended=true)
-        send(iafcefd, msg_t)
+        send(ifacefd, msg_t)
     end
 
     true
