@@ -1,3 +1,4 @@
+""" Vendor specific defs for slcan """
 module slcandef
 
 

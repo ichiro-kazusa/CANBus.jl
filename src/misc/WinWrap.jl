@@ -1,7 +1,10 @@
+
+"""Wrappers for Windows system call."""
 module WinWrap
 
 const winkernel = "kernel32"
 
+const BOOL = Cint
 
 function WaitForSingleObject(hHandle::Ptr{Cvoid}, dwMilliseconds::Culong)
 
@@ -10,5 +13,12 @@ function WaitForSingleObject(hHandle::Ptr{Cvoid}, dwMilliseconds::Culong)
         (Ptr{Cvoid}, Culong),
         hHandle, dwMilliseconds)
 end
+
+
+function CloseHandle(hObject::Ptr{Cvoid})
+    ccall((:CloseHandle, winkernel), BOOL,
+        (Ptr{Cvoid},), hObject)
+end
+
 
 end # WinWrap

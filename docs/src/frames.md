@@ -21,6 +21,16 @@ CANBus.Frames.Frame
 CANBus.Frames.FDFrame
 ```
 
+## References
+
+```@docs
+Base.:(==)(msg1::T, msg2::T) where {T<:CANBus.Frames.AbstractFrame}
+```
+
+```@docs
+Base.length(msg::T) where {T<:CANBus.Frames.AbstractFrame}
+```
+
 ## Compatibility with `CANalyze.jl` package
 
 `Frame` and `FDFrame` has intercompatibility with `CANalyze.CANFrame` and `CANAlyze.CANFdFrame` respectively.
@@ -49,4 +59,22 @@ signal = CANalyze.Signals.NamedSignal("myfloat", nothing, nothing,
 msg = CANalyze.Messages.Message(0x0e, 4, "msg1", signal)
 
 d = CANalyze.Decode.decode(msg, CANalyze.Frames.CANFrame(frm))
+```
+
+### Converting APIs
+
+```@docs
+CANBus.Frames.Frame(::CANalyze.CANFrame)
+```
+
+```@docs
+CANalyze.Frames.CANFrame(::Frame)
+```
+
+```@docs
+CANBus.Frames.FDFrame(::CANalyze.CANFdFrame; ::Bool)
+```
+
+```@docs
+CANalyze.Frames.CANFdFrame(::FDFrame)
 ```

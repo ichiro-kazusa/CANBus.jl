@@ -1,131 +1,42 @@
+module TestSlcan
 using CANBus
 using Test
 
-const port1 = "/dev/ttyACM0"
-const port2 = "/dev/ttyACM1"
+
+include("iface_common.jl")
 
 
-function test_slcan_normal()
-    # use CAN
-    scan1 = SlcanInterface(port1, 1000000)
-    scan2 = SlcanInterface(port2, 1000000)
+const device = SLCAN
 
-    msg_t1 = CANBus.Frame(1, [1, 1, 2, 2, 3, 3, 4]; is_extended=true)
-    send(scan1, msg_t1)
-
-    sleep(0.1)
-
-    msg_r = recv(scan2)
-    @assert msg_r == msg_t1
-
-    msg_r = recv(scan2) # receive nothing
-    @assert msg_r === nothing
-
-    ret = shutdown(scan1)
-    @assert ret === nothing
-    shutdown(scan2)
-
-    true
+@static if Sys.iswindows()
+    const ch1 = "COM3"
+    const ch2 = "COM4"
+else
+    const ch1 = "/dev/ttyACM0"
+    const ch2 = "/dev/ttyACM1"
 end
+const ch3 = 2 # not exist
 
+const filter = AcceptanceFilter(0x01, 0x01)
 
-function test_slcan_nodevice()
-    SocketCANInterface("vcan2") # must be error
-end
+const cfg1 = InterfaceConfigCAN(device, ch1, 500000;)
+const cfg2 = InterfaceConfigCAN(device, ch2, 500000; extfilter=filter)
+const cfg3 = InterfaceConfigCAN(device, ch3, 500000) # must be error
 
+const cfg1_fd = InterfaceConfigFD(device, ch1, 500000, 2000000)
+const cfg2_fd = InterfaceConfigFD(device, ch2, 500000, 2000000; extfilter=filter)
 
-
-function test_slcan_normal_fd()
-    scanfd1 = SlcanFDInterface(port1, 1000000, 2000000)
-    scanfd2 = SlcanFDInterface(port2, 1000000, 2000000)
-
-    msg_t = CANBus.FDFrame(1, collect(1:16); bitrate_switch=false)
-    send(scanfd1, msg_t) # normal FD
-
-    sleep(0.1)
-
-    msg_r = recv(scanfd2)
-    @assert msg_t == msg_r
-
-    msg_t = CANBus.FDFrame(1, collect(1:16))
-    send(scanfd1, msg_t) # bitrate switch
-
-    sleep(0.1)
-
-    msg_r = recv(scanfd2)
-    @assert msg_t == msg_r
-
-    msg_t = CANBus.Frame(2, collect(1:7); is_extended=true)
-    send(scanfd1, msg_t)
-
-    sleep(0.1)
-
-    msg_r = recv(scanfd2) # classic frame
-    @assert msg_r == msg_t
-
-    shutdown(scanfd1)
-    shutdown(scanfd2)
-
-    true
-end
-
-
-function test_slcan_timeout()
-
-    slcanfd1 = SlcanFDInterface(port1, 500000, 2000000)
-    slcanfd2 = SlcanFDInterface(port2, 500000, 2000000)
-
-    # compile
-    msg_t = CANBus.FDFrame(1, collect(1:16); bitrate_switch=false)
-    send(slcanfd2, msg_t)
-    sleep(0.1)
-    recv(slcanfd1)
-    sleep(0.1)
-
-    # tests
-    res = @elapsed begin # timeout 1s
-        ret = recv(slcanfd1; timeout_s=1)
-        @assert ret === nothing
-    end
-    @assert 0.9 < res < 1.2
-
-    res = @elapsed begin # non-blocking
-        ret = recv(slcanfd1)
-        @assert ret === nothing
-    end
-    @assert 0. < res < 0.2
-
-
-    t1 = @async begin # receive in 1s
-        res = @elapsed begin
-            recv(slcanfd1; timeout_s=2)
-        end
-        res
-    end
-
-    t2 = @async begin # async send to task1
-        sleep(1)
-        send(slcanfd2, msg_t)
-    end
-
-    res = fetch(t1)
-    wait(t2)
-
-    @assert 0.9 < res < 1.2
-
-    shutdown(slcanfd1)
-    shutdown(slcanfd2)
-
-    true
-end
 
 
 # This feature can not be able to test on GitHub Actions.
-if !haskey(ENV, "GITHUB_ACTIONS") && (Sys.islinux() || Sys.iswindows())
-    @testset "slcan" begin
-        @test test_slcan_normal()
-        @test_throws ErrorException test_slcan_nodevice()
-        @test test_slcan_normal_fd()
-        @test test_slcan_timeout()
+if !haskey(ENV, "GITHUB_ACTIONS") && (Sys.iswindows() || Sys.islinux())
+    @testset "Slcan" begin
+        @test test_device_normal(cfg1, cfg2)
+        @test_throws MethodError test_device_nodevice(cfg3)
+        @test test_device_normal_fd(cfg1_fd, cfg2_fd)
+        @test test_device_timeout(cfg1_fd, cfg2_fd)
+        @test test_device_do_end(cfg1, cfg1_fd)
     end
 end
+
+end # module TestSlcan
