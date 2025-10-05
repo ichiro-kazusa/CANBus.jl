@@ -18,6 +18,8 @@ Struct to store SLCAN device handle and buffer.
 """
 mutable struct SlcanDevice{T<:Devices.AbstractBusType} <: Devices.AbstractDevice{T}
     sp::SerialHAL.HandleType
+    stdfilter::Vector{NTuple{2, UInt32}}
+    extfilter::Vector{NTuple{2, UInt32}}
     buffer::String
 end
 
@@ -28,18 +30,33 @@ function Devices.dev_open(::Val{InterfaceCfgs.SLCAN}, cfg::InterfaceCfgs.Interfa
 
     bustype = Devices.helper_bustype(cfg)
 
-    SlcanDevice{bustype}(sp, "")
+    stdfilter = _init_filter(cfg.stdfilter)
+    extfilter = _init_filter(cfg.extfilter)
 
+    SlcanDevice{bustype}(sp, stdfilter, extfilter, "")
+
+end
+
+
+#= convert AcceptanceFilter to (mask, rhs) =#
+function _init_filter(filter::Union{Nothing,InterfaceCfgs.AcceptanceFilter,Vector{InterfaceCfgs.AcceptanceFilter}})::Vector{NTuple{2, UInt32}}
+    if filter === nothing
+        return []
+    elseif isa(filter, InterfaceCfgs.AcceptanceFilter)
+        filter = [filter]
+    end
+
+    return [(f.mask, f.code_id & f.mask) for f in filter]
 end
 
 
 function _init_slcan(channel::String, bitrate::Int,
     serialbaud::Int, silent::Bool,
-    fd::Bool, datarate::Int)::SerialHAL.HandleType
+    fd::Bool, datarate::Union{Nothing,Int})::SerialHAL.HandleType
 
     # cleanup unreferenced handle
     GC.gc()
-    
+
     # check arguments
     # bitrate
     if !haskey(slcandef.BITRATE_DICT, bitrate)
@@ -135,34 +152,47 @@ function Devices.dev_send(driver::SlcanDevice{Devices.BUS_FD}, msg::Frames.FDFra
 end
 
 
-function Devices.dev_recv(driver::SlcanDevice; timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame}
+#= apply filter and retruns accept flag =#
+function _apply_filter(id::UInt32, filter::Vector{NTuple{2, UInt32}})
+    if length(filter) == 0
+        return true
+    else
+        return any([id & mask == rhs for (mask, rhs) in filter])
+    end
+end
+
+
+function Devices.dev_recv(device::SlcanDevice; timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame}
 
     # non-blocking read before poll
-    res = SerialHAL.nonblocking_read(driver.sp)
-    driver.buffer *= String(res)
+    res = SerialHAL.nonblocking_read(device.sp)
+    device.buffer *= String(res)
 
     # poll
-    if timeout_s != 0 && length(driver.buffer) == 0
+    if timeout_s != 0 && length(device.buffer) == 0
         # timeout_s < 0(inf) -> pass 0ms(inf)
         timeout_ms = timeout_s < 0 ? 0 : Cint(timeout_s * 1e3)
-        buf = SerialHAL.blocking_read(driver.sp.ref, 1, timeout_ms)
-        driver.buffer *= String(buf)
+        buf = SerialHAL.blocking_read(device.sp.ref, 1, timeout_ms)
+        device.buffer *= String(buf)
     end
 
     # start buffer parsing
-    idx = findfirst(c -> c == '\n' || c == '\r', driver.buffer) # delimiter index
+    idx = findfirst(c -> c == '\n' || c == '\r', device.buffer) # delimiter index
 
     if idx === nothing
         return nothing # queue is empty or incomplete
     else
         # split token
         timestamp = time() # slcan has no device timestamp, therefore system time is used.
-        token = driver.buffer[1:idx-1] # split before delimiter
-        driver.buffer = lstrip(driver.buffer[idx:end],
+        token = device.buffer[1:idx-1] # split before delimiter
+        device.buffer = lstrip(device.buffer[idx:end],
             ['\n', '\r']) # strip leading delimiter
 
         if isuppercase(token[1]) # extended
             id = parse(UInt32, token[2:9], base=16)
+            if !_apply_filter(id, device.extfilter)
+                return nothing # filter rejects id
+            end
             len = slcandef.DLC2LEN[UInt8(token[10])]
             data = hex2bytes(token[11:end])
 
@@ -180,6 +210,9 @@ function Devices.dev_recv(driver::SlcanDevice; timeout_s::Real=0)::Union{Nothing
 
         elseif islowercase(token[1]) # standard
             id = parse(UInt32, token[2:4], base=16)
+            if !_apply_filter(id, device.stdfilter)
+                return nothing # filter rejects id
+            end
             len = slcandef.DLC2LEN[UInt8(token[5])]
             data = hex2bytes(token[6:end])
 

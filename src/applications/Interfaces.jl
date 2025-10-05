@@ -8,7 +8,7 @@ import .Devices
 
 
 struct Interface{T1<:Devices.AbstractDevice}
-    driver::T1
+    device::T1
 end
 
 
@@ -55,7 +55,7 @@ It behaves:
 * CAN FD interfaces can send both `Frame` and `FDFrame`
 """
 function send(iface::Interface, frm::Frames.AnyFrame)
-    Devices.dev_send(iface.driver, frm)
+    Devices.dev_send(iface.device, frm)
 end
 
 
@@ -75,7 +75,7 @@ It behaves:
 * CAN FD compliant interfaces return either `Frame` or `FDFrame` object.
 """
 function recv(iface::Interface; timeout_s::Real=0)
-    Devices.dev_recv(iface.driver; timeout_s)
+    Devices.dev_recv(iface.device; timeout_s)
 end
 
 
@@ -86,7 +86,7 @@ function for shutdown interface.
 Always returns nothing.
 """
 function shutdown(iface::Interface)
-    Devices.dev_close(iface.driver)
+    Devices.dev_close(iface.device)
 end
 
 

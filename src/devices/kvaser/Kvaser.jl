@@ -61,7 +61,7 @@ end
 function _init_kvaser(channel::Int, bitrate::Int, silent::Bool,
     stdfilter::Union{Nothing,InterfaceCfgs.AcceptanceFilter},
     extfilter::Union{Nothing,InterfaceCfgs.AcceptanceFilter},
-    fd::Bool, non_iso::Bool, datarate::Int,
+    fd::Bool, non_iso::Bool, datarate::Union{Nothing,Int},
     sample_point::Real, sample_point_fd::Real)::Tuple{Cint,Float64}
 
     # cleanup unreferenced handles

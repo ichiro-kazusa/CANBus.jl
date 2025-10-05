@@ -41,6 +41,7 @@ Frame struct represents classic (MAX 8bytes) CAN frame.
 
 kwargs:
 * `timestamp`: When receive, arrive time stamp is set in this field. When transmission, this field is not cared.
+    * The time stamp is unixtime in sedoncs with fractional part.
 * `is_extended`: Flag which arbitration id is extended. default=`false`
 * `is_remote_frame`: Flag which indicates remote frame. default=`false`
 * `is_error_frame` : Flag which indicates error frame. Cared in RX only. default=`false`
@@ -104,6 +105,7 @@ FDFrame struct represents CAN FD (MAX 64bytes) frame.
 
 kwargs:
 * `timestamp`: When receive, arrive time stamp is set in this field. When transmission, this field is not cared.
+    * The time stamp is unixtime in sedoncs with fractional part.
 * `is_extended`: Flag which arbitration id is extended. default=`false`
 * `bitrate_switch`: Flag to use `bitrate_switch`. **default=`true`**
 * `error_state`: Flag corresponds to `error_state_indicator`. Cared in RX only. default=`false`
