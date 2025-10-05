@@ -4,108 +4,104 @@ This section describes basic usage for each supported hardwares.
 
 ## Kvaser
 
-`KvaserInterface` supports Win64 platform.
+`KVASER` supports Win64 platform.
 
-This interface requires `canlib32.dll` (should be installed along with the device driver). 
+This interface requires `canlib32.dll` (supposed to be installed along with the device driver). 
 
 To setup interface, do something like below,
 
 ```jl
-using CANBus
-
-kvaser0 = KvaserInterface(0, 500000)  # channel 0, 500kbps
+cfg = InterfaceConfigCAN(KVASER, 0, 500_000) # channel 0, 500kbps
+iface = Interface(cfg)
 ```
 
 For CAN FD,
 ```jl
-kvaser0 = KvaserFDInterface(0, 500000, 2000000)  # channel 0, 500kbps, 2Mbps
+cfg = InterfaceConfigFD(KVASER, 0, 500_000, 2_000_000) # channel 0, 500kbps, 2Mbps
+iface = Interface(cfg)  
 ```
 
-`send`, `recv`, `shutdown` functions can be use.
+!!! note "Note for Filter"
+
+    `KVASER` interface has separate acceptance filters for standard IDs and extended IDs.
+    Each type can have only one filter. Therefore, when setting filters, make sure to 
+    strictly match the ID type. If `Vector` of `AcceptanceFilter` is provided, only first one 
+    will be applied.
 
 ## slcan
 
-`SlcanInterface` supports Win64/Linux platform. Tested on [CANable 2.0](https://canable.io/) firmware.
+`SLCAN` supports Win64/Linux platform. Tested on [CANable 2.0](https://canable.io/) firmware.
 
 To setup interface, 
 
 ```jl
-using CANBus
-
-slcan0 = SlcanInterface("COM3", 1000000)  # for Linux, e.g. "/dev/ttyACM0"
+cfg = InterfaceConfigCAN(SLCAN, "COM3", 500_000) # channel COM3, 500kbps
+iface = Interface(cfg)
 ```
+
+channel name is supposed to be like `COM3` on Windows, like `/dev/ttyACM0` on Linux.
 
 For CAN FD,
 ```jl
-slcan0 = SocketCANFDInterface("COM3", 1000000, 2000000) # bitrate 1Mbps, datarate 2Mbps
+cfg = InterfaceConfigFD(SLCAN, "COM3", 500_000, 2_000_000) # channel COM3, 500kbps, 2Mbps
+iface = Interface(cfg)  
 ```
 
-CAN FD on `slcan`, datarate must be chosen from `2000000`, `5000000`.
+CAN FD on `SLCAN`, datarate can be chosen from `2000000`, `5000000`.
 
+!!! note
 
-## slcan
-
-`SlcanInterface` supports Win64/Linux platform. Tested on [CANable 2.0](https://canable.io/) firmware.
-
-To setup interface, 
-
-```jl
-using CANBus
-
-slcan0 = SlcanInterface("COM3", 1000000)  # for Linux, e.g. "/dev/ttyACM0"
-```
-
-For CAN FD,
-```jl
-slcan0 = SocketCANFDInterface("COM3", 1000000, 2000000) # bitrate 1Mbps, datarate 2Mbps
-```
-
-CAN FD on `slcan`, datarate can be chosen from `2000000`, `5000000`.
-
+    `SLCAN` with FD firmware (b158aa7) is seemd to be always on FD mode,
+    thus there is **no pure CAN mode**. Therefore, even if this interface is set up for `CAN_20`, exceptionally receives `FDFrame` when someone sends that.
 
 ## SocketCAN
 
-`SocketCANInterface` supports Linux platform.
+`SOCKETCAN` supports Linux platform.
 
 To setup interface, 
 
 ```jl
-using CANBus
-
-sockcan0 = SocketCANInterface("can0")  # channel "can0"
+cfg = InterfaceConfigCAN(SOCKETCAN, "can0", 0) # bitrate is ignored.
+iface = Interface(cfg)
 ```
 
 For CAN FD,
 ```jl
-sockcan0 = SocketCANFDInterface("can0")  # channel "can0"
+cfg = InterfaceConfigFD(SOCKETCAN, "can0", 0, 0) # bitrate, datarate is ignored.
+iface = Interface(cfg)
 ```
 
+!!! note
 
-`send`, `recv`, `shutdown` functions can be use.
+    Bitrate and Datarate can not be modified from CANBus library,
+    so use `ip link` command from terminal.
 
-Bitrate can not be modified from socket api, use `ip link` command from terminal.
+!!! note "Note for Filter"
 
+    The acceptance filter of the `SOCKETCAN` interface does not internally
+    distinguish between standard and extended IDs.
+    Therefore, for example, if you set options for `stdfilter`, the `extfilter`
+    will not receive any messages unless you explicitly configured to do so.
 
 ## Vector
 
-`VectorInterface` supports Win64 platform. 
+`VECTOR` supports Win64 platform. 
 
-In this time, author does not get permission to distribute DLLs. So to use this interface, 
+To use this interface, 
 please install [Vector XL-Driver-Library](https://www.vector.com/jp/ja/products/products-a-z/libraries-drivers/xl-driver-library/#) separately. Check `vxlapi64.dll` is in your path.
 
-```jl
-using CANBus
 
-vector1 = VectorInterface(0, 500000, "NewApp") # channel 0, 500kbps, application name
+```jl
+cfg = InterfaceConfigCAN(VECTOR, 0, 500_000; vector_appname="NewApp") # channel 0, 500kbps
+iface = Interface(cfg)
 ```
 
-"Application name" means corresponding name in Vector Hardware Manager.
+`vector_appname` kwarg is always required. It means corresponding name in Vector Hardware Manager.
 
 For CAN FD,
 ```jl
-vector1 = VectorFDInterface(0, 500000, 2000000, "NewApp")
-# channel 0, 500kbps, 2Mbps, application name
+cfg = InterfaceConfigFD(VECTOR, 0, 500_000, 2_000_000; vector_appname="NewApp") # channel 0, 500kbps, 2Mbps
+iface = Interface(cfg)  
 ```
 
-
-`send`, `recv`, `shutdown` functions can be use.
+* `AcceptanceFilter` has same behavior as `KVASER` interface.

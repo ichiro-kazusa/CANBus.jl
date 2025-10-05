@@ -1,56 +1,82 @@
-module SocketCANInterfaces
+module SocketCANDevices
 
-import ..Interfaces
-import ...Frames
+import ..Devices
+import ....InterfaceCfgs
+import ....Frames
 
 include("socketcanapi.jl")
 import .SocketCAN
 
 using FileWatching
 
-"""
-    SocketCANInterface(channel::String; filters::Vector{AcceptanceFilter})
 
-Setup SocketCAN interface.
-* channel: channel name string, e.g. "can0"
-* filters(optional): list of filters. experimental.
-"""
-struct SocketCANInterface <: Interfaces.AbstractCANInterface
+#= mutable struct for handle finalizer =#
+mutable struct SocketHolder
     socket::Cint
-
-    function SocketCANInterface(channel::String;
-        filters::Union{Nothing,Vector{Interfaces.AcceptanceFilter}}=nothing)
-
-        s = _init_can(channel, filters, false)
-
-        new(s)
-    end
 end
 
 
 """
-    SocketCANFDInterface(channel::String; filters::Vector{AcceptanceFilter})
+    SocketCANDevice(socketholder::SocketHolder)
 
-Setup SocketCAN for CAN FD.
-* channel: channel name string, e.g. "can0"
-* filters(optional): list of filters. experimental.
+Struct for store SocketCAN device handle.
 """
-struct SocketCANFDInterface <: Interfaces.AbstractCANInterface
-    socket::Cint
+struct SocketCANDevice{T<:Devices.AbstractBusType} <: Devices.AbstractDevice{T}
+    socketholder::SocketHolder
+end
 
-    function SocketCANFDInterface(channel::String;
-        filters::Union{Nothing,Vector{Interfaces.AcceptanceFilter}}=nothing)
 
-        s = _init_can(channel, filters, true)
+function Devices.dev_open(::Val{InterfaceCfgs.SOCKETCAN}, cfg::InterfaceCfgs.InterfaceConfig)
+    is_fd = InterfaceCfgs.helper_isfd(cfg)
 
-        new(s)
+    # preprocess filter
+    filters = InterfaceCfgs.AcceptanceFilter[]
+    append!(filters, _preprocess_filter(cfg.stdfilter, false))
+    append!(filters, _preprocess_filter(cfg.extfilter, true))
+    filters = length(filters) == 0 ? nothing : filters
+
+    s = _init_can(cfg.channel, filters, is_fd)
+
+    bustype = Devices.helper_bustype(cfg)
+
+    sd = SocketCANDevice{bustype}(SocketHolder(s))
+    finalizer(_cleanup, sd.socketholder)
+
+    return sd
+end
+
+
+#= filter preprocessor =#
+function _preprocess_filter(filter::T, isext::Bool)::Vector{InterfaceCfgs.AcceptanceFilter} where T
+    flag = isext ? SocketCAN.CAN_EFF_FLAG : UInt32(0)
+    mask = SocketCAN.CAN_EFF_FLAG | SocketCAN.CAN_RTR_FLAG
+    
+    if filter === nothing
+        return InterfaceCfgs.AcceptanceFilter[]
+    elseif T == InterfaceCfgs.AcceptanceFilter
+        return [InterfaceCfgs.AcceptanceFilter(
+            filter.code_id | flag, filter.mask | mask)]
+    elseif length(filter) == 0
+        return InterfaceCfgs.AcceptanceFilter[]
+    else
+        return [InterfaceCfgs.AcceptanceFilter(
+            f.code_id | flag, f.mask | mask) for f in filter]
     end
+end
+
+
+#= cleanup function for socket finalizer =#
+function _cleanup(holder::SocketHolder)
+    SocketCAN.close(holder.socket)
 end
 
 
 function _init_can(channel::String,
-    filters::Union{Nothing,Vector{Interfaces.AcceptanceFilter}},
+    filters::Union{Nothing,Vector{InterfaceCfgs.AcceptanceFilter}},
     fd::Bool)::Cint
+
+    # cleanup unreferenced socket
+    GC.gc()
 
     # open socket
     s = SocketCAN.socket(SocketCAN.PF_CAN,
@@ -115,8 +141,8 @@ function _init_can(channel::String,
 end
 
 
-function Interfaces.send(interface::T,
-    msg::Frames.Frame)::Nothing where {T<:Union{SocketCANInterface,SocketCANFDInterface}}
+function Devices.dev_send(device::SocketCANDevice,
+    msg::Frames.Frame)::Nothing
 
     id = msg.is_extended ? msg.id | SocketCAN.CAN_EFF_FLAG : msg.id
     id |= msg.is_error_frame ? SocketCAN.CAN_RTR_FLAG : UInt32(0)
@@ -125,17 +151,18 @@ function Interfaces.send(interface::T,
     data[1:dlc] .= msg.data
     msg = SocketCAN.can_frame(id, dlc, 0, 0, 0, (data...,))
     pmsg = Ref(msg)
-    written = SocketCAN.write(interface.socket, pmsg, Cuint(16))
+    written = SocketCAN.write(device.socketholder.socket,
+        pmsg, Cuint(sizeof(SocketCAN.can_frame)))
 
-    if written != Cuint(16)
+    if written != Cuint(sizeof(SocketCAN.can_frame))
         error("SocketCAN: Failed to transmit.")
     end
     return nothing
 end
 
 
-function Interfaces.send(interface::SocketCANFDInterface,
-    msg::Frames.FDFrame)::Nothing
+function Devices.dev_send(device::SocketCANDevice{T},
+    msg::Frames.FDFrame)::Nothing where {T<:Devices.BUS_FD}
 
     id = msg.is_extended ? msg.id | SocketCAN.CAN_EFF_FLAG : msg.id
     len = size(msg.data, 1)
@@ -145,20 +172,22 @@ function Interfaces.send(interface::SocketCANFDInterface,
             SocketCAN.CANFD_FDF
     msg = SocketCAN.canfd_frame(id, len, flags, 0, 0, (data...,))
     pmsg = Ref(msg)
-    written = SocketCAN.write(interface.socket, pmsg, Cuint(72))
+    written = SocketCAN.write(device.socketholder.socket,
+        pmsg, Cuint(sizeof(SocketCAN.canfd_frame)))
 
-    if written != Cuint(72)
+    if written != Cuint(sizeof(SocketCAN.canfd_frame))
         error("SocketCAN: Failed to transmit.")
     end
     return nothing
 end
 
 
-function Interfaces.recv(interface::T; timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame} where {T<:Union{SocketCANInterface,SocketCANFDInterface}}
+function Devices.dev_recv(device::SocketCANDevice; timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame}
 
     # polling (Do not use ccall(:poll). It may blocks julia's process.)
-    poll_fd(Libc.RawFD(interface.socket), timeout_s; readable=true)
-
+    if timeout_s != 0
+        poll_fd(Libc.RawFD(device.socketholder.socket), timeout_s; readable=true)
+    end
 
     # prepare to receive
     r_frame = Ref{SocketCAN.canfd_frame}()
@@ -185,7 +214,7 @@ function Interfaces.recv(interface::T; timeout_s::Real=0)::Union{Nothing,Frames.
         )
         r_msg = Ref(msg)
 
-        nbytes = SocketCAN.recvmsg(interface.socket, r_msg, Cint(0))
+        nbytes = SocketCAN.recvmsg(device.socketholder.socket, r_msg, Cint(0))
 
         if nbytes < 0
             ern = Libc.errno()
@@ -195,7 +224,7 @@ function Interfaces.recv(interface::T; timeout_s::Real=0)::Union{Nothing,Frames.
                 error("SocketCAN: receive error: $ern")
             end
         else
-            if nbytes != 72 && nbytes != 16
+            if nbytes != sizeof(SocketCAN.canfd_frame) && nbytes != sizeof(SocketCAN.can_frame)
                 error("Socketcan: received unexpected length: $nbytes")
             end
         end
@@ -234,10 +263,11 @@ function Interfaces.recv(interface::T; timeout_s::Real=0)::Union{Nothing,Frames.
     end
 end
 
-function Interfaces.shutdown(interface::T) where {T<:Union{SocketCANInterface,SocketCANFDInterface}}
-    SocketCAN.close(interface.socket)
+
+function Devices.dev_close(device::T) where {T<:SocketCANDevice}
+    SocketCAN.close(device.socketholder.socket)
     return nothing
 end
 
 
-end # SocketCANInterfaces
+end # SocketCANDevices

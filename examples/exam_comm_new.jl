@@ -1,18 +1,29 @@
-# Example Usage
-
-Let us assume that we have 2-channel Vector interface, the simplest example is below:
-
-```julia
+using Revise
 using CANBus
 
 
 function main()
+    # bustype = CAN_20
     bustype = CAN_FD
 
-    device = VECTOR
+    # device = VECTOR
+    # device = KVASER
+    device = SLCAN
+    # device = SOCKETCAN
 
-    ch0 = 0
-    ch1 = 1
+    if device in (VECTOR, KVASER)
+        ch0 = 0
+        ch1 = 1
+    elseif device == SOCKETCAN
+        ch0 = "vcan0"
+        ch1 = "vcan1"
+    elseif Sys.iswindows() # slcan for windows
+        ch0 = "COM3"
+        ch1 = "COM4"
+    else # slcan linux
+        ch0 = "/dev/ttyACM0"
+        ch1 = "/dev/ttyACM1"
+    end
 
     # -------------------------------------
 
@@ -27,8 +38,10 @@ function main()
     iface1 = Interface(ifcfg1)
     Interface(ifcfg2) do iface2 # do-end example
 
+        # println(iface1)
+
         frm1 = Frame(0x02, [00, 01, 02, 03, 04, 05])
-        frm2 = FDFrame(0x02, collect(1:12); is_extended=true)
+        frm2 = bustype == CAN_20 ? frm1 : FDFrame(0x02, collect(1:12); is_extended=true)
         send(iface1, frm1)
         send(iface1, frm2)
 
@@ -46,7 +59,3 @@ function main()
 end
 
 main()
-```
-
-Arguments of interface setup are different depends on kind of interface, see [Supported Hardwares](@ref).
-

@@ -1,9 +1,9 @@
 # Interfaces
 
-## Base type
+## Interface
 
 ```@docs
-CANBus.Interfaces.AbstractCANInterface
+CANBus.Interfaces.Interface
 ```
 
 ```@docs
@@ -18,50 +18,3 @@ CANBus.Interfaces.recv
 CANBus.Interfaces.shutdown
 ```
 
-### Fiilter struct
-
-```@docs
-CANBus.Interfaces.AcceptanceFilter
-```
-
-## Kvaser
-
-```@docs
-CANBus.Interfaces.KvaserInterfaces.KvaserInterface
-```
-
-```@docs
-CANBus.Interfaces.KvaserInterfaces.KvaserFDInterface
-```
-
-## slcan
-
-`slcan` does not support hardware filter.
-
-```@docs
-CANBus.Interfaces.SlcanInterfaces.SlcanInterface
-```
-
-```@docs
-CANBus.Interfaces.SlcanInterfaces.SlcanFDInterface
-```
-
-## SocketCAN
-
-```@docs
-CANBus.Interfaces.SocketCANInterfaces.SocketCANInterface
-```
-
-```@docs
-CANBus.Interfaces.SocketCANInterfaces.SocketCANFDInterface
-```
-
-## Vector
-
-```@docs
-CANBus.Interfaces.VectorInterfaces.VectorInterface
-```
-
-```@docs
-CANBus.Interfaces.VectorInterfaces.VectorFDInterface
-```

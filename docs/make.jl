@@ -1,5 +1,7 @@
 using CANBus
+import CANalyze
 using Documenter
+using DocumenterMermaid
 
 DocMeta.setdocmeta!(CANBus, :DocTestSetup, :(using CANBus); recursive=true)
 
@@ -18,9 +20,11 @@ makedocs(;
         "Supported Hardwares" => "hardwares.md",
         "References" => [
             "Interfaces" => "interfaces.md",
+            "InterfaceCfgs" => "interfacecfgs.md",
             "Frames" => "frames.md",
             "Internals" => "internals.md"
-        ]
+        ],
+        "Changelog" => "changelog.md"
     ],
 )
 

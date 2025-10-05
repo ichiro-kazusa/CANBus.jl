@@ -53,11 +53,20 @@ struct XLcanFdConf
     options::Cuchar
     reserved1::NTuple{2,Cuchar}
     reserved2::Cuint
+end
 
-    function XLcanFdConf(bitrate::Cuint, datarate::Cuint, non_iso::Bool)
-        flag = non_iso ? CANFD_CONFOPT_NO_ISO : Cuchar(0)
-        new(bitrate, 2, 6, 3, datarate, 2, 6, 3, 0, flag, (0, 0), 0)
-    end
+function XLcanFdConf(bitrate::Cuint, datarate::Cuint, non_iso::Bool)
+    flag = non_iso ? CANFD_CONFOPT_NO_ISO : Cuchar(0)
+    XLcanFdConf(bitrate, 2, 6, 3, datarate, 2, 6, 3, 0, flag, (0, 0), 0)
+end
+
+
+struct XLchipParams
+    bitRate::Culong
+    sjw::Cuchar
+    tseg1::Cuchar
+    tseg2::Cuchar
+    sam::Cuchar
 end
 
 
@@ -107,7 +116,7 @@ end
 
 const CANFD_LEN2DLC::Dict{Int,Int} = Dict([
     12 => 9, 16 => 10, 20 => 11, 24 => 12,
-    32 => 13, 4 => 14, 64 => 15
+    32 => 13, 48 => 14, 64 => 15
 ])
 
 const CANFD_DLC2LEN::Dict{Int,Int} = Dict([

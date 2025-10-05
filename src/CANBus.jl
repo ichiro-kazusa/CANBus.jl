@@ -1,31 +1,41 @@
 module CANBus
 
- # internal use
-include("core/SerialHAL.jl")
-import .SerialHAL
-include("core/WinWrap.jl")
-import .WinWrap
+# internal use
+module misc
+include("misc/SerialHAL.jl")
+include("misc/WinWrap.jl")
+include("misc/BitTiming.jl")
+end # module misc
 
 
-# public api: data structure
-include("frames/Frames.jl")
+# public api: frame structure
+include("core/Frames.jl")
 import .Frames: Frame, FDFrame
 export Frame, FDFrame
 
+
+# public api: interface config
+include("core/InterfaceCfgs.jl")
+import .InterfaceCfgs:
+    InterfaceConfig, AcceptanceFilter,
+    InterfaceConfigCAN, InterfaceConfigFD
+import .InterfaceCfgs:
+    VECTOR, KVASER, SOCKETCAN, SLCAN,
+    CAN_20, CAN_FD, CAN_FD_NONISO
+export
+    InterfaceConfig, AcceptanceFilter,
+    InterfaceConfigCAN, InterfaceConfigFD
+export
+    VECTOR, KVASER, SOCKETCAN, SLCAN,
+    CAN_20, CAN_FD, CAN_FD_NONISO
+
+
 # public api: interfaces
-include("interfaces/Interfaces.jl")
-import .Interfaces.VectorInterfaces: VectorInterface, VectorFDInterface
-import .Interfaces.KvaserInterfaces: KvaserInterface, KvaserFDInterface
-import .Interfaces.SocketCANInterfaces: SocketCANInterface, SocketCANFDInterface
-import .Interfaces.SlcanInterfaces: SlcanInterface, SlcanFDInterface
-import .Interfaces: AcceptanceFilter, send, recv, shutdown
+include("applications/Interfaces.jl")
+import .Interfaces:
+    send, recv, shutdown, Interface
 
-export VectorInterface, VectorFDInterface,
-    KvaserInterface, KvaserFDInterface,
-    SocketCANInterface, SocketCANFDInterface,
-    SlcanInterface, SlcanFDInterface
-
-export send, recv, shutdown, AcceptanceFilter
+export Interface, send, recv, shutdown
 
 
 end # module CANBus

@@ -1,90 +1,80 @@
-module VectorInterfaces
+module VectorDevices
 
-import ..Interfaces
-import ...Frames
-import ...WinWrap
+import ..Devices
+import ....InterfaceCfgs
+import ....Frames
+import ....misc: WinWrap, BitTiming
 
 include("xlapi.jl")
 import .Vxlapi
 
-using FileWatching
-
 
 """
-    VectorInterface(channel::Int, bitrate::Int, appname::String)
+    VectorDevice(pportHandle::Ref{Vxlapi.XLportHandle}, channelMask::Vxlapi.XLaccess,
+        time_offset::Float64, notification_hnd::Ref{Vxlapi.XLhandle})
 
-Setup Vector interface.
-* channel: channel number in integer.
-* bitrate: bitrate as bit/s in integer.
-* apppname: Application Name string in Vector Hardware Manager.
-* silent(optional): listen only flag in bool.
-* stdfilter(optional): standard ID filter in AcceptanceFilter struct.
-* extfilter(optional): extended ID filter in AcceptanceFilter struct.
+Struct to store Vector device port handle, channel mask,
+time offset, and notification handle.
 """
-struct VectorInterface <: Interfaces.AbstractCANInterface
-    portHandle::Vxlapi.XLportHandle
+struct VectorDevice{T<:Devices.AbstractBusType} <: Devices.AbstractDevice{T}
+    pportHandle::Ref{Vxlapi.XLportHandle}
     channelMask::Vxlapi.XLaccess
     time_offset::Float64
-
-
-    function VectorInterface(channel::Union{Int,AbstractVector{Int}},
-        bitrate::Int, appname::String, rxqueuesize::Cuint=Cuint(16384);
-        silent::Bool=false,
-        stdfilter::Union{Nothing,Interfaces.AcceptanceFilter}=nothing,
-        extfilter::Union{Nothing,Interfaces.AcceptanceFilter}=nothing)
-
-
-        # init Vector CAN
-        portHandle, channelMask, time_offset = _init_vector(channel, bitrate, appname,
-            rxqueuesize, silent, stdfilter, extfilter,
-            false, false, 0)
-
-        new(portHandle, channelMask, time_offset)
-    end
+    notification_hnd::Ref{Vxlapi.XLhandle}
 end
 
 
-"""
-    VectorFDInterface(channel::Int, bitrate::Int, datarate::Int, appname::String)
+function Devices.dev_open(::Val{InterfaceCfgs.VECTOR}, cfg::InterfaceCfgs.InterfaceConfig)
 
-Setup Vector interface for CAN FD.
-* channel: channel number in integer.
-* bitrate: bitrate as bit/s in integer.
-* datarate: datarate as bit/s in integer.
-* apppname: Application Name string in Vector Hardware Manager.
-* non_iso(optional): use non-iso version of CAN FD
-* silent(optional): listen only flag in bool.
-* stdfilter(optional): standard ID filter in AcceptanceFilter struct.
-* extfilter(optional): extended ID filter in AcceptanceFilter struct.
-"""
-struct VectorFDInterface <: Interfaces.AbstractCANInterface
-    portHandle::Vxlapi.XLportHandle
-    channelMask::Vxlapi.XLaccess
-    time_offset::Float64
+    is_fd = InterfaceCfgs.helper_isfd(cfg)
+    is_noniso = cfg.bustype == InterfaceCfgs.CAN_FD_NONISO
+    rxqueuesize = is_fd ? Cuint(524288) : Cuint(32768)
+
+    # preprocess stdfilter/extfilter
+    stdfilter = isa(cfg.stdfilter, Vector{InterfaceCfgs.AcceptanceFilter}) ?
+                length(cfg.stdfilter) != 0 ? cfg.stdfilter : nothing : cfg.stdfilter
+    extfilter = isa(cfg.extfilter, Vector{InterfaceCfgs.AcceptanceFilter}) ?
+                length(cfg.extfilter) != 0 ? cfg.extfilter : nothing : cfg.extfilter
 
 
-    function VectorFDInterface(channel::Union{Int,AbstractVector{Int}},
-        bitrate::Int, datarate::Int, appname::String, rxqueuesize::Cuint=Cuint(262144);
-        non_iso::Bool=false, silent::Bool=false,
-        stdfilter::Union{Nothing,Interfaces.AcceptanceFilter}=nothing,
-        extfilter::Union{Nothing,Interfaces.AcceptanceFilter}=nothing)
+    ret = _init_vector(cfg.channel, cfg.bitrate, cfg.vector_appname,
+        rxqueuesize, cfg.silent, stdfilter, extfilter,
+        is_fd, is_noniso, cfg.datarate, cfg.sample_point, cfg.sample_point_fd)
+
+    pportHandle, channelMask, time_offset, notification_hnd = ret
+
+    bustype = Devices.helper_bustype(cfg)
+
+    vd = VectorDevice{bustype}(pportHandle, channelMask, time_offset, notification_hnd)
+    finalizer(_cleanup_porthandle, vd.pportHandle)
+    finalizer(_cleanup_notificationhandle, vd.notification_hnd)
+
+    return vd
+end
 
 
-        # init Vector CAN
-        portHandle, channelMask, time_offset = _init_vector(channel, bitrate, appname,
-            rxqueuesize, silent, stdfilter, extfilter,
-            true, non_iso, datarate)
+#= cleanup function for port handle finalizer =#
+function _cleanup_porthandle(pportHandle::Ref{Vxlapi.XLportHandle})
+    Vxlapi.xlClosePort(pportHandle[])
+    Vxlapi.xlCloseDriver()
+end
 
-        new(portHandle, channelMask, time_offset)
-    end
+
+#= cleanup function for notification handle finalizer =#
+function _cleanup_notificationhandle(notification_hnd::Ref{Vxlapi.XLhandle})
+    WinWrap.CloseHandle(notification_hnd[])
 end
 
 
 function _init_vector(channel::Union{Int,AbstractVector{Int}},
     bitrate::Int, appname::String, rxqueuesize::Cuint, silent::Bool,
-    stdfilter::Union{Nothing,Interfaces.AcceptanceFilter},
-    extfilter::Union{Nothing,Interfaces.AcceptanceFilter},
-    fd::Bool, non_iso::Bool, datarate::Int)::Tuple{Vxlapi.XLportHandle,Vxlapi.XLaccess,Float64}
+    stdfilter::Union{Nothing,InterfaceCfgs.AcceptanceFilter},
+    extfilter::Union{Nothing,InterfaceCfgs.AcceptanceFilter},
+    fd::Bool, non_iso::Bool, datarate::Union{Nothing,Int},
+    sample_point::Real, sample_point_fd::Real)::Tuple{Ref{Vxlapi.XLportHandle},Vxlapi.XLaccess,Float64,Ref{Vxlapi.XLhandle}}
+
+    # cleanup unreferenced handles
+    GC.gc()
 
     # open driver
     status = Vxlapi.xlOpenDriver()
@@ -116,11 +106,16 @@ function _init_vector(channel::Union{Int,AbstractVector{Int}},
     # set bitrate
     local status::Vxlapi.XLstatus
     if fd
-        fdconf = Vxlapi.XLcanFdConf(UInt32(bitrate), UInt32(datarate), non_iso)
-        pfdconf = Ref(fdconf)
-        status = Vxlapi.xlCanFdSetConfiguration(pportHandle[], channelMask, pfdconf)
+        _, tseg1_a, tseg2_a, sjw_a = BitTiming.calc_bittiming(80_000_000, bitrate, sample_point, 254, 254)
+        _, tseg1_d, tseg2_d, sjw_d = BitTiming.calc_bittiming(80_000_000, datarate, sample_point_fd, 126, 126)
+        fdconf = Vxlapi.XLcanFdConf(bitrate, sjw_a, tseg1_a, tseg2_a,
+            datarate, sjw_d, tseg1_d, tseg2_d, 0,
+            non_iso ? Vxlapi.CANFD_CONFOPT_NO_ISO : Cuchar(0), (0, 0), 0)
+        status = Vxlapi.xlCanFdSetConfiguration(pportHandle[], channelMask, Ref(fdconf))
     else
-        status = Vxlapi.xlCanSetChannelBitrate(pportHandle[], channelMask, Culong(bitrate))
+        _, tseg1, tseg2, sjw = BitTiming.calc_bittiming(8_000_000, bitrate, sample_point, 16, 8)
+        chipparams = Vxlapi.XLchipParams(bitrate, sjw, tseg1, tseg2, 1)
+        status = Vxlapi.xlCanSetChannelParams(pportHandle[], channelMask, Ref(chipparams))
     end
     if status != Vxlapi.XL_SUCCESS
         error("Vector: failed to set bitrate. $status")
@@ -142,12 +137,24 @@ function _init_vector(channel::Union{Int,AbstractVector{Int}},
     end
     time_offset = time() # assume device clock is 0.
 
+    # retrieve notification object for timeout waiting
+    r_hnd = Ref{Vxlapi.XLhandle}()
+    st = Vxlapi.xlSetNotification(pportHandle[], r_hnd, Cint(1))
+    if st != Vxlapi.XL_SUCCESS
+        error("Vector: poll notifier set failed. $st")
+    end
 
-    return pportHandle[], channelMask, time_offset
+    # flush rx buffer
+    st = Vxlapi.xlFlushReceiveQueue(pportHandle[])
+    if st != Vxlapi.XL_SUCCESS
+        error("Vector: rx buffer flush failed. $st")
+    end
+
+    return pportHandle, channelMask, time_offset, r_hnd
 end
 
 
-function Interfaces.send(interface::VectorInterface, msg::Frames.Frame)
+function Devices.dev_send(device::VectorDevice{T}, msg::Frames.Frame) where {T<:Devices.BUS_20}
     # construct XLEvent
     messageCount = Cuint(1)
     dlc = size(msg.data, 1)
@@ -166,7 +173,7 @@ function Interfaces.send(interface::VectorInterface, msg::Frames.Frame)
     # send message
     pMessageCount = Ref(messageCount)
     pEventList_t = Ref(EventList_t, 1)
-    status = Vxlapi.xlCanTransmit!(interface.portHandle, interface.channelMask, pMessageCount, pEventList_t)
+    status = Vxlapi.xlCanTransmit!(device.pportHandle[], device.channelMask, pMessageCount, pEventList_t)
 
     if status != Vxlapi.XL_SUCCESS || pMessageCount[] != messageCount
         error("Vector: Failed to transmit.")
@@ -176,7 +183,7 @@ function Interfaces.send(interface::VectorInterface, msg::Frames.Frame)
 end
 
 
-function Interfaces.send(interface::VectorFDInterface, msg::T) where {T<:Union{Frames.Frame,Frames.FDFrame}}
+function Devices.dev_send(device::VectorDevice{T1}, msg::T2) where {T1<:Devices.BUS_FD,T2<:Frames.AnyFrame}
     canid = msg.is_extended ? msg.id | Vxlapi.XL_CAN_EXT_MSG_ID : msg.id
     len = length(msg)
     dlc = len <= 8 ? len : Vxlapi.CANFD_LEN2DLC[len]
@@ -184,7 +191,7 @@ function Interfaces.send(interface::VectorFDInterface, msg::T) where {T<:Union{F
     data_pad[1:len] .= msg.data
 
     flags = Cuint(0)
-    if T == Frames.FDFrame
+    if T2 == Frames.FDFrame
         flags |= Vxlapi.XL_CAN_TXMSG_FLAG_EDL
         flags |= msg.bitrate_switch ? Vxlapi.XL_CAN_TXMSG_FLAG_BRS : Cuint(0)
     else # classic frame
@@ -196,7 +203,7 @@ function Interfaces.send(interface::VectorFDInterface, msg::T) where {T<:Union{F
     pevent = Ref(event)
     pMsgCntSent = Ref(Cuint(0))
 
-    status = Vxlapi.xlCanTransmitEx!(interface.portHandle, interface.channelMask,
+    status = Vxlapi.xlCanTransmitEx!(device.pportHandle[], device.channelMask,
         Cuint(1), pMsgCntSent, pevent)
     if status != Vxlapi.XL_SUCCESS || pMsgCntSent[] != 1
         error("Vector: Failed to transmit.")
@@ -206,22 +213,31 @@ function Interfaces.send(interface::VectorFDInterface, msg::T) where {T<:Union{F
 end
 
 
-function Interfaces.recv(interface::VectorInterface; timeout_s::Real=0)::Union{Nothing,Frames.Frame}
+function Devices.dev_recv(device::VectorDevice{T};
+    timeout_s::Real=0)::Union{Nothing,Frames.Frame} where {T<:Devices.BUS_20}
 
-    # poll
-    _poll(interface.portHandle, timeout_s)
+    if timeout_s != 0
+        # non-block recv before poll (according to driver manual)
+        ret = Devices.dev_recv(device; timeout_s=0)
+        if ret !== nothing
+            return ret
+        end
+    end
+
+    # poll (clear event even if timeout_s==0)
+    _poll(device, timeout_s)
 
     # prepare to receive
     pEventCount = Ref(Cuint(1))
     EventList_r = Vector{Vxlapi.XLevent}([Vxlapi.XLevent() for i in 1:pEventCount[]])
     pEventList_r = Ref(EventList_r, 1)
 
-    status = Vxlapi.xlReceive!(interface.portHandle, pEventCount, pEventList_r)
+    status = Vxlapi.xlReceive!(device.pportHandle[], pEventCount, pEventList_r)
 
     if status != Vxlapi.XL_ERR_QUEUE_IS_EMPTY
         if EventList_r[1].tag == Vxlapi.XL_RECEIVE_MSG
 
-            timestamp = interface.time_offset + EventList_r[1].timeStamp * 1.e-9 # nsec -> sec
+            timestamp = device.time_offset + EventList_r[1].timeStamp * 1.e-9 # nsec -> sec
 
             # split id to extended flag
             totalid = EventList_r[1].tagData.id
@@ -244,10 +260,19 @@ function Interfaces.recv(interface::VectorInterface; timeout_s::Real=0)::Union{N
 end
 
 
-function Interfaces.recv(interface::VectorFDInterface; timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame}
+function Devices.dev_recv(device::VectorDevice{T};
+    timeout_s::Real=0)::Union{Nothing,Frames.AnyFrame} where {T<:Devices.BUS_FD}
 
-    # poll
-    _poll(interface.portHandle, timeout_s)
+    if timeout_s != 0
+        # non-block recv before poll (according to driver manual)
+        ret = Devices.dev_recv(device; timeout_s=0)
+        if ret !== nothing
+            return ret
+        end
+    end
+
+    # poll (clear event even if timeout_s==0)
+    _poll(device, timeout_s)
 
     # receive    
     canrxevt = Vxlapi.XLcanRxEvent(0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -255,14 +280,14 @@ function Interfaces.recv(interface::VectorFDInterface; timeout_s::Real=0)::Union
             (zeros(Cuchar, 5)...,), (zeros(Cuchar, Vxlapi.XL_CAN_MAX_DATA_LEN)...,)))
     pcanrxevt = Ref(canrxevt)
 
-    status = Vxlapi.xlCanReceive!(interface.portHandle, pcanrxevt)
+    status = Vxlapi.xlCanReceive!(device.pportHandle[], pcanrxevt)
 
     if status == Vxlapi.XL_ERR_QUEUE_IS_EMPTY
         return nothing
     elseif status == Vxlapi.XL_SUCCESS
         if pcanrxevt[].tag == Vxlapi.XL_CAN_EV_TAG_RX_OK
 
-            timestamp = interface.time_offset + pcanrxevt[].timeStampSync * 1.e-9
+            timestamp = device.time_offset + pcanrxevt[].timeStampSync * 1.e-9
 
             dlc = pcanrxevt[].tagData.dlc
             len = dlc <= 8 ? dlc : Vxlapi.CANFD_DLC2LEN[dlc]
@@ -280,7 +305,7 @@ function Interfaces.recv(interface::VectorFDInterface; timeout_s::Real=0)::Union
                     is_error_frame=iserr, timestamp=timestamp)
                 return msg
             else
-                msg = Frames.Frame(id, collect(pcanrxevt[].tagdata.data[1:len]);
+                msg = Frames.Frame(id, collect(pcanrxevt[].tagData.data[1:len]);
                     is_extended=isext, is_remote_frame=isrtr,
                     is_error_frame=iserr, timestamp=timestamp)
                 return msg
@@ -291,9 +316,10 @@ function Interfaces.recv(interface::VectorFDInterface; timeout_s::Real=0)::Union
 end
 
 
-function Interfaces.shutdown(interface::T) where {T<:Union{VectorInterface,VectorFDInterface}}
-    status = Vxlapi.xlDeactivateChannel(interface.portHandle, interface.channelMask)
-    status = Vxlapi.xlClosePort(interface.portHandle)
+function Devices.dev_close(device::VectorDevice{T}) where {T<:Devices.AbstractBusType}
+    status = WinWrap.CloseHandle(device.notification_hnd[])
+    status = Vxlapi.xlDeactivateChannel(device.pportHandle[], device.channelMask)
+    status = Vxlapi.xlClosePort(device.pportHandle[])
     status = Vxlapi.xlCloseDriver()
     return nothing
 end
@@ -315,7 +341,7 @@ function _get_channel_mask(channel::Union{Int,AbstractVector{Int}}, appname::Str
         status = Vxlapi.xlGetApplConfig(appname, ch,
             pHwType, pHwIndex, pHwChannel, Vxlapi.XL_BUS_TYPE_CAN)
         if status != Vxlapi.XL_SUCCESS
-            throw(ErrorException("Vector: CH=$ch does not exist. Check channel index or application name."))
+            throw(ErrorException("Vector: CH=$ch does not exist. Check channel index or application name. $status"))
         end
         push!(hwInfo, (Cint(pHwType[]), Cint(pHwIndex[]), Cint(pHwChannel[])))
     end
@@ -330,17 +356,11 @@ function _get_channel_mask(channel::Union{Int,AbstractVector{Int}}, appname::Str
 end
 
 
-function _poll(portHandle::Vxlapi.XLportHandle, timeout_s::Real)
+function _poll(device::VectorDevice{T}, timeout_s::Real) where {T<:Devices.AbstractBusType}
     # block until frame comes or timeout
-    if timeout_s != 0
-        r_hnd = Ref{Vxlapi.XLhandle}()
-        st = Vxlapi.xlSetNotification(portHandle, r_hnd, Cint(1))
-        if st != Vxlapi.XL_SUCCESS
-            error("Vector: poll notifier set failed. $st")
-        end
-        WinWrap.WaitForSingleObject(r_hnd[], Culong(timeout_s * 1e3))
-    end
+    timeout_ms = timeout_s < 0 ? 0xFFFFFFFF : Culong(timeout_s * 1e3)
+    WinWrap.WaitForSingleObject(device.notification_hnd[], timeout_ms)
 end
 
 
-end # VectorInterfaces
+end # VectorDevices
