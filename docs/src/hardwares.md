@@ -92,7 +92,7 @@ please install [Vector XL-Driver-Library](https://www.vector.com/jp/ja/products/
 
 
 ```jl
-cfg = InterfaceConfigCAN(VECTOR, 0, 500_000; vecor_appname="NewApp") # channel 0, 500kbps
+cfg = InterfaceConfigCAN(VECTOR, 0, 500_000; vector_appname="NewApp") # channel 0, 500kbps
 iface = Interface(cfg)
 ```
 
@@ -100,7 +100,7 @@ iface = Interface(cfg)
 
 For CAN FD,
 ```jl
-cfg = InterfaceConfigFD(VECTOR, 0, 500_000, 2_000_000; vecor_appname="NewApp") # channel 0, 500kbps, 2Mbps
+cfg = InterfaceConfigFD(VECTOR, 0, 500_000, 2_000_000; vector_appname="NewApp") # channel 0, 500kbps, 2Mbps
 iface = Interface(cfg)  
 ```
 
