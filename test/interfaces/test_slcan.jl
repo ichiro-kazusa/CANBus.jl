@@ -23,7 +23,7 @@ const cfg1 = InterfaceConfigCAN(device, ch1, 500000;)
 const cfg2 = InterfaceConfigCAN(device, ch2, 500000; extfilter=filter)
 const cfg3 = InterfaceConfigCAN(device, ch3, 500000) # must be error
 
-const cfg1_fd = InterfaceConfigFD(device, ch1, 500000, 2000000;)
+const cfg1_fd = InterfaceConfigFD(device, ch1, 500000, 2000000)
 const cfg2_fd = InterfaceConfigFD(device, ch2, 500000, 2000000; extfilter=filter)
 
 
