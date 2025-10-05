@@ -1,161 +1,49 @@
+module TestSocketcan
 using CANBus
 using Test
 
-function test_scan_normal()
-    # use CAN
-    scan1 = SocketCANInterface("vcan0")
-    scan2 = SocketCANInterface("vcan1";
-        filters=[AcceptanceFilter(0x01, 0x01)])
 
-    msg_t1 = CANBus.Frame(1, [1, 1, 2, 2, 3, 3, 4]; is_extended=true)
-    send(scan1, msg_t1)
+include("iface_common.jl")
 
-    msg_t2 = CANBus.Frame(2, [1, 1, 2, 2, 3, 3, 4]; is_extended=true)
-    send(scan1, msg_t2) # decline by filter
+""" to prepare test environment
+sudo modprobe vcan
+sudo ip link add dev vcan0 type vcan
+sudo ip link add dev vcan1 type vcan
+sudo ip link set up vcan0
+sudo ip link set up vcan1
+sudo modprobe can-gw
+sudo cangw -A -s vcan0 -d vcan1 -e
+sudo cangw -A -s vcan1 -d vcan0 -e
+sudo cangw -A -X -s vcan0 -d vcan1 -e
+sudo cangw -A -X -s vcan1 -d vcan0 -e
+"""
 
-    sleep(0.1)
+const device = SOCKETCAN
 
-    msg_r = recv(scan2) # accept by filter
-    @assert msg_r == msg_t1
+const ch1 = "vcan0"
+const ch2 = "vcan1"
+const ch3 = "vcan2" # not exist
 
-    msg_r = recv(scan2) # decline by filter
-    @assert msg_r === nothing
+const filter = AcceptanceFilter(0x01, 0x01)
 
-    msg_r = recv(scan2) # receive nothing
-    @assert msg_r === nothing
+const cfg1 = InterfaceConfigCAN(device, ch1, 500000)
+const cfg2 = InterfaceConfigCAN(device, ch2, 500000; extfilter=filter)
+const cfg3 = InterfaceConfigCAN(device, ch3, 500000) # must be error
 
-    ret = shutdown(scan1)
-    @assert ret === nothing
-    shutdown(scan2)
-
-    true
-end
-
-
-function test_scan_nodevice()
-    SocketCANInterface("vcan2") # must be error
-end
-
-
-
-function test_scan_normal_fd()
-    scanfd1 = SocketCANFDInterface("vcan0")
-    scanfd2 = SocketCANFDInterface("vcan1";
-        filters=[AcceptanceFilter(0x01, 0x01)])
-
-    msg_t = CANBus.FDFrame(1, collect(1:16); bitrate_switch=false)
-    send(scanfd1, msg_t)
-    sleep(0.1)
-
-    msg_r = recv(scanfd2)
-    @assert msg_t == msg_r
-
-    msg_t = CANBus.FDFrame(1, collect(1:16))
-    send(scanfd1, msg_t)
-    sleep(0.1)
-    msg_r = recv(scanfd2)
-    @assert msg_t == msg_r
-
-    msg_t = CANBus.FDFrame(2, collect(1:16); is_extended=true)
-    send(scanfd1, msg_t)
-    sleep(0.1)
-    msg_r = recv(scanfd2) # filtered
-    @assert msg_r === nothing
-
-    msg_t = CANBus.Frame(1, collect(1:6))
-    send(scanfd1, msg_t)
-    sleep(0.1)
-    msg_r = recv(scanfd2)
-    @assert msg_t == msg_r # classic frame
-
-    msg_r = recv(scanfd2) # empty
-    @assert msg_r === nothing
-
-    shutdown(scanfd1)
-    shutdown(scanfd2)
-
-    true
-end
-
-
-function test_subroutine_recv()
-    scanfd1 = SocketCANFDInterface("vcan0")
-
-
-    shutdown(scanfd1)
-end
-
-function test_socketcan_timeout()
-
-    scanfd1 = SocketCANFDInterface("vcan0")
-    scanfd2 = SocketCANFDInterface("vcan1")
-
-    # compile
-    msg_t = CANBus.FDFrame(1, collect(1:16); bitrate_switch=false)
-    send(scanfd2, msg_t)
-    recv(scanfd1)
-    sleep(0.1)
-
-    # tests
-    res = @elapsed begin
-        ret = recv(scanfd1; timeout_s=1)
-        @assert ret === nothing
-    end
-    @assert 0.9 < res < 1.1
-
-    res = @elapsed begin
-        ret = recv(scanfd1)
-        @assert ret === nothing
-    end
-    @assert 0. < res < 0.1
-
-
-    t1 = @async begin
-        res = @elapsed begin
-            recv(scanfd1; timeout_s=2)
-        end
-        res
-    end
-
-    t2 = @async begin
-        sleep(1)
-        send(scanfd2, msg_t)
-    end
-
-    res = fetch(t1)
-    wait(t2)
-
-    @assert 0.9 < res < 1.1
-
-    shutdown(scanfd1)
-    shutdown(scanfd2)
-
-    true
-end
-
-
-function test_socketcan_do_end()
-    SocketCANInterface("vcan0") do socketcan
-        msg_t = CANBus.Frame(1, [1, 1, 2, 2, 3, 3, 4]; is_extended=true)
-        send(socketcan, msg_t)
-    end
-
-    SocketCANFDInterface("vcan1") do socketcanfd
-        msg_t = CANBus.Frame(1, [1, 1, 2, 2, 3, 3, 4]; is_extended=true)
-        send(socketcanfd, msg_t)
-    end
-
-    true
-end
+const cfg1_fd = InterfaceConfigFD(device, ch1, 500000, 2000000)
+const cfg2_fd = InterfaceConfigFD(device, ch2, 500000, 2000000;
+    stdfilter=filter, extfilter=filter)
 
 
 # This feature can not be able to test on GitHub Actions.
 if !haskey(ENV, "GITHUB_ACTIONS") && Sys.islinux()
     @testset "SocketCAN" begin
-        @test test_scan_normal()
-        @test_throws ErrorException test_scan_nodevice()
-        @test test_scan_normal_fd()
-        @test test_socketcan_timeout()
-        @test test_socketcan_do_end()
+        @test test_device_normal(cfg1, cfg2)
+        @test_throws ErrorException test_device_nodevice(cfg3)
+        @test test_device_normal_fd(cfg1_fd, cfg2_fd)
+        @test test_device_timeout(cfg1_fd, cfg2_fd)
+        @test test_device_do_end(cfg1, cfg1_fd)
     end
 end
+
+end # module TestKvaser
