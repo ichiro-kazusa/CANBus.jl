@@ -21,6 +21,13 @@ cfg = InterfaceConfigFD(KVASER, 0, 500_000, 2_000_000) # channel 0, 500kbps, 2Mb
 iface = Interface(cfg)  
 ```
 
+!!! note "Note for Filter"
+
+    `KVASER` interface has separate acceptance filters for standard IDs and extended IDs.
+    Each type can have only one filter. Therefore, when setting filters, make sure to 
+    strictly match the ID type. If `Vector` of `AcceptanceFilter` is provided, only first one 
+    will be applied.
+
 ## slcan
 
 `SLCAN` supports Win64/Linux platform. Tested on [CANable 2.0](https://canable.io/) firmware.
@@ -69,6 +76,12 @@ iface = Interface(cfg)
     Bitrate and Datarate can not be modified from CANBus library,
     so use `ip link` command from terminal.
 
+!!! note "Note for Filter"
+
+    The acceptance filter of the `SOCKETCAN` interface does not internally
+    distinguish between standard and extended IDs.
+    Therefore, for example, if you set options for `stdfilter`, the `extfilter`
+    will not receive any messages unless you explicitly configured to do so.
 
 ## Vector
 
@@ -91,3 +104,4 @@ cfg = InterfaceConfigFD(VECTOR, 0, 500_000, 2_000_000; vecor_appname="NewApp") #
 iface = Interface(cfg)  
 ```
 
+* `AcceptanceFilter` has same behavior as `KVASER` interface.
