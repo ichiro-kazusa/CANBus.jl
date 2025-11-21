@@ -16,6 +16,8 @@ end
     iface = Interface(ifacecfg::InterfaceConfig)
 
 Setup CAN Bus Interfaces. 
+
+This function throws `CANBusOpenError` when it failed to setup.
 """
 function Interface(cfg::InterfaceCfgs.InterfaceConfig)
     # construct
@@ -25,12 +27,12 @@ end
 
 
 """
+`do` statement is also supported.
+
     Interface(ifacecfg::InterfaceConfig) do iface
         # do something like:
         # ret = recv(iface)
     end
-
-`do` statement is also supported.
 """
 function Interface(f::Function, args...; kwargs...)
     iface = Interface(args...; kwargs...)

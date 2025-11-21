@@ -87,8 +87,10 @@ iface = Interface(cfg)
 
 `VECTOR` supports Win64 platform. 
 
-To use this interface, 
-please install [Vector XL-Driver-Library](https://www.vector.com/jp/ja/products/products-a-z/libraries-drivers/xl-driver-library/#) separately. Check `vxlapi64.dll` is in your path.
+!!! warning "Requirement"
+
+    To use this interface, 
+    please install [Vector XL-Driver-Library](https://www.vector.com/jp/ja/products/products-a-z/libraries-drivers/xl-driver-library/#) separately. Check `vxlapi64.dll` is in your path.
 
 
 ```jl
@@ -105,3 +107,15 @@ iface = Interface(cfg)
 ```
 
 * `AcceptanceFilter` has same behavior as `KVASER` interface.
+
+!!! tip "Channel sharing and init_access"
+
+    Vector XL Driver originally supports channel sharing from multiple processes.
+    The process who accesses specific port first will gain **init_access** rights,
+    which is needed to set bitrate and so on.
+    
+    At this time, `CANBus.jl` **can not communicate without init_access**.
+    If you attempt to open port with already-occupied channel,
+    you will see "failing to set bitrate" message.
+    
+    Communication without init\_access will be implemented until version 0.1.0.

@@ -1,5 +1,10 @@
 module CANBus
 
+# core error
+include("core/Errors.jl")
+import .Errors
+
+
 # internal use
 module misc
 include("misc/SerialHAL.jl")

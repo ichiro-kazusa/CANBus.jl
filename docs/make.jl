@@ -12,7 +12,11 @@ makedocs(;
     format=Documenter.HTML(;
         canonical="https://ichiro-kazusa.github.io/CANBus.jl",
         edit_link="main",
-        assets=String[],
+        assets=[
+            Documenter.HTMLWriter.RawHTMLHeadContent("""
+               <meta name="google-site-verification" content="QxLomniwDlUJDp7nGuHXoaQFlSdZxmLtb-8lxSeh2p8" />
+            """)
+        ]
     ),
     pages=[
         "Home" => "index.md",
@@ -22,6 +26,7 @@ makedocs(;
             "Interfaces" => "interfaces.md",
             "InterfaceCfgs" => "interfacecfgs.md",
             "Frames" => "frames.md",
+            "Error Handling" => "errors.md",
             "Internals" => "internals.md"
         ],
         "Changelog" => "changelog.md"

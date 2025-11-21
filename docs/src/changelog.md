@@ -1,10 +1,13 @@
 # Changelog
 
+### v0.0.7
+*  Replaced error() function by orignal error object.
+
 ### v0.0.6
 
 * **Breaks Compatibility**: New generic `Interface` setup API.
     * Old vendor-specific APIs are no longer available.
-* Support `do`-`end` statement for `Interface`.
+* Supported `do`-`end` statement for `Interface`.
 * Add automatic bit-timing calculation from samplepoint.
 * Tested on physical hardware (Vector, Kvaser).
 * bug fix: Timeout notification object is infinitely reproduced (Vector).
@@ -13,8 +16,8 @@
 
 ### v0.0.5
 
-* Add receive timestamps
-* Add receive timeout
+* Added receive timestamps
+* Added receive timeout
 
 ### v0.0.4
 

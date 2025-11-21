@@ -3,6 +3,7 @@ module KvaserDevices
 import ..Devices
 import ....InterfaceCfgs
 import ....Frames
+import ....Errors
 import ....misc: BitTiming
 
 include("canlib.jl")
@@ -68,6 +69,9 @@ function _init_kvaser(channel::Int, bitrate::Int, silent::Bool,
     GC.gc()
 
     # initialize library
+    #= Any errors encountered during library initialization will be "silent" 
+    and an appropriate canERR_xxx error code will be returned later on 
+    when canOpenChannel() (or any other API call that requires initialization) is called=#
     Canlib.canInitializeLibrary()
 
     # open channel
@@ -75,7 +79,8 @@ function _init_kvaser(channel::Int, bitrate::Int, silent::Bool,
            non_iso ? Canlib.canOPEN_CAN_FD_NONISO : Canlib.canOPEN_CAN_FD
     hnd = Canlib.canOpenChannel(Cint(channel), flag | Canlib.canOPEN_ACCEPT_VIRTUAL)
     if hnd < 0
-        error("Kvaser: channel $channel open failed. $hnd")
+        throw(Errors.CANBusOpenError("channel $channel open failed.",
+            "Kvaser", "$hnd"))
     end
 
     # set bitrate
@@ -89,7 +94,9 @@ function _init_kvaser(channel::Int, bitrate::Int, silent::Bool,
             Clong(datarate), Cuint(tseg1_d), Cuint(tseg2_d), Cuint(sjw_d))
     end
     if status1 < 0 || status2 < 0
-        error("Kvaser: bitrate set failed. $status1, $status2")
+        Canlib.canClose(hnd)
+        throw(Errors.CANBusOpenError("Bitrate set failed.", "Kvaser",
+            "$status1, $status2"))
     end
 
     # set drivertype
@@ -109,14 +116,15 @@ function _init_kvaser(channel::Int, bitrate::Int, silent::Bool,
     # bus on 
     status = Canlib.canBusOn(hnd)
     if status < 0
-        error("Kvaser: Bus on failed. $status")
+        Canlib.canClose(hnd)
+        throw(Errors.CANBusOpenError("Bus on failed.", "Kvaser", "$status"))
     end
 
     # set timer scale at microsec
     status = Canlib.canIoCtl(hnd, Canlib.canIOCTL_SET_TIMER_SCALE,
         Ref(UInt32(1)), UInt32(4))
     if status != Canlib.canOK
-        error("Kvaser: failed to set timer scale.")
+        throw(Errors.CANBusOpenError("Failed to set timer scale.", "Kvaser", "$status"))
     end
 
     # get time offset
@@ -141,7 +149,8 @@ function Devices.dev_send(device::KvaserDevice{T},
     status = Canlib.canWrite(device.handleholder.handle, id, pmsg_t, len, flag)
 
     if status != Canlib.canOK
-        error("Kvaser: Failed to transmit. $status")
+        throw(Errors.CANBusIOError("Failed to transmit",
+            "send_Frame", "Kvaser", "$status"))
     end
     return nothing
 end
@@ -158,7 +167,8 @@ function Devices.dev_send(device::KvaserDevice{T},
         Clong(msg.id), pmesg, Cuint(length(msg)), flag)
 
     if status != Canlib.canOK
-        error("Kvaser: Failed to transmit. $status")
+        throw(Errors.CANBusIOError("Failed to transmit",
+            "send_FDFrame", "Kvaser", "$status"))
     end
     return nothing
 end
@@ -217,7 +227,8 @@ function _recv_kvaser_internal(device::KvaserDevice{T},
     elseif status == Canlib.canERR_NOMSG
         return nothing
     else
-        error("Kvaser: receive error. $status")
+        throw(Errors.CANBusIOError("Receive error.",
+            "recv", "Kvaser", "$status"))
     end
 end
 

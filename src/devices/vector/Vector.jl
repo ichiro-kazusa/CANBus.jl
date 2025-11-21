@@ -3,6 +3,7 @@ module VectorDevices
 import ..Devices
 import ....InterfaceCfgs
 import ....Frames
+import ....Errors
 import ....misc: WinWrap, BitTiming
 
 include("xlapi.jl")
@@ -90,7 +91,8 @@ function _init_vector(channel::Union{Int,AbstractVector{Int}},
         channelMask, pchannelMask, rxqueuesize,
         ifv, Vxlapi.XL_BUS_TYPE_CAN)
     if status != Vxlapi.XL_SUCCESS
-        throw(ErrorException("Vector: Failed to open port."))
+        throw(Errors.CANBusOpenError("Failed to open port for channel=$channel.",
+            "Vector", string(status)))
     end
 
     # set filter
@@ -118,7 +120,9 @@ function _init_vector(channel::Union{Int,AbstractVector{Int}},
         status = Vxlapi.xlCanSetChannelParams(pportHandle[], channelMask, Ref(chipparams))
     end
     if status != Vxlapi.XL_SUCCESS
-        error("Vector: failed to set bitrate. $status")
+        _cleanup_porthandle(pportHandle)
+        throw(Errors.CANBusOpenError("Failed to set bitrate. Check having init_access.",
+            "Vector", string(status)))
     end
 
     # set silent
@@ -133,7 +137,8 @@ function _init_vector(channel::Union{Int,AbstractVector{Int}},
     # get time offset
     status = Vxlapi.xlResetClock(pportHandle[])
     if status != Vxlapi.XL_SUCCESS
-        error("Vector: clock reset failed. $status")
+        _cleanup_porthandle(pportHandle)
+        throw(Errors.CANBusOpenError("Clock reset failed.", "Vector", string(status)))
     end
     time_offset = time() # assume device clock is 0.
 
@@ -141,13 +146,15 @@ function _init_vector(channel::Union{Int,AbstractVector{Int}},
     r_hnd = Ref{Vxlapi.XLhandle}()
     st = Vxlapi.xlSetNotification(pportHandle[], r_hnd, Cint(1))
     if st != Vxlapi.XL_SUCCESS
-        error("Vector: poll notifier set failed. $st")
+        _cleanup_porthandle(pportHandle)
+        throw(Errors.CANBusOpenError("Poll notifier set failed.", "Vector", string(st)))
     end
 
     # flush rx buffer
     st = Vxlapi.xlFlushReceiveQueue(pportHandle[])
     if st != Vxlapi.XL_SUCCESS
-        error("Vector: rx buffer flush failed. $st")
+        _cleanup_porthandle(pportHandle)
+        throw(Errors.CANBusOpenError("RX buffer flush failed.", "Vector", string(st)))
     end
 
     return pportHandle, channelMask, time_offset, r_hnd
@@ -176,7 +183,8 @@ function Devices.dev_send(device::VectorDevice{T}, msg::Frames.Frame) where {T<:
     status = Vxlapi.xlCanTransmit!(device.pportHandle[], device.channelMask, pMessageCount, pEventList_t)
 
     if status != Vxlapi.XL_SUCCESS || pMessageCount[] != messageCount
-        error("Vector: Failed to transmit.")
+        throw(Errors.CANBusIOError("Failed to transmit.",
+            "send_Frame", "Vector", "$status"))
     end
 
     return nothing
@@ -206,7 +214,8 @@ function Devices.dev_send(device::VectorDevice{T1}, msg::T2) where {T1<:Devices.
     status = Vxlapi.xlCanTransmitEx!(device.pportHandle[], device.channelMask,
         Cuint(1), pMsgCntSent, pevent)
     if status != Vxlapi.XL_SUCCESS || pMsgCntSent[] != 1
-        error("Vector: Failed to transmit.")
+        throw(Errors.CANBusIOError("Failed to transmit.",
+            "send_FDFrame", "Vector", "$status"))
     end
 
     return nothing
@@ -312,7 +321,7 @@ function Devices.dev_recv(device::VectorDevice{T};
             end
         end
     end
-    error("Vector: receive failed. $status")
+    throw(Errors.CANBusIOError("Receive failed.", "recv", "Vector", "$status"))
 end
 
 
@@ -341,7 +350,8 @@ function _get_channel_mask(channel::Union{Int,AbstractVector{Int}}, appname::Str
         status = Vxlapi.xlGetApplConfig(appname, ch,
             pHwType, pHwIndex, pHwChannel, Vxlapi.XL_BUS_TYPE_CAN)
         if status != Vxlapi.XL_SUCCESS
-            throw(ErrorException("Vector: CH=$ch does not exist. Check channel index or application name. $status"))
+            throw(Errors.CANBusOpenError("Channel=$channel does not exist. Check channel index or application name.",
+                "Vector", string(status)))
         end
         push!(hwInfo, (Cint(pHwType[]), Cint(pHwIndex[]), Cint(pHwChannel[])))
     end

@@ -1,5 +1,7 @@
 module InterfaceCfgs
 
+using ..Errors
+
 """
 Device indicator constants.
 
@@ -13,6 +15,7 @@ Device indicator constants.
     KVASER
     SOCKETCAN
     SLCAN
+    NULL
 end
 
 
@@ -117,17 +120,20 @@ function InterfaceConfig(device::DeviceType, channel::Union{String,Int},
 
     # check validity
     if !(0 < bitrate <= 1_000_000)
-        error("invalid bitrate")
+        throw(Errors.CANBusValueError("invalid bitrate: $bitrate", "InterfaceConfig"))
     end
     if !(50 < sample_point < 100)
-        error("invalid samplepoint")
+        throw(Errors.CANBusValueError("invalid samplepoint: $sample_point",
+            "InterfaceConfig"))
     end
     if bustype in (CAN_FD, CAN_FD_NONISO)
         if datarate === nothing || datarate <= 0
-            error("invalid datarate")
+            throw(Errors.CANBusValueError("invalid datarate: $datarate",
+                "InterfaceConfig"))
         end
         if !(50 < sample_point_fd < 100)
-            error("invalid fd samplepoint")
+            throw(Errors.CANBusValueError("invalid fd samplepoint: $sample_point_fd",
+                "InterfaceConfig"))
         end
     end
 

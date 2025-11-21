@@ -7,6 +7,7 @@ module SocketCAN
 ########################################
 const socklen_t = Cuint
 
+
 ########################################
 # definitions
 ########################################
@@ -36,6 +37,7 @@ const CANFD_FDF::UInt8 = 0x04 #/* mark CAN FD for dual use of struct canfd_frame
 
 const EAGAIN = 11
 
+
 ########################################
 # structs
 ########################################
@@ -44,11 +46,13 @@ struct ifreq
     ifr_ifru::NTuple{16,Cchar}
 end
 
+
 struct sockaddr_can # 19 bytes
     can_family::Cushort
     can_ifindex::Cint
     can_addr::NTuple{13,Cchar}
 end
+
 
 struct can_frame # 16 bytes
     can_id::UInt32
@@ -59,6 +63,7 @@ struct can_frame # 16 bytes
     data::NTuple{8,UInt8}
 end
 
+
 struct canfd_frame # 72 bytes
     can_id::UInt32
     len::UInt8
@@ -68,20 +73,24 @@ struct canfd_frame # 72 bytes
     data::NTuple{64,UInt8}
 end
 
+
 struct can_filter # 8 bytes
     can_id::UInt32
     can_mask::UInt32
 end
+
 
 struct timespec
     tv_sec::Clong
     tv_nsec::Clong
 end
 
+
 struct iovec
     iov_base::Ptr{Cvoid}
     iov_len::Csize_t
 end
+
 
 struct msghdr
     msg_name::Ptr{Cvoid}
@@ -93,11 +102,13 @@ struct msghdr
     msg_flags::Cint
 end
 
+
 struct cmsghdr
     cmsg_len::Csize_t
     cmsg_level::Cint
     cmsg_type::Cint
 end
+
 
 ########################################
 # function wrappers
@@ -106,20 +117,25 @@ function socket(domain::Cint, type::Cint, protocol::Cint)::Cint
     ccall(:socket, Cint, (Cint, Cint, Cint), domain, type, protocol)
 end
 
+
 function ioctl(fd::Cint, cmd::Cint, arg::Base.RefValue{ifreq})::Cint
     # ioctl to set ifreq
     ccall(:ioctl, Cint, (Cint, Cint, Ptr{ifreq}), fd, cmd, arg)
 end
 
+
 function bind(socket::Cint, address::Ref{sockaddr_can}, address_len::Cuint)::Cint
     ccall(:bind, Cint, (Cint, Ptr{sockaddr_can}, Cuint), socket, address, address_len)
 end
 
+
 function write(socket::Cint, pframe::Ref{T},
     len::Cuint)::Clong where T<:Union{can_frame,canfd_frame}
+
     ccall(:write, Clong, (Cint, Ptr{T}, Cuint),
         socket, pframe, len)
 end
+
 
 function read(socket::Cint, pframe::Ref{T},
     len::Cuint)::Clong where T<:Union{can_frame,canfd_frame}
@@ -128,9 +144,11 @@ function read(socket::Cint, pframe::Ref{T},
         socket, pframe, len)
 end
 
+
 function close(socket::Cint)::Cint
     ccall(:close, Cint, (Cint,), socket)
 end
+
 
 function setsockopt(socket::Cint, level::Cint, optionname::Cint,
     optionvalue::Base.RefArray{can_filter,Vector{can_filter},Nothing},
@@ -142,6 +160,7 @@ function setsockopt(socket::Cint, level::Cint, optionname::Cint,
         socket, level, optionname, optionvalue, optionlength)
 end
 
+
 function setsockopt(socket::Cint, level::Cint, optionname::Cint,
     optionvalue::Base.RefValue{Cint}, optionlength::Cuint)::Cint
 
@@ -150,6 +169,7 @@ function setsockopt(socket::Cint, level::Cint, optionname::Cint,
         socket, level, optionname, optionvalue, optionlength)
 end
 
+
 function recvmsg(socket::Cint, pmsg::Ref{msghdr},
     flag::Cint)::Cssize_t
 
@@ -157,5 +177,6 @@ function recvmsg(socket::Cint, pmsg::Ref{msghdr},
         (Cint, Ptr{msghdr}, Cint),
         socket, pmsg, flag)
 end
+
 
 end # Socketcanapi

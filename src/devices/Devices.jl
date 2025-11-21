@@ -2,6 +2,7 @@ module Devices
 
 import ...InterfaceCfgs
 import ...Frames
+import ...Errors
 
 
 abstract type AbstractBusType end
@@ -22,16 +23,27 @@ abstract type AbstractDevice{T<:AbstractBusType} end
 #= prototype functions =#
 
 """ Abstract function for setup and open device. """
-dev_open(::Val, ::InterfaceCfgs.InterfaceConfig) = error("Not Implemented")
+function dev_open(v::Val, ::InterfaceCfgs.InterfaceConfig)
+    throw(Errors.CANBusNotImplementedError("CANBus: Function to open $v is not implemented."))
+end
+
 
 """ Abstract function for send frame. """
-dev_send(::AbstractDevice, ::Frames.AnyFrame) = error("Not Implemented")
+function dev_send(ad::AbstractDevice, ::Frames.AnyFrame)
+    throw(Errors.CANBusNotImplementedError("CANBus: Function to send on $ad is not implemented."))
+end
+
 
 """ Abstract function for receive frame. """
-dev_recv(::AbstractDevice; timeout_s::Real) = error("Not Implemented")
+function dev_recv(ad::AbstractDevice; timeout_s::Real)
+    throw(Errors.CANBusNotImplementedError("CANBus: Function to receive on $ad is not implemented."))
+end
+
 
 """ Abstract function for close device. """
-dev_close(::AbstractDevice) = error("Not Implemented")
+function dev_close(ad::AbstractDevice)
+    throw(Errors.CANBusNotImplementedError("CANBus: Function to close $ad is not implemented."))
+end
 
 
 

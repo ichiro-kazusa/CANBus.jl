@@ -1,6 +1,7 @@
 """Internal module for BitTiming calculation and setting."""
 module BitTiming
 
+import ...Errors
 
 #=
     calc_fdbittiming(bitrate::Float64, samplepoint_percent::Float64,
@@ -21,10 +22,11 @@ function calc_bittiming(clock::Int64, bitrate::Real, samplepoint_percent::Real,
 
     # check arguments
     if bitrate <= 0
-        error("BitTiming: bitrate must be positive.")
+        throw(Error.CANBusValueError("Bitrate must be positive.", "BitTiming"))
     end
     if samplepoint_percent <= 50 || samplepoint_percent >= 100
-        error("BitTiming: samplepoint_percent must be in (50, 100).")
+        throw(Error.CANBusValueError("Samplepoint_percent must be in (50, 100)",
+            "BitTiming"))
     end
 
     Prescaler_x_NumofQuanta = round(Int64, clock / bitrate) # 80MHz clock
@@ -53,7 +55,8 @@ function calc_bittiming(clock::Int64, bitrate::Real, samplepoint_percent::Real,
         end
     end
 
-    error("BitTiming: cannot find valid bit timing parameters.")
+    throw(Errors.CANBusValueError("Cannot find valid bit timing parameters.",
+        "BitTiming"))
 end
 
 

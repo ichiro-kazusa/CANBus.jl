@@ -3,10 +3,9 @@ module SocketCANDevices
 import ..Devices
 import ....InterfaceCfgs
 import ....Frames
-
+import ....Errors
 include("socketcanapi.jl")
 import .SocketCAN
-
 using FileWatching
 
 
@@ -50,7 +49,7 @@ end
 function _preprocess_filter(filter::T, isext::Bool)::Vector{InterfaceCfgs.AcceptanceFilter} where T
     flag = isext ? SocketCAN.CAN_EFF_FLAG : UInt32(0)
     mask = SocketCAN.CAN_EFF_FLAG | SocketCAN.CAN_RTR_FLAG
-    
+
     if filter === nothing
         return InterfaceCfgs.AcceptanceFilter[]
     elseif T == InterfaceCfgs.AcceptanceFilter
@@ -82,7 +81,8 @@ function _init_can(channel::String,
     s = SocketCAN.socket(SocketCAN.PF_CAN,
         SocketCAN.SOCK_RAW | SocketCAN.SOCK_NONBLOCK, SocketCAN.CAN_RAW)
     if s < 0
-        error("SocketCAN: socket could not open.")
+        throw(Errors.CANBusOpenError("socket could not open.",
+            "SocketCAN", "$s"))
     end
 
     # ioctl to set ch name
@@ -92,7 +92,8 @@ function _init_can(channel::String,
     pifr = Ref(ifr)
     io = SocketCAN.ioctl(s, SocketCAN.SIOCGIFINDEX, pifr)
     if io < 0
-        error("SocketCAN: $channel is not found.")
+        throw(Errors.CANBusOpenError("$channel is not found.",
+            "SocketCAN", "$io"))
     end
 
     # enable FD frames
@@ -102,7 +103,8 @@ function _init_can(channel::String,
         so = SocketCAN.setsockopt(s, SocketCAN.SOL_CAN_RAW,
             SocketCAN.CAN_RAW_FD_FRAMES, penable_canfd, Cuint(sizeof(Cint)))
         if so < 0
-            error("SocketCAN: setting CAN FD failed. $so")
+            throw(Errors.CANBusOpenError("setting CAN FD failed.",
+                "SocketCAN", "$so"))
         end
     end
 
@@ -111,7 +113,8 @@ function _init_can(channel::String,
     so = SocketCAN.setsockopt(s, SocketCAN.SOL_SOCKET,
         SocketCAN.SO_TIMESTAMPNS_NEW, p_on, Cuint(sizeof(Cint)))
     if so < 0
-        error("SocketCAN: setting up for capture timestamp is failed. $so")
+        throw(Errors.CANBusOpenError("setting up for capture timestamp is failed.",
+            "SocketCAN", "$so"))
     end
 
     # set filters
@@ -122,7 +125,8 @@ function _init_can(channel::String,
             SocketCAN.CAN_RAW_FILTER, prfilter, Cuint(8 * size(rfilter, 1)))
         if so < 0
             s = Libc.strerror(Libc.errno())
-            error("SocketCAN: filter setting error: $s")
+            throw(Errors.CANBusOpenError("filter setting error.",
+                "SocketCAN", "$s"))
         end
     end
 
@@ -134,7 +138,8 @@ function _init_can(channel::String,
     paddr = Ref(addr)
     b = SocketCAN.bind(s, paddr, Cuint(19))
     if b < 0
-        error("SocketCAN: bind error. $b")
+        throw(Errors.CANBusOpenError("bind error.",
+            "SocketCAN", "$b"))
     end
 
     return s
@@ -155,7 +160,8 @@ function Devices.dev_send(device::SocketCANDevice,
         pmsg, Cuint(sizeof(SocketCAN.can_frame)))
 
     if written != Cuint(sizeof(SocketCAN.can_frame))
-        error("SocketCAN: Failed to transmit.")
+        throw(Errors.CANBusIOError("Failed to transmit.",
+            "send_Frame", "SocketCAN", "$written"))
     end
     return nothing
 end
@@ -176,7 +182,8 @@ function Devices.dev_send(device::SocketCANDevice{T},
         pmsg, Cuint(sizeof(SocketCAN.canfd_frame)))
 
     if written != Cuint(sizeof(SocketCAN.canfd_frame))
-        error("SocketCAN: Failed to transmit.")
+        throw(Errors.CANBusIOError("Failed to transmit.",
+            "send_FDFrame", "SocketCAN", "$written"))
     end
     return nothing
 end
@@ -197,7 +204,7 @@ function Devices.dev_recv(device::SocketCANDevice; timeout_s::Real=0)::Union{Not
     ctrl_len = 100
     ctrlbuf = Vector{UInt8}(undef, ctrl_len)
 
-
+    # receive
     GC.@preserve r_frame r_iov r_addr ctrlbuf begin
         p_frame = Base.unsafe_convert(Ptr{SocketCAN.canfd_frame}, r_frame)
         iov = SocketCAN.iovec(Ptr{Cvoid}(p_frame), Csize_t(sizeof(SocketCAN.canfd_frame)))
@@ -221,11 +228,13 @@ function Devices.dev_recv(device::SocketCANDevice; timeout_s::Real=0)::Union{Not
             if ern == SocketCAN.EAGAIN
                 return nothing # rx queue is empty
             else
-                error("SocketCAN: receive error: $ern")
+                throw(Errors.CANBusIOError("Receive error",
+                    "recv", "SocketCAN", "$ern"))
             end
         else
             if nbytes != sizeof(SocketCAN.canfd_frame) && nbytes != sizeof(SocketCAN.can_frame)
-                error("Socketcan: received unexpected length: $nbytes")
+                throw(Errors.CANBusIOError("Received unexpected length",
+                    "recv", "SocketCAN", "$nbytes"))
             end
         end
 

@@ -1,5 +1,7 @@
 module Frames
 
+
+import ..Errors
 using CANalyze
 
 
@@ -62,10 +64,11 @@ struct Frame <: AbstractFrame
         is_remote_frame::Bool=false, is_error_frame::Bool=false) where {IT<:Integer,V<:AbstractVector}
 
         if !_check_id(id, is_extended)
-            error("Frame: invalid id range.")
+            throw(Errors.CANBusValueError("Invalid id range: $id", "Frame"))
         end
         if !_check_len(length(data), false)
-            error("Frame: invalid data length.")
+            throw(Errors.CANBusValueError("Invalid data length: $(length(data))",
+                "Frame"))
         end
 
         new(timestamp, id, data, is_extended, is_remote_frame, is_error_frame)
@@ -125,10 +128,11 @@ struct FDFrame <: AbstractFrame
         is_error_frame::Bool=false) where {IT<:Integer,V<:AbstractVector}
 
         if !_check_id(id, is_extended)
-            error("Frame: invalid id range.")
+            throw(Errors.CANBusValueError("Invalid id range: $id", "FDFrame"))
         end
         if !_check_len(length(data), true)
-            error("Frame: invalid data length.")
+            throw(Errors.CANBusValueError("Invalid data length: $(length(data))",
+                "FDFrame"))
         end
 
         new(timestamp, id, data, is_extended, bitrate_switch, error_state, is_error_frame)

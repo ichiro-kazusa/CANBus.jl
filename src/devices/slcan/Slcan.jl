@@ -3,6 +3,7 @@ module SlcanDevices
 import ..Devices
 import ....InterfaceCfgs
 import ....Frames
+import ....Errors
 import ....misc: SerialHAL
 
 
@@ -18,8 +19,8 @@ Struct to store SLCAN device handle and buffer.
 """
 mutable struct SlcanDevice{T<:Devices.AbstractBusType} <: Devices.AbstractDevice{T}
     sp::SerialHAL.HandleType
-    stdfilter::Vector{NTuple{2, UInt32}}
-    extfilter::Vector{NTuple{2, UInt32}}
+    stdfilter::Vector{NTuple{2,UInt32}}
+    extfilter::Vector{NTuple{2,UInt32}}
     buffer::String
 end
 
@@ -39,7 +40,7 @@ end
 
 
 #= convert AcceptanceFilter to (mask, rhs) =#
-function _init_filter(filter::Union{Nothing,InterfaceCfgs.AcceptanceFilter,Vector{InterfaceCfgs.AcceptanceFilter}})::Vector{NTuple{2, UInt32}}
+function _init_filter(filter::Union{Nothing,InterfaceCfgs.AcceptanceFilter,Vector{InterfaceCfgs.AcceptanceFilter}})::Vector{NTuple{2,UInt32}}
     if filter === nothing
         return []
     elseif isa(filter, InterfaceCfgs.AcceptanceFilter)
@@ -61,18 +62,20 @@ function _init_slcan(channel::String, bitrate::Int,
     # bitrate
     if !haskey(slcandef.BITRATE_DICT, bitrate)
         k = sort(collect(keys(slcandef.BITRATE_DICT)))
-        error("Slcan: unsupported bitrate. choose from $k")
+        throw(Errors.CANBusOpenError("unsupported bitrate. choose from $k",
+            "slcan", "nothing"))
     end
     # datarate
     if fd
         if !haskey(slcandef.BITRATE_DICT_FD, datarate)
             k = sort(collect(keys(slcandef.BITRATE_DICT_FD)))
-            error("Slcan: unsupported datarate. choose from $k")
+            throw(Errors.CANBusOpenError("unsupported datarate. choose from $k",
+                "slcan", "nothing"))
         end
     end
 
     if !(channel in SerialHAL.LibSerialPort.get_port_list())
-        error("Slcan: $channel is not found.")
+        throw(Errors.CANBusOpenError("$channel is not found", "slcan", "nothing"))
     end
 
     # open port
@@ -153,7 +156,7 @@ end
 
 
 #= apply filter and retruns accept flag =#
-function _apply_filter(id::UInt32, filter::Vector{NTuple{2, UInt32}})
+function _apply_filter(id::UInt32, filter::Vector{NTuple{2,UInt32}})
     if length(filter) == 0
         return true
     else

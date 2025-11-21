@@ -27,9 +27,8 @@ pkg> add CANBus
 
 ### Upcoming plans until v0.1.0
 
-* Careful error-handling.
 * Add Bus state check function
 * Try to support PCAN-Basic API for Windows.
+* Communication without init_access(Vector interface).
 * Support other interfaces.
 * Performance optimization.
-* Thread-safe send (shareable send interfaces between threads).
