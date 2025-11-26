@@ -57,6 +57,10 @@ CANBus.Interfaces.Devices.dev_recv(::CANBus.Interfaces.Devices.AbstractDevice; :
 CANBus.Interfaces.Devices.dev_close(::CANBus.Interfaces.Devices.AbstractDevice)
 ```
 
+```@docs
+CANBus.Interfaces.Devices.dev_status(::CANBus.Interfaces.Devices.AbstractDevice)
+```
+
 ## ConcreteDevices
 
 ### Kvaser

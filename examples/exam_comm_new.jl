@@ -7,16 +7,16 @@ function main()
     bustype = CAN_FD
 
     # device = VECTOR
-    device = KVASER
+    # device = KVASER
     # device = SLCAN
-    # device = SOCKETCAN
+    device = SOCKETCAN
 
     if device in (VECTOR, KVASER)
         ch0 = 0
         ch1 = 1
     elseif device == SOCKETCAN
-        ch0 = "vcan0"
-        ch1 = "vcan1"
+        ch0 = "can0"
+        ch1 = "can0"
     elseif Sys.iswindows() # slcan for windows
         ch0 = "COM3"
         ch1 = "COM4"
@@ -33,7 +33,7 @@ function main()
     f = AcceptanceFilter(0x02, 0x02)
 
     ifcfg2 = InterfaceConfig(device, ch1, bustype, 500000;
-        datarate=2000000, vector_appname="NewApp", stdfilter=f)
+        datarate=2000000, vector_appname="NewApp", stdfilter=f, extfilter=f)
 
     iface1 = Interface(ifcfg1)
     Interface(ifcfg2) do iface2 # do-end example
@@ -44,6 +44,8 @@ function main()
         frm2 = bustype == CAN_20 ? frm1 : FDFrame(0x02, collect(1:12); is_extended=true)
         send(iface1, frm1)
         send(iface1, frm2)
+
+        println(status(iface2))
 
         sleep(0.1)
 

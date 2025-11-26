@@ -54,6 +54,12 @@ CAN FD on `SLCAN`, datarate can be chosen from `2000000`, `5000000`.
     `SLCAN` with FD firmware (b158aa7) is seemd to be always on FD mode,
     thus there is **no pure CAN mode**. Therefore, even if this interface is set up for `CAN_20`, exceptionally receives `FDFrame` when someone sends that.
 
+
+!!! warning "Behavior of status function"
+
+    `status` function for `SLCAN` always returns `NO_STATUS` status.
+    Since slcan firmware has no capability to check bus status.
+
 ## SocketCAN
 
 `SOCKETCAN` supports Linux platform.
@@ -82,6 +88,12 @@ iface = Interface(cfg)
     distinguish between standard and extended IDs.
     Therefore, for example, if you set options for `stdfilter`, the `extfilter`
     will not receive any messages unless you explicitly configured to do so.
+
+!!! warning "Behavior of status function"
+
+    `status` function for `SocketCAN` initially set as `NO_STATUS`.
+    The status which `status` function returns is not updated
+    unless you call `recv` function.
 
 ## Vector
 

@@ -22,6 +22,8 @@ struct VectorDevice{T<:Devices.AbstractBusType} <: Devices.AbstractDevice{T}
     channelMask::Vxlapi.XLaccess
     time_offset::Float64
     notification_hnd::Ref{Vxlapi.XLhandle}
+    rx_buffer_20::Vector{Vxlapi.XLevent}
+    rx_buffer_fd::Vector{Vxlapi.XLcanRxEvent}
 end
 
 
@@ -46,7 +48,8 @@ function Devices.dev_open(::Val{InterfaceCfgs.VECTOR}, cfg::InterfaceCfgs.Interf
 
     bustype = Devices.helper_bustype(cfg)
 
-    vd = VectorDevice{bustype}(pportHandle, channelMask, time_offset, notification_hnd)
+    vd = VectorDevice{bustype}(pportHandle, channelMask, time_offset,
+        notification_hnd, Vector{Vxlapi.XLevent}[], Vector{Vxlapi.XLcanRxEvent}[])
     finalizer(_cleanup_porthandle, vd.pportHandle)
     finalizer(_cleanup_notificationhandle, vd.notification_hnd)
 
@@ -121,7 +124,7 @@ function _init_vector(channel::Union{Int,AbstractVector{Int}},
     end
     if status != Vxlapi.XL_SUCCESS
         _cleanup_porthandle(pportHandle)
-        throw(Errors.CANBusOpenError("Failed to set bitrate. Check having init_access.",
+        throw(Errors.CANBusOpenError("Failed to set bitrate. Check bitrate value or having init_access.",
             "Vector", string(status)))
     end
 
@@ -241,8 +244,15 @@ function Devices.dev_recv(device::VectorDevice{T};
     EventList_r = Vector{Vxlapi.XLevent}([Vxlapi.XLevent() for i in 1:pEventCount[]])
     pEventList_r = Ref(EventList_r, 1)
 
-    status = Vxlapi.xlReceive!(device.pportHandle[], pEventCount, pEventList_r)
+    # first, read from internal rx_buffer. if it is empty, read from device buffer.
+    if length(device.rx_buffer_20) > 0
+        status = Vxlapi.XL_SUCCESS
+        EventList_r[1] = popfirst!(device.rx_buffer_20)
+    else
+        status = Vxlapi.xlReceive!(device.pportHandle[], pEventCount, pEventList_r)
+    end
 
+    # interpret event struct
     if status != Vxlapi.XL_ERR_QUEUE_IS_EMPTY
         if EventList_r[1].tag == Vxlapi.XL_RECEIVE_MSG
 
@@ -264,6 +274,7 @@ function Devices.dev_recv(device::VectorDevice{T};
             )
             return frame
         end
+        throw(Errors.CANBusIOError("Receive failed.", "recv_20", "Vector", "$status"))
     end
     return nothing
 end
@@ -283,13 +294,19 @@ function Devices.dev_recv(device::VectorDevice{T};
     # poll (clear event even if timeout_s==0)
     _poll(device, timeout_s)
 
-    # receive    
+    # prepare to receive
     canrxevt = Vxlapi.XLcanRxEvent(0, 0, 0, 0, 0, 0, 0, 0, 0,
         Vxlapi.XL_CAN_EV_RX_MSG(0, 0, 0, (zeros(Cuchar, 12)...,), 0, 0,
             (zeros(Cuchar, 5)...,), (zeros(Cuchar, Vxlapi.XL_CAN_MAX_DATA_LEN)...,)))
     pcanrxevt = Ref(canrxevt)
 
-    status = Vxlapi.xlCanReceive!(device.pportHandle[], pcanrxevt)
+    # first, read from internal rx_buffer. if it is empty, read from device buffer.
+    if length(device.rx_buffer_fd) > 0
+        status = Vxlapi.XL_SUCCESS
+        pcanrxevt[] = popfirst!(device.rx_buffer_fd)
+    else
+        status = Vxlapi.xlCanReceive!(device.pportHandle[], pcanrxevt)
+    end
 
     if status == Vxlapi.XL_ERR_QUEUE_IS_EMPTY
         return nothing
@@ -321,7 +338,7 @@ function Devices.dev_recv(device::VectorDevice{T};
             end
         end
     end
-    throw(Errors.CANBusIOError("Receive failed.", "recv", "Vector", "$status"))
+    throw(Errors.CANBusIOError("Receive failed.", "recv_FD", "Vector", "$status"))
 end
 
 
@@ -331,6 +348,79 @@ function Devices.dev_close(device::VectorDevice{T}) where {T<:Devices.AbstractBu
     status = Vxlapi.xlClosePort(device.pportHandle[])
     status = Vxlapi.xlCloseDriver()
     return nothing
+end
+
+
+function Devices.dev_status(device::VectorDevice{T}) where {T<:Devices.BUS_20}
+    Vxlapi.xlCanRequestChipState(device.pportHandle[], device.channelMask)
+
+    # prepare to receive
+    pEventCount = Ref{Cuint}(Cuint(1))
+    EventList_r = Vector{Vxlapi.XLevent}([Vxlapi.XLevent() for i in 1:pEventCount[]])
+    pEventList_r = Ref(EventList_r, 1)
+
+    while true
+        status = Vxlapi.xlReceive!(device.pportHandle[], pEventCount, pEventList_r)
+        if status == Vxlapi.XL_ERR_QUEUE_IS_EMPTY
+            throw(Errors.CANBusIOError("Bus status does not return",
+                "status_20", "Vector", "$status"))
+        elseif EventList_r[1].tag == Vxlapi.XL_RECEIVE_MSG
+            push!(device.rx_buffer_20, copy(EventList_r[1]))
+        elseif EventList_r[1].tag == Vxlapi.XL_CHIP_STATE
+            r_data = Ref{Vxlapi.s_xl_can_msg}(EventList_r[1].tagData)
+            p_data = Base.unsafe_convert(Ptr{Vxlapi.s_xl_can_msg}, r_data)
+            chip_state = Base.unsafe_load(Ptr{Vxlapi.s_xl_chip_state}(p_data))
+            return _convert_chipstate(chip_state.busStatus)
+        else
+            throw(Errors.CANBusIOError("Bus status does not return",
+                "status_20", "Vector", "$status"))
+        end
+    end
+end
+
+
+function Devices.dev_status(device::VectorDevice{T}) where {T<:Devices.BUS_FD}
+    Vxlapi.xlCanRequestChipState(device.pportHandle[], device.channelMask)
+
+    # prepare to receive
+    canrxevt = Vxlapi.XLcanRxEvent(0, 0, 0, 0, 0, 0, 0, 0, 0,
+        Vxlapi.XL_CAN_EV_RX_MSG(0, 0, 0, (zeros(Cuchar, 12)...,), 0, 0,
+            (zeros(Cuchar, 5)...,), (zeros(Cuchar, Vxlapi.XL_CAN_MAX_DATA_LEN)...,)))
+    pcanrxevt = Ref(canrxevt)
+
+    while true
+        status = Vxlapi.xlCanReceive!(device.pportHandle[], pcanrxevt)
+        if status == Vxlapi.XL_ERR_QUEUE_IS_EMPTY
+            throw(Errors.CANBusIOError("Bus status does not return",
+                "status_FD", "Vector", "$status"))
+        elseif pcanrxevt[].tag == Vxlapi.XL_CAN_EV_TAG_RX_OK
+            push!(device.rx_buffer_fd, copy(pcanrxevt[]))
+        elseif pcanrxevt[].tag == Vxlapi.XL_CAN_EV_TAG_CHIP_STATE
+            r_data = Ref{Vxlapi.XL_CAN_EV_RX_MSG}(pcanrxevt[].tagData)
+            p_data = Base.unsafe_convert(Ptr{Vxlapi.XL_CAN_EV_RX_MSG}, r_data)
+            chip_state = Base.unsafe_load(Ptr{Vxlapi.XL_CAN_EV_CHIP_STATE}(p_data))
+            return _convert_chipstate(chip_state.busStatus)
+        else
+            throw(Errors.CANBusIOError("Bus status does not return",
+                "status_FD", "Vector", "$status"))
+        end
+    end
+end
+
+
+#- convert chipstate from Vector native code to CANBus.jl code -#
+function _convert_chipstate(status::Cuchar)
+    if status == Vxlapi.XL_CHIPSTAT_BUSOFF
+        return Devices.BUSOFF
+    elseif status == Vxlapi.XL_CHIPSTAT_ERROR_PASSIVE
+        return Devices.ERROR_PASSIVE
+    elseif status == Vxlapi.XL_CHIPSTAT_ERROR_WARNING
+        return Devices.ERROR_WARNING
+    elseif status == Vxlapi.XL_CHIPSTAT_ERROR_ACTIVE
+        return Devices.ERROR_ACTIVE
+    else
+        return Devices.NO_STATUS
+    end
 end
 
 

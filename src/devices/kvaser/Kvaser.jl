@@ -239,4 +239,28 @@ function Devices.dev_close(device::KvaserDevice{T}) where {T<:Devices.AbstractBu
     return nothing
 end
 
+
+function Devices.dev_status(device::KvaserDevice{T}) where {T<:Devices.AbstractBusType}
+    r_flags = Ref{Culong}()
+    status = Canlib.canReadStatus!(device.handleholder.handle, r_flags)
+    if status != Canlib.canOK
+        throw(Errors.CANBusIOError("Bus status read error.",
+            "status", "Kvaser", "$status"))
+    end
+
+    # check flags
+    if (r_flags[] & Canlib.canSTAT_ERROR_PASSIVE) != 0 
+        return Devices.ERROR_PASSIVE
+    elseif (r_flags[] & Canlib.canSTAT_BUS_OFF) != 0 
+        return Devices.BUSOFF
+    elseif (r_flags[] & Canlib.canSTAT_ERROR_WARNING) != 0 
+        return Devices.ERROR_WARNING
+    elseif (r_flags[] & Canlib.canSTAT_ERROR_ACTIVE) != 0 
+        return Devices.ERROR_ACTIVE
+    else
+        return Devices.NO_STATUS
+    end
+end
+
+
 end # KvaserDevices

@@ -56,7 +56,6 @@ const canERR_IO_NO_VALID_CONFIG::Cint = -48
 const canERR__RESERVED::Cint = -49    #///< Reserved
 
 
-
 #############################################
 # These defines are used in canOpenChannel(). 
 const canOPEN_EXCLUSIVE::Cint = 0x0008
@@ -69,7 +68,6 @@ const canOPEN_ACCEPT_LARGE_DLC::Cint = 0x0200 #// DLC can be greater than 8
 const canOPEN_CAN_FD::Cint = 0x0400
 const canOPEN_CAN_FD_NONISO::Cint = 0x0800
 const canOPEN_INTERNAL_L::Cint = 0x1000
-
 
 
 #############################################
@@ -89,8 +87,6 @@ const canMSG_ERROR_FRAME::Cuint = 0x0020
 const canFDMSG_FDF::Cuint = 0x010000 # Message is an FD message (CAN FD) 
 const canFDMSG_BRS::Cuint = 0x020000 # Message is sent/received with bit rate switch (CAN FD) 
 const canFDMSG_ESI::Cuint = 0x040000 # Sender of the message is in error passive mode (CAN FD) 
-
-
 
 
 #############################################
@@ -140,3 +136,19 @@ const canIOCTL_SET_TIMER_SCALE::Cuint = 6
 #define  canIOCTL_GET_THROTTLE_SCALED   42 
 #define  canIOCTL_RESET_OVERRUN_COUNT   44 
 #define  canIOCTL_LIN_MODE   45 
+
+
+#############################################
+## canSTAT
+const canSTAT_ERROR_PASSIVE::Culong = 0x00000001
+const canSTAT_BUS_OFF::Culong = 0x00000002
+const canSTAT_ERROR_WARNING::Culong = 0x00000004
+const canSTAT_ERROR_ACTIVE::Culong = 0x00000008
+const canSTAT_TX_PENDING::Culong = 0x00000010
+const canSTAT_RX_PENDING::Culong = 0x00000020
+const canSTAT_RESERVED_1::Culong = 0x00000040
+const canSTAT_TXERR::Culong = 0x00000080
+const canSTAT_RXERR::Culong = 0x00000100
+const canSTAT_HW_OVERRUN::Culong = 0x00000200
+const canSTAT_SW_OVERRUN::Culong = 0x00000400
+const canSTAT_OVERRUN::Culong = (canSTAT_HW_OVERRUN | canSTAT_SW_OVERRUN)

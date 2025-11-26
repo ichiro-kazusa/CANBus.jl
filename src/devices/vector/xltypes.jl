@@ -28,6 +28,12 @@ const XL_CANFD_MAX_EVENT_SIZE = 128
     res2::XLuint64 = 0
 end
 
+
+function Base.copy(s::s_xl_can_msg)
+    s_xl_can_msg(s.id, s.flags, s.dlc, s.resl, s.data, s.res2)
+end
+
+
 @kwdef struct XLevent # 48 bytes
     tag::XLeventTag = 0
     chanIndex::Cuchar = 0
@@ -37,6 +43,12 @@ end
     reserved::Cuchar = 0
     timeStamp::XLuint64 = 0
     tagData::s_xl_can_msg = s_xl_can_msg() # this is union originally, but this package focuses on CANBus.
+end
+
+
+function Base.copy(s::XLevent)
+    XLevent(s.tag, s.chanIndex, s.transId, s.portHandle,
+        s.flags, s.reserved, s.timeStamp, copy(s.tagData))
 end
 
 
@@ -54,6 +66,7 @@ struct XLcanFdConf
     reserved1::NTuple{2,Cuchar}
     reserved2::Cuint
 end
+
 
 function XLcanFdConf(bitrate::Cuint, datarate::Cuint, non_iso::Bool)
     flag = non_iso ? CANFD_CONFOPT_NO_ISO : Cuchar(0)
@@ -100,6 +113,12 @@ struct XL_CAN_EV_RX_MSG
 end
 
 
+function Base.copy(s::XL_CAN_EV_RX_MSG)
+    XL_CAN_EV_RX_MSG(s.canId, s.msgFlags, s.crc, s.reserved1,
+        s.totalBitCnt, s.dlc, s.reserved, s.data)
+end
+
+
 struct XLcanRxEvent
     size::Cuint
     tag::Cushort
@@ -114,10 +133,35 @@ struct XLcanRxEvent
 end
 
 
+function Base.copy(s::XLcanRxEvent)
+    XLcanRxEvent(s.size, s.tag, s.channelIndex, s.reserved, s.userHandle, s.flagsChip,
+        s.reserved0, s.reserved1, s.timeStampSync, s.tagData)
+end
+
+
+#- chip state struct for 20-#
+struct s_xl_chip_state
+    busStatus::Cuchar
+    txErrorCounter::Cuchar
+    rxErrorCounter::Cuchar
+end
+
+
+#- chip state struct for FD-#
+struct XL_CAN_EV_CHIP_STATE
+    busStatus::Cuchar
+    txErrorCounter::Cuchar
+    rxErrorCounter::Cuchar
+    reserved::Cuchar
+    reserved0::Cuint
+end
+
+
 const CANFD_LEN2DLC::Dict{Int,Int} = Dict([
     12 => 9, 16 => 10, 20 => 11, 24 => 12,
     32 => 13, 48 => 14, 64 => 15
 ])
+
 
 const CANFD_DLC2LEN::Dict{Int,Int} = Dict([
     9 => 12, 10 => 16, 11 => 20, 12 => 24,
@@ -185,7 +229,6 @@ const XL_ERR_STREAM_NOT_FOUND::XLstatus = 214           # =0x00D6
 const XL_ERR_STREAM_NOT_CONNECTED::XLstatus = 215       # =0x00D7
 const XL_ERR_QUEUE_OVERRUN::XLstatus = 216              # =0x00D8
 const XL_ERROR::XLstatus = 255                          # =0x00FF
-
 
 
 #------------------------------------------------------------------------------
@@ -261,7 +304,6 @@ const XL_HWTYPE_VN5620A::Cint = 121
 const XL_MAX_HWTYPE::Cint = 123
 
 
-
 # interface version for our events
 const XL_INTERFACE_VERSION_V2::Cuint = 2
 const XL_INTERFACE_VERSION_V3::Cuint = 3
@@ -285,8 +327,6 @@ const XL_BUS_TYPE_A429::Cuint = 0x00002000
 const XL_BUS_TYPE_STATUS::Cuint = 0x00020000
 
 
-
-
 # porthandle
 const XL_INVALID_PORTHANDLE::XLportHandle = -1
 
@@ -295,7 +335,6 @@ const XL_INVALID_PORTHANDLE::XLportHandle = -1
 const XL_ACTIVATE_NONE::Cuint = 0
 const XL_ACTIVATE_RESET_CLOCK::Cuint =
     8  # using this flag with time synchronisation protocols supported by Vector Timesync Service is not recommended
-
 
 
 const XL_EVENT_FLAG_OVERRUN::Cuchar = 0x01  #!< Used in XLevent.flags
@@ -392,3 +431,9 @@ const XL_CAN_RXMSG_FLAG_ARB_LOST::Cuint = 0x0400  #// Arbitration Lost set if th
 const XL_CAN_RXMSG_FLAG_WAKEUP::Cuint = 0x2000  #// high voltage message on single wire CAN
 const XL_CAN_RXMSG_FLAG_TE::Cuint = 0x4000  #// 1: transceiver error detected
 
+
+# chip state
+const XL_CHIPSTAT_BUSOFF::Cuchar = 0x01
+const XL_CHIPSTAT_ERROR_PASSIVE::Cuchar = 0x02
+const XL_CHIPSTAT_ERROR_WARNING::Cuchar = 0x04
+const XL_CHIPSTAT_ERROR_ACTIVE::Cuchar = 0x08

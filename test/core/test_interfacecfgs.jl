@@ -12,6 +12,6 @@ end
 
 
 @testset "InterfaceConfig" begin
-    @test_throws ErrorException test_interfaceconfig_invalid_bitrate()
-    @test_throws ErrorException test_interfaceconfig_invalid_bitrate_fd()
+    @test_throws CANBus.Errors.CANBusValueError test_interfaceconfig_invalid_bitrate()
+    @test_throws CANBus.Errors.CANBusValueError test_interfaceconfig_invalid_bitrate_fd()
 end

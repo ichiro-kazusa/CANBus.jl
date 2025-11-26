@@ -27,7 +27,6 @@ pkg> add CANBus
 
 ### Upcoming plans until v0.1.0
 
-* Add Bus state check function
 * Try to support PCAN-Basic API for Windows.
 * Communication without init_access(Vector interface).
 * Support other interfaces.

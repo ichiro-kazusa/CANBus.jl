@@ -27,7 +27,10 @@ const SOL_CAN_RAW = SOL_CAN_BASE + CAN_RAW
 const SOL_SOCKET = Cint(1)
 const SO_TIMESTAMPNS_NEW = Cint(64)
 const CAN_RAW_FILTER = Cint(1)
+const CAN_RAW_ERR_FILTER = Cint(2)
 const CAN_RAW_FD_FRAMES = Cint(5)
+const CAN_ERR_BUSOFF = UInt32(0x00000040)
+const CAN_ERR_CRTL = UInt32(0x00000004)
 #/*
 # * defined bits for canfd_frame.flags
 # */

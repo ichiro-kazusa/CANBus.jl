@@ -9,6 +9,7 @@ abstract type AbstractBusType end
 struct BUS_20 <: AbstractBusType end
 struct BUS_FD <: AbstractBusType end
 
+
 #= internal helper function to determine bustype =#
 function helper_bustype(cfg::InterfaceCfgs.InterfaceConfig)
     cfg.bustype in (InterfaceCfgs.CAN_FD, InterfaceCfgs.CAN_FD_NONISO) ?
@@ -18,6 +19,16 @@ end
 
 """ Base Type of Devices """
 abstract type AbstractDevice{T<:AbstractBusType} end
+
+
+# Bus Status Type
+@enum BusStatus::Int begin
+    NO_STATUS
+    BUSOFF
+    ERROR_PASSIVE
+    ERROR_WARNING
+    ERROR_ACTIVE
+end
 
 
 #= prototype functions =#
@@ -45,6 +56,11 @@ function dev_close(ad::AbstractDevice)
     throw(Errors.CANBusNotImplementedError("CANBus: Function to close $ad is not implemented."))
 end
 
+
+""" Abstract function for get status. """
+function dev_status(ad::AbstractDevice)
+    throw(Errors.CANBusNotImplementedError("CANBus: Function to get status of $ad is not implemented."))
+end
 
 
 include("vector/Vector.jl")

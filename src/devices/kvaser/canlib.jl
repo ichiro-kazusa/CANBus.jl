@@ -119,4 +119,9 @@ function canFlushReceiveQueue(handle::Cint)::canStatus
         (Cint,), handle)
 end
 
+function canReadStatus!(handle::Cint, flags::Ref{Culong})::canStatus
+    ccall((:canReadStatus, canlib), canStatus,
+        (Cint, Ptr{Culong}), handle, flags)
+end
+
 end # Canlib

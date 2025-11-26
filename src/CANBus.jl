@@ -38,9 +38,13 @@ export
 # public api: interfaces
 include("applications/Interfaces.jl")
 import .Interfaces:
-    send, recv, shutdown, Interface
+    send, recv, shutdown, status, Interface
 
-export Interface, send, recv, shutdown
+export Interface, send, recv, shutdown, status
 
+# public api: devices
+import .Interfaces.Devices:
+    BUSOFF, ERROR_PASSIVE, ERROR_WARNING, ERROR_ACTIVE
+export BUSOFF, ERROR_PASSIVE, ERROR_WARNING, ERROR_ACTIVE
 
 end # module CANBus

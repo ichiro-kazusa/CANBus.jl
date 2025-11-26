@@ -1,7 +1,9 @@
 # Changelog
 
 ### v0.0.7
-*  Replaced error() function by orignal error object.
+
+* New: Added status acquisition function.
+* Refine: Replaced `error()` function by new error object.
 
 ### v0.0.6
 

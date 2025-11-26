@@ -67,10 +67,10 @@ end
 
 @testset "frames" begin
     @test test_equal_can()
-    @test_throws ErrorException test_message_can()
+    @test_throws CANBus.Errors.CANBusValueError test_message_can()
     @test test_convert_can()
     @test test_equal_fd()
-    @test_throws ErrorException test_message_fd_over()
-    @test_throws ErrorException test_message_fd_invalid_dlc()
+    @test_throws CANBus.Errors.CANBusValueError test_message_fd_over()
+    @test_throws CANBus.Errors.CANBusValueError test_message_fd_invalid_dlc()
     @test test_convert_fd()
 end

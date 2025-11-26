@@ -18,3 +18,6 @@ CANBus.Interfaces.recv
 CANBus.Interfaces.shutdown
 ```
 
+```@docs
+CANBus.Interfaces.status
+```

@@ -22,6 +22,7 @@ Struct for store SocketCAN device handle.
 """
 struct SocketCANDevice{T<:Devices.AbstractBusType} <: Devices.AbstractDevice{T}
     socketholder::SocketHolder
+    r_status::Ref{Devices.BusStatus} # to treat as mutable
 end
 
 
@@ -38,7 +39,7 @@ function Devices.dev_open(::Val{InterfaceCfgs.SOCKETCAN}, cfg::InterfaceCfgs.Int
 
     bustype = Devices.helper_bustype(cfg)
 
-    sd = SocketCANDevice{bustype}(SocketHolder(s))
+    sd = SocketCANDevice{bustype}(SocketHolder(s), Ref(Devices.NO_STATUS))
     finalizer(_cleanup, sd.socketholder)
 
     return sd
@@ -124,10 +125,19 @@ function _init_can(channel::String,
         so = SocketCAN.setsockopt(s, SocketCAN.SOL_CAN_RAW,
             SocketCAN.CAN_RAW_FILTER, prfilter, Cuint(8 * size(rfilter, 1)))
         if so < 0
-            s = Libc.strerror(Libc.errno())
+            err = Libc.strerror(Libc.errno())
             throw(Errors.CANBusOpenError("filter setting error.",
-                "SocketCAN", "$s"))
+                "SocketCAN", "$err"))
         end
+    end
+
+    # enable receive error-frame
+    enable_err = Cint(SocketCAN.CAN_ERR_BUSOFF | SocketCAN.CAN_ERR_CRTL)
+    so = SocketCAN.setsockopt(s, SocketCAN.SOL_CAN_RAW,
+        SocketCAN.CAN_RAW_ERR_FILTER, Ref(enable_err), Cuint(sizeof(enable_err)))
+    if so < 0
+        throw(Errors.CANBusOpenError("Failed to set receiving error-frame.",
+            "SocketCAN", "$so"))
     end
 
     # bind
@@ -253,8 +263,31 @@ function Devices.dev_recv(device::SocketCANDevice; timeout_s::Real=0)::Union{Not
         isbrs = (r_frame[].flags & SocketCAN.CANFD_BRS) != 0
         isesi = (r_frame[].flags & SocketCAN.CANFD_ESI) != 0
         id = isext ? rawid - SocketCAN.CAN_EFF_FLAG : rawid
+        id = isrtr ? id - SocketCAN.CAN_RTR_FLAG : id
+        id = iserr ? id - SocketCAN.CAN_ERR_FLAG : id
         len = r_frame[].len
 
+        # if BUSOFF/CTRL error frame, store status. then, re-recv
+        if iserr
+            if (SocketCAN.CAN_ERR_BUSOFF & id) != 0
+                device.r_status[] = Devices.BUSOFF
+                return Devices.dev_recv(device, timeout_s=timeout_s)
+            elseif (SocketCAN.CAN_ERR_CRTL & id) != 0
+                if (r_frame[].data[2] & 0x04) != 0 || (r_frame[].data[2] & 0x08) != 0
+                    device.r_status[] = Devices.ERROR_WARNING
+                    return Devices.dev_recv(device, timeout_s=timeout_s)
+                elseif (r_frame[].data[2] & 0x10) != 0 || (r_frame[].data[2] & 0x20) != 0
+                    device.r_status[] = Devices.ERROR_PASSIVE
+                    return Devices.dev_recv(device, timeout_s=timeout_s)
+                elseif (r_frame[].data[2] & 0x40) != 0
+                    device.r_status[] = Devices.ERROR_ACTIVE
+                    return Devices.dev_recv(device, timeout_s=timeout_s)
+                end
+                return Devices.dev_recv(device, timeout_s=timeout_s)
+            end
+        end
+
+        # construct Frame/FDFrame
         if isfdf
             msg = Frames.FDFrame(
                 id, collect(r_frame[].data[1:len]);
@@ -276,6 +309,11 @@ end
 function Devices.dev_close(device::T) where {T<:SocketCANDevice}
     SocketCAN.close(device.socketholder.socket)
     return nothing
+end
+
+
+function Devices.dev_status(device::T) where {T<:SocketCANDevice}
+    return device.r_status[]
 end
 
 

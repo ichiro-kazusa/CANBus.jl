@@ -92,4 +92,28 @@ function shutdown(iface::Interface)
 end
 
 
+
+"""
+    status(interface::T<:Interface)
+
+This functions checks and returns bus status.
+
+The bus status is any of the following:
+
+* NO_STATUS: No status information.
+* BUSOFF: Bus is offline.
+* ERROR_ACTIVE: Bus is fine.
+* ERROR_WARNING: The error counter has reached the warning level.
+* ERROR_PASSIVE: The error counter has reached the error level.
+
+More details is described in many websites, such as [here](https://www.csselectronics.com/pages/can-bus-errors-intro-tutorial).
+
+`ERROR_WARNING` level is vendor-specific status.
+See official documents of their APIs for details.
+"""
+function status(iface::Interface)
+    Devices.dev_status(iface.device)
+end
+
+
 end # Interfaces

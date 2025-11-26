@@ -244,4 +244,11 @@ function Devices.dev_close(driver::SlcanDevice)
 end
 
 
+function Devices.dev_status(driver::SlcanDevice)
+    return Devices.NO_STATUS
+    # This function always returns NO_STATUS status,
+    # since slcan device does not have capability to check bus status.
+end
+
+
 end # Slcan

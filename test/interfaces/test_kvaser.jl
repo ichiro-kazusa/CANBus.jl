@@ -27,7 +27,7 @@ const cfg2_fd = InterfaceConfigFD(device, ch2, 500000, 2000000; extfilter=filter
 if !haskey(ENV, "GITHUB_ACTIONS") && Sys.iswindows()
     @testset "Kvaser" begin
         @test test_device_normal(cfg1, cfg2)
-        @test_throws ErrorException test_device_nodevice(cfg3)
+        @test_throws CANBus.Errors.CANBusOpenError test_device_nodevice(cfg3)
         @test test_device_normal_fd(cfg1_fd, cfg2_fd)
         @test test_device_timeout(cfg1_fd, cfg2_fd)
         @test test_device_do_end(cfg1, cfg1_fd)

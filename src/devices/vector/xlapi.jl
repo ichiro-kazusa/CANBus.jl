@@ -157,4 +157,11 @@ function xlFlushReceiveQueue(portHandle::XLportHandle)::XLstatus
         (XLportHandle,), portHandle)
 end
 
+function xlCanRequestChipState(portHandle::XLportHandle,
+    accessMask::XLaccess)::XLstatus
+
+    ccall((:xlCanRequestChipState, vxlapi), XLstatus,
+        (XLportHandle, XLaccess), portHandle, accessMask)
+end
+
 end # Vxlapi
